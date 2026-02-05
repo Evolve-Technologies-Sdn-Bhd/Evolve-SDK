@@ -1,4 +1,3 @@
-// gui/src/components/Sidebar/FilterData.tsx
 import React from 'react';
 
 export default function FilterData() {

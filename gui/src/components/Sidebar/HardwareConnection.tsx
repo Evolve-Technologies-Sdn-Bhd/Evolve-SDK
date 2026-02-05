@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 export default function HardwareConnection() {
-  const [mode, setMode] = useState<'serial' | 'tcp'>('tcp');
+  const [mode, setMode] = useState<'serial' | 'tcp' | 'mqtt'>('tcp');
   const [connected, setConnected] = useState(false);
 
   return (
@@ -28,6 +28,16 @@ export default function HardwareConnection() {
             onChange={() => setMode('tcp')} 
           />
           <span>TCP/IP Mode</span>
+        </label>
+
+        <label className='flex items-center gap-2 cursor-pointer'>
+          <input 
+            type="radio" 
+            name="connType" 
+            checked={mode === 'mqtt'} 
+            onChange={() => setMode('mqtt')} 
+          />
+          <span>MQTT Mode</span>
         </label>
       </div>
 
@@ -57,6 +67,56 @@ export default function HardwareConnection() {
            </select>
         </div>
       )}
+
+      {/* MQTT Specific Controls */}
+        {mode === 'mqtt' && (
+          <div className="pl-4 mb-3 border-l-2 border-gray-200 space-y-2">
+            
+            <div>
+              <label className="block text-[10px] text-gray-500">
+                Broker URL
+              </label>
+              <input
+                type="text"
+                placeholder="mqtt://broker.hivemq.com"
+                className="w-full border p-1 text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] text-gray-500">
+                Topic
+              </label>
+              <input
+                type="text"
+                placeholder="rfid/raw"
+                className="w-full border p-1 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] text-gray-500">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  className="w-full border p-1 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-gray-500">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  className="w-full border p-1 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Connect Button */}
       <button 
