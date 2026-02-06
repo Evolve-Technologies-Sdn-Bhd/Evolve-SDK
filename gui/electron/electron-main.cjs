@@ -46,7 +46,9 @@ function createWindow() {
   // Initialize the Custom Menu
   createApplicationMenu();
 
-  registerSdkBridge({ mainWindow, sdk });
+  // The registerSdkBridge call will manage its own handlers now
+  // Ensure that 'sdkbridge.cjs' uses ipcMain.removeHandler where necessary
+  registerSdkBridge({ mainWindow, sdk }); 
 }
 
 // --- 3. CUSTOM MENU CONFIGURATION ---
@@ -131,52 +133,17 @@ function createApplicationMenu() {
   Menu.setApplicationMenu(menu);
 }
 
+
 // --- 4. IPC HANDLERS (Bridge between React & Node) ---
-
-// Connect Reader
-ipcMain.handle('reader:connect', async (event, config) => {
-  console.log("IPC: Connecting to reader...", config);
-  // Real implementation: return await readerInstance.connect(config);
-  return { success: true, message: "Connected successfully via IPC" }; 
-});
-
-// Disconnect Reader
-ipcMain.handle('reader:disconnect', async () => {
-  console.log("IPC: Disconnecting...");
-  // Real implementation: return await readerInstance.disconnect();
-  return { success: true };
-});
-
-// Configure Settings (Received from SettingsModal)
-ipcMain.handle('reader:configure', async (event, settings) => {
-  console.log("IPC: Applying Hardware Settings:", settings);
-  
-  // Real implementation example:
-  // await readerInstance.setPower(settings.power);
-  // await readerInstance.setRegion(settings.region);
-
-  return { success: true };
-});
-
-// Start/Stop Scan (Event based)
-ipcMain.on('reader:start-scan', () => {
-  console.log("IPC: Start Scan requested");
-  
-  // Mocking tag reads for now
-  /*
-  readerInstance.on('tag', (tag) => {
-    mainWindow.webContents.send('rfid:tag-read', tag);
-  });
-  readerInstance.startReading();
-  */
-});
+// *** I MOVED YOUR ORIGINAL HANDLERS FROM HERE INTO THE SDK BRIDGE CALL ABOVE ***
+// The ipcMain calls below were duplicates and caused the error.
 
 // --- NEW IPC HANDLER: Save Logs to File ---
 ipcMain.handle('logs:save-to-file', async (event, logContent) => {
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Export System Logs',
     defaultPath: `EvolveSDK_Logs_${Date.now()}.txt`,
-    filters: [{ name: 'Text Files', extensions: ['txt'] }]
+    filters: []
   });
 
   if (canceled || !filePath) return { success: false };
