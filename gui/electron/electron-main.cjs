@@ -1,10 +1,11 @@
 // gui/electron-main.cjs
 const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
 const { registerSdkBridge } = require('./ipc/sdkbridge.cjs');
+const { RfidSdk } = require('../../sdk/dist/index.js'); // Import your SDK here
 const path = require('path');
 const fs = require('fs');
 
-let sdk = null; // Placeholder for SDK instance
+let sdk = new RfidSdk(); // Initialize SDK instance
 // Uncomment when SDK is ready
 // const { UF3SReader } = require('../../sdk/dist');
 // sdk = new UF3SReader();
