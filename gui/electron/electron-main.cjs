@@ -131,7 +131,7 @@ function createApplicationMenu() {
         {
           label: 'Documentation',
           click: async () => {
-            await shell.openExternal('https://github.com/KhairulAnuar11/RFID-SDK.git');
+            await shell.openExternal('https://github.com/KhairulAnuar11/Evolve-SDK.git');
           }
         },
         { type: 'separator' },

@@ -1,7 +1,7 @@
 // src/RfidSdk.ts
 import { RfidEventEmitter } from './events/RfidEvents';
 import { BaseReader } from './readers/BaseReader';
-import { TcpReader } from './readers/TCPReader';
+import { TcpReader } from './transports/TCPTransport';
 import { formatPayload } from './payloads/PayloadFormatter';
 
 export class RfidSdk {

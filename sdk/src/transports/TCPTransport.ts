@@ -1,5 +1,5 @@
 import net from 'net';
-import { BaseReader } from './BaseReader';
+import { BaseReader } from '../readers/BaseReader';
 import { TagData } from '../events/RfidEvents';
 
 export class TcpReader extends BaseReader {
@@ -33,7 +33,7 @@ export class TcpReader extends BaseReader {
           raw: bufferData 
         };
         
-        this.emit('tagRead', tag);
+        this.emitTag(tag);
       });
 
       this.client.on('error', (err) => {
@@ -50,6 +50,10 @@ export class TcpReader extends BaseReader {
       this.client.destroy();
       this.client = undefined;
     }
+  }
+
+  readTag() {
+    // For TCP, tags are pushed automatically, nothing extra needed
   }
 
   startScan() {
