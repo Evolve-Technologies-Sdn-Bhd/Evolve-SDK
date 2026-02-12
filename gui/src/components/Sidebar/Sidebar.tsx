@@ -3,6 +3,7 @@ import React from 'react';
 import FilterData from './FilterData';
 import HardwareConnection from './HardwareConnection';
 import ReadControl from './ReadControl';
+import CumulativeCount from './CumulativeCount';
 
 export default function Sidebar() {
   return (
@@ -11,6 +12,8 @@ export default function Sidebar() {
       <HardwareConnection />
       {/* Removed Cumulative Display as requested */}
       <ReadControl />
+
+      <CumulativeCount />
       
       {/* Spacer to push content up */}
       <div className="flex-1"></div>

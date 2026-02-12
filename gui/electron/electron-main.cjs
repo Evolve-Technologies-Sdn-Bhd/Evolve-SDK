@@ -30,7 +30,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "EvolveSDK RFID Utility",
+    title: "Evolve SDK - RFID Management",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'), 
       nodeIntegration: false,
@@ -61,6 +61,28 @@ function createApplicationMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'Export Data',
+          submenu: [
+            {
+              label: 'Last 24 Hours',
+              click: () => mainWindow.webContents.send('menu:export-data', '1')
+            },
+
+            {
+              label: 'Last 7 Days',
+              click: () => mainWindow.webContents.send('menu:export-data', '7')
+            },
+
+            {
+              label: 'Last 30 Days',
+              click: () => mainWindow.webContents.send('menu:export-data', '30')
+            },
+          ]
+        },
+
+        {type: 'separator'},
+        
         { 
           label: 'Export Logs', 
           click: async () => { 
@@ -139,12 +161,36 @@ function createApplicationMenu() {
 // *** I MOVED YOUR ORIGINAL HANDLERS FROM HERE INTO THE SDK BRIDGE CALL ABOVE ***
 // The ipcMain calls below were duplicates and caused the error.
 
+
+// ---NEW IPC Handler: Save data to CSV---
+ipcMain.handle('data:save-csv' , async (event, {content, days}) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: `Export RFID Data (${days} Days)`,
+    defaultPath: `EvolveSDK_RFID_Data_Last_${days}_Days_${Date.now()}.csv`,
+    filters: [
+      { name: 'CSV Files', extensions: ['csv'] }
+    ]
+  });
+
+  if (canceled || !filePath) return { success: false };
+
+  try {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    return { success: true };
+  } catch (err) {
+    console.error('Failed to save CSV file:', err);
+    return { success: false, error: err.message };
+  }
+});
 // --- NEW IPC HANDLER: Save Logs to File ---
 ipcMain.handle('logs:save-to-file', async (event, logContent) => {
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Export System Logs',
     defaultPath: `EvolveSDK_Logs_${Date.now()}.txt`,
-    filters: []
+    filters: [
+      { name: 'Text Files', extensions: ['txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
   });
 
   if (canceled || !filePath) return { success: false };
@@ -164,6 +210,14 @@ app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit(); 
+});
+
+app.on('before-quit', async () => {
+
+  console.log('[App] Cleaning up before quitting...');
+
+  await sdk?.disconnect(); // Ensure SDK disconnects properly
+  ipcMain.removeAllListeners(); // Remove any remaining listeners to prevent leaks
 });
 
 app.on('activate', () => {
