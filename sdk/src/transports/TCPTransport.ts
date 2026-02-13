@@ -1,13 +1,13 @@
 import net from 'net';
-import { BaseReader } from '../readers/BaseReader';
-import { TagData } from '../events/RfidEvents';
+import { ReaderManager } from '../readers/ReaderManager';
+import { RfidEventEmitter, TagData } from '../events/RfidEvents';
 
-export class TcpReader extends BaseReader {
+export class TcpReader extends ReaderManager {
   private client?: net.Socket;
   private host: string;
   private port: number;
 
-  constructor(host: string, port: number, emitter: any) {
+  constructor(host: string, port: number, emitter: RfidEventEmitter) {
     super(emitter);
     this.host = host;
     this.port = port;
