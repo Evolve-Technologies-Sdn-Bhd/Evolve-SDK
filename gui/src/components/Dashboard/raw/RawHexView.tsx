@@ -1,11 +1,13 @@
 import React from 'react';
 import { RawPacket } from './RawDataConsole';
+import { HexFormatter } from '../../../utils/PayloadFormatter';
 
 interface RawHexViewProps {
   logs: RawPacket[];
+  formatter?: typeof HexFormatter;
 }
 
-export default function RawHexView({ logs }: RawHexViewProps) {
+export default function RawHexView({ logs, formatter = HexFormatter }: RawHexViewProps) {
     if (logs.length === 0) {
         return (
             <div className="text-gray-400 italic text-center mt-10">
@@ -28,9 +30,9 @@ export default function RawHexView({ logs }: RawHexViewProps) {
                 >
                         [{log.direction}]
                     </span>
-                    <span className="text-gray-800 break-all">
-                        {log.data}
-                    </span>
+                    <code className="text-gray-800 break-all">
+                        {formatter.fromHex(log.data)}
+                    </code>
                 </div>
             ))}
         </>

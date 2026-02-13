@@ -2,6 +2,7 @@ import React from 'react';
 import RawHexView from './RawHexView';
 import JSONViewer from './JSONViewer';
 import TextViewer from './TextViewer';
+import { HexFormatter, JSONFormatter, TextFormatter } from '../../../utils/PayloadFormatter';
 
 export interface RawPacket {
   id: number;
@@ -28,9 +29,9 @@ export default function RawDataConsole({
       ref={scrollRef}
       className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1"
     >
-      {viewType === 'raw' && <RawHexView logs={logs} />}
-      {viewType === 'json' && <JSONViewer logs={logs} />}
-      {viewType === 'text' && <TextViewer logs={logs} />}
+      {viewType === 'raw' && <RawHexView logs={logs} formatter={HexFormatter} />}
+      {viewType === 'json' && <JSONViewer logs={logs} formatter={JSONFormatter} />}
+      {viewType === 'text' && <TextViewer logs={logs} formatter={TextFormatter} />}
     </div>
   );
 }

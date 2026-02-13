@@ -1,9 +1,18 @@
 // src/RfidSdk.ts
+/**
+ * Main RFID SDK Entry Point
+ * 
+ * DESIGN PRINCIPLE: Pure Transport Abstraction
+ * - SDK emits RAW data only (no formatting)
+ * - GUI/Consumers handle all data formatting
+ * - Works with Serial, TCP, MQTT identically
+ * 
+ * Event Flow: Transport → Reader → EventBus → SDK → GUI (formatting) → Display
+ */
 import { RfidEventEmitter } from './events/RfidEvents';
 import { ReaderManager } from './readers/ReaderManager';
 import { TcpReader } from './transports/TCPTransport';
 import { MqttReader } from './transports/MQTTTransport';
-import { formatPayload } from './payloads/PayloadFormatter';
 
 export class RfidSdk {
   private emitter = new RfidEventEmitter();
@@ -44,17 +53,27 @@ export class RfidSdk {
   }
 
   // --- START / STOP SCAN ---
-    start() {
-      if (!this.reader) return;
+  /**
+   * Start scanning for RFID tags
+   * 
+   * Emits RAW tag data: { epc, rssi, timestamp }
+   * GUI layer handles formatting for display
+   */
+  start() {
+    if (!this.reader) return;
 
-      this.reader.on('tagRead', (tag: any) => {
-        const formatted = formatPayload(tag);
-        this.emit('tag', formatted);
-      });
+    this.reader.on('tagRead', (rawTagData: any) => {
+      // Emit raw data directly - NO FORMATTING in SDK
+      // Payload: { epc, rssi, timestamp, readerId?, ... }
+      this.emit('tag', rawTagData);
+    });
 
-      this.reader.startScan();
-    }
+    this.reader.startScan();
+  }
 
+  /**
+   * Stop scanning for RFID tags
+   */
   stop() {
     if (!this.reader) return;
 
