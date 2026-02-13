@@ -1,13 +1,8 @@
 import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
-<<<<<<< HEAD:gui/electron/electron-main.ts
 import { fileURLToPath, pathToFileURL } from 'url';
-import { registerSdkBridge } from './ipc/sdkbridge';
-=======
-import { fileURLToPath } from 'url';
 import { registerSdkBridge } from './ipc/sdkbridge.js';
->>>>>>> 8e6fb149c0db9a6ef9eb62ad617a7a28320f21a2:gui/electron/electron-main.js
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

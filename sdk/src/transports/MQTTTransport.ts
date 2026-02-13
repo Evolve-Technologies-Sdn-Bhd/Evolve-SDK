@@ -1,14 +1,14 @@
 import mqtt from 'mqtt';
-import { BaseReader } from '../readers/BaseReader';
-import { TagData } from '../events/RfidEvents';
+import { ReaderManager } from '../readers/ReaderManager';
+import { RfidEventEmitter, TagData } from '../events/RfidEvents';
 
-export class MqttReader extends BaseReader {
+export class MqttReader extends ReaderManager {
   private client?: mqtt.MqttClient;
   private brokerUrl: string;
   private topic: string;
   private options?: mqtt.IClientOptions;
 
-  constructor(brokerUrl: string, topic: string, emitter: any, options?: mqtt.IClientOptions) {
+  constructor(brokerUrl: string, topic: string, emitter: RfidEventEmitter, options?: mqtt.IClientOptions) {
     super(emitter);
     this.brokerUrl = brokerUrl;
     this.topic = topic;
