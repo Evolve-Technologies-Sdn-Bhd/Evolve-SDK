@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { registerSdkBridge } from './ipc/sdkbridge.js';
+import { registerSdkBridge } from './ipc/sdkbridge';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
