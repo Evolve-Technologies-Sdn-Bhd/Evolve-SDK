@@ -11,6 +11,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [region, setRegion] = useState('FCC');
   const [beeper, setBeeper] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [brokerUrl, setBrokerUrl] = useState('ws://localhost:9001');
+  const [topic, setTopic] = useState('rfid/tags');
+  const [mqttStatus, setMqttStatus] = useState<'disconnected'|'connecting'|'connected'>('disconnected');
 
   if (!isOpen) return null;
 
@@ -99,6 +102,52 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   className="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 right-5"
                 />
                 <label htmlFor="toggle" className={`toggle-label block overflow-hidden h-5 rounded-full cursor-pointer ${beeper ? 'bg-blue-600' : 'bg-gray-300'}`}></label>
+              </div>
+            </div>
+          </div>
+
+          {/* MQTT Connect Section */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wide">MQTT Connection</h3>
+            <div className="bg-gray-50 border border-gray-200 p-4 rounded text-sm space-y-3">
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Broker URL</label>
+                <input
+                  value={brokerUrl}
+                  onChange={(e) => setBrokerUrl(e.target.value)}
+                  className="w-full border border-gray-300 rounded p-2 text-sm bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Topic</label>
+                <input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full border border-gray-300 rounded p-2 text-sm bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">Status: <span className="font-mono">{mqttStatus}</span></div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        setMqttStatus('connecting');
+                        // @ts-ignore
+                        await window.electronAPI.connectMqtt(brokerUrl, topic, {});
+                        setMqttStatus('connected');
+                      } catch (err) {
+                        console.error('MQTT connect failed', err);
+                        setMqttStatus('disconnected');
+                      }
+                    }}
+                    className="px-3 py-1 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded"
+                  >
+                    Connect
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@
 import { RfidEventEmitter } from './events/RfidEvents';
 import { BaseReader } from './readers/BaseReader';
 import { TcpReader } from './transports/TCPTransport';
+import { MqttReader } from './transports/MQTTTransport';
 import { formatPayload } from './payloads/PayloadFormatter';
 
 export class RfidSdk {
@@ -22,6 +23,12 @@ export class RfidSdk {
   // --- CONNECT / DISCONNECT ---
   async connectTcp(host: string, port: number) {
     this.reader = new TcpReader(host, port, this.emitter);
+    await this.reader.connect();
+    return true;
+  }
+
+  async connectMqtt(brokerUrl: string, topic: string, options?: any) {
+    this.reader = new MqttReader(brokerUrl, topic, this.emitter, options);
     await this.reader.connect();
     return true;
   }

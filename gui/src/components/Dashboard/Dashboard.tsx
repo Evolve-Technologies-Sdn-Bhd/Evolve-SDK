@@ -16,22 +16,36 @@ export default function Dashboard() {
     }
   }, [logs]);
 
-  // Simulated data (remove later, replace with IPC)
+  // Subscribe to real tag stream via IPC
   useEffect(() => {
-    const interval = setInterval(() => {
+    const onTag = (tag: any) => {
+      const dataStr = tag?.raw
+        ? (typeof tag.raw === 'string'
+            ? tag.raw
+            : Buffer.isBuffer(tag.raw)
+            ? tag.raw.toString('hex')
+            : JSON.stringify(tag.raw))
+        : JSON.stringify(tag);
+
       const newLog: RawPacket = {
         id: Date.now(),
         timestamp: new Date().toLocaleTimeString(),
-        direction: Math.random() > 0.5 ? 'RX' : 'TX',
-        data:
-          'AA 00 22 00 11 01 02 34 56 78 9A BC DE F0 ' +
-          Math.floor(Math.random() * 99),
+        direction: 'RX',
+        data: dataStr,
       };
 
       setLogs((prev) => [...prev.slice(-100), newLog]);
-    }, 500);
+    };
 
-    return () => clearInterval(interval);
+    // subscribe
+    // @ts-ignore
+    window.electronAPI && window.electronAPI.onTagRead && window.electronAPI.onTagRead(onTag);
+
+    return () => {
+      // remove listener
+      // @ts-ignore
+      window.electronAPI && window.electronAPI.removeTagListener && window.electronAPI.removeTagListener();
+    };
   }, []);
 
   return (
