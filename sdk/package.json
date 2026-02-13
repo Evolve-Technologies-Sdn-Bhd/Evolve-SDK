@@ -15,12 +15,14 @@
   "type": "commonjs",
   "dependencies": {
     "@serialport/parser-readline": "^13.0.0",
+    "better-sqlite3": "^12.6.2",
     "eventemitter3": "^5.0.4",
     "events": "^3.3.0",
     "mqtt": "^4.3.7",
     "serialport": "^13.0.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/events": "^3.0.3",
     "@types/node": "^25.2.0",
     "@typescript-eslint/eslint-plugin": "^8.54.0",

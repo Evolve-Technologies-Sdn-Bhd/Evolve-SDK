@@ -1,0 +1,8 @@
+CREATE TABLE rfid_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  epc TEXT NOT NULL,
+  reader_id TEXT NOT NULL,
+  antenna INTEGER,
+  rssi REAL,
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
