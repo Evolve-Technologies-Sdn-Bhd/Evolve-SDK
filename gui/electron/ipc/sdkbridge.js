@@ -109,14 +109,27 @@ export function registerSdkBridge({ mainWindow, sdk }) {
     sdk.start();
 
     ipcMain.once('reader:stop-scan', () => {
-      sdk.stop();
-      sdk.removeListener('tag', tagListener);
+      try {
+        sdk.stop();
+        // Safely remove listener if method exists
+        if (typeof sdk.removeListener === 'function') {
+          sdk.removeListener('tag', tagListener);
+        }
+      } catch (err) {
+        console.error('[IPC] Error during stop-scan:', err);
+      }
     });
   });
 
   ipcMain.on('reader:stop-scan', () => {
     console.log('[IPC] reader:stop-scan');
-    if (sdk) sdk.stop();
+    if (sdk) {
+      try {
+        sdk.stop();
+      } catch (err) {
+        console.error('[IPC] Error stopping reader:', err);
+      }
+    }
   });
 
   // Save CSV Data handler
