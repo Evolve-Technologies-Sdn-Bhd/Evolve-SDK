@@ -97,37 +97,41 @@ function createApplicationMenu() {
       label: 'File',
       submenu: [
         {
-          label: 'Export Data',
+          label: 'Export', // 1. New Parent Item
           submenu: [
             {
-              label: 'Last 24 Hours',
-              click: () => {
-                if (mainWindow) mainWindow.webContents.send('menu:export-data', '1');
-              }
+              label: 'Export Data', // 2. Nested Data Export
+              submenu: [
+                {
+                  label: 'Last 24 Hours',
+                  click: () => {
+                    if (mainWindow) mainWindow.webContents.send('menu:export-data', '1');
+                  }
+                },
+                {
+                  label: 'Last 7 Days',
+                  click: () => {
+                    if (mainWindow) mainWindow.webContents.send('menu:export-data', '7');
+                  }
+                },
+                {
+                  label: 'Last 30 Days',
+                  click: () => {
+                    if (mainWindow) mainWindow.webContents.send('menu:export-data', '30');
+                  }
+                },
+              ]
             },
             {
-              label: 'Last 7 Days',
-              click: () => {
-                if (mainWindow) mainWindow.webContents.send('menu:export-data', '7');
+              label: 'Export Logs', // 3. Nested Log Export
+              click: async () => {
+                if (mainWindow) mainWindow.webContents.send('menu:export-logs');
               }
-            },
-            {
-              label: 'Last 30 Days',
-              click: () => {
-                if (mainWindow) mainWindow.webContents.send('menu:export-data', '30');
-              }
-            },
+            }
           ]
         },
         { type: 'separator' },
-        {
-          label: 'Export Logs',
-          click: async () => {
-            if (mainWindow) mainWindow.webContents.send('menu:export-logs');
-          }
-        },
-        { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' }
+        isMac ? { role: 'close' } : { role: 'quit' } // Exit/Quit
       ]
     },
     // EDIT MENU
