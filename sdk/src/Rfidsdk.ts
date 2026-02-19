@@ -9,7 +9,7 @@
  * 
  * Event Flow: Transport → Reader → EventBus → SDK → GUI (formatting) → Display
  */
-import { RfidEventEmitter } from './events/RfidEvents';
+import { RfidEventEmitter } from './events/EventBus';
 import { ReaderManager } from './readers/ReaderManager';
 import { TcpReader } from './transports/TCPTransport';
 import { MqttReader } from './transports/MQTTTransport';

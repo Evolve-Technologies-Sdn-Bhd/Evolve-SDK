@@ -1,6 +1,6 @@
 import net from 'net';
 import { ReaderManager } from '../readers/ReaderManager';
-import { RfidEventEmitter, TagData } from '../events/RfidEvents';
+import { RfidEventEmitter, TagData } from '../events/EventBus';
 
 export class TcpReader extends ReaderManager {
   private client?: net.Socket;

@@ -1,6 +1,6 @@
 import mqtt from 'mqtt';
 import { ReaderManager } from '../readers/ReaderManager';
-import { RfidEventEmitter, TagData } from '../events/RfidEvents';
+import { RfidEventEmitter, TagData } from '../events/EventBus';
 
 export class MqttReader extends ReaderManager {
   private client?: mqtt.MqttClient;

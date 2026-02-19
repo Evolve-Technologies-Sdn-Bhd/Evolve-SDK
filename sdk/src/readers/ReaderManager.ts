@@ -1,6 +1,6 @@
 // src/readers/ReaderManager.ts
 import { EventEmitter } from 'events';
-import { RfidEventEmitter, TagData } from '../events/RfidEvents';
+import { RfidEventEmitter, TagData } from '../events/EventBus';
 
 export abstract class ReaderManager extends EventEmitter {
   protected rfidEmitter: RfidEventEmitter;
