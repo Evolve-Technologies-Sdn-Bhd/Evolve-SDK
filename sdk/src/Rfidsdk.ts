@@ -32,6 +32,20 @@ export class RfidSdk {
     this.emitter.on(event, callback);
   }
 
+  /**
+   * Remove listener for an event (compat shim for external callers)
+   */
+  removeListener(event: string, callback: (...args: any[]) => void) {
+    this.emitter.removeListener(event, callback);
+  }
+
+  /**
+   * Alias for removeListener
+   */
+  off(event: string, callback: (...args: any[]) => void) {
+    this.removeListener(event, callback);
+  }
+
   private emit(event: string, data?: any) {
     this.emitter.emit(event, data);
   }
