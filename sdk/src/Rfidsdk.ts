@@ -1,14 +1,19 @@
 // src/RfidSdk.ts
+
 /**
  * Main RFID SDK Entry Point
- * 
+ *
  * DESIGN PRINCIPLE: Pure Transport Abstraction
  * - SDK emits RAW data only (no formatting)
  * - GUI/Consumers handle all data formatting
  * - Works with Serial, TCP, MQTT identically
- * 
- * Event Flow: Transport → Reader → EventBus → SDK → GUI (formatting) → Display
+ *
+ * Event Flow:
+ * Transport → Reader → EventBus → SDK
+ *               ├─ Update Session Stats (in-memory)
+ *               └─ Emit RAW tag → GUI
  */
+
 import { RfidEventEmitter } from './events/EventBus';
 import { ReaderManager } from './readers/ReaderManager';
 import { TcpReader } from './transports/TCPTransport';
@@ -17,11 +22,13 @@ import { MqttReader } from './transports/MQTTTransport';
 export class RfidSdk {
   private emitter = new RfidEventEmitter();
   private reader?: ReaderManager;
-  private events: Record<string, Function> = {};
+
+  // 🔥 SESSION CUMULATIVE STATS (IN-MEMORY ONLY)
+  private totalCount = 0;
+  private uniqueTags = new Set<string>();
 
   // --- EVENT HANDLING ---
   on(event: string, callback: (...args: any[]) => void) {
-    // allow GUI or other consumers to listen to SDK events
     this.emitter.on(event, callback);
   }
 
@@ -55,17 +62,26 @@ export class RfidSdk {
   // --- START / STOP SCAN ---
   /**
    * Start scanning for RFID tags
-   * 
+   *
    * Emits RAW tag data: { epc, rssi, timestamp }
-   * GUI layer handles formatting for display
+   * Also updates in-memory session statistics
    */
   start() {
     if (!this.reader) return;
 
     this.reader.on('tagRead', (rawTagData: any) => {
-      // Emit raw data directly - NO FORMATTING in SDK
-      // Payload: { epc, rssi, timestamp, readerId?, ... }
+      // ✅ Update in-memory session counters
+      this.totalCount++;
+
+      if (rawTagData?.epc) {
+        this.uniqueTags.add(rawTagData.epc);
+      }
+
+      // ✅ Emit raw data to consumers (no formatting)
       this.emit('tag', rawTagData);
+
+      // ✅ Emit stats update event (optional but recommended)
+      this.emit('stats', this.getCumulativeStats());
     });
 
     this.reader.startScan();
@@ -76,15 +92,41 @@ export class RfidSdk {
    */
   stop() {
     if (!this.reader) return;
-
-    // If reader supports stopScan(), call it
     this.reader.stopScan();
   }
 
+  // --- SESSION STATS API ---
+
+  /**
+   * Get current session cumulative statistics
+   * (Used by GUI live counter)
+   */
+  getCumulativeStats() {
+    return {
+      total: this.totalCount,
+      unique: this.uniqueTags.size,
+    };
+  }
+
+  /**
+   * Reset session cumulative statistics
+   * Does NOT affect historical database
+   */
+  resetCumulativeStats() {
+    this.totalCount = 0;
+    this.uniqueTags.clear();
+
+    // Notify GUI that stats were reset
+    this.emit('stats', this.getCumulativeStats());
+  }
+
+  // --- OPTIONAL PUBLISH ---
   async publish(tag: any, topic?: string) {
     if (!this.reader) throw new Error('No reader connected');
     const pub = (this.reader as any).publish;
-    if (typeof pub !== 'function') throw new Error('Connected reader does not support publish');
+    if (typeof pub !== 'function')
+      throw new Error('Connected reader does not support publish');
+
     return await pub.call(this.reader, tag, topic);
   }
 }
