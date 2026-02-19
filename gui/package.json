@@ -1,7 +1,7 @@
 {
   "name": "evolve-sdk-gui",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/electron-main.js",
   "scripts": {

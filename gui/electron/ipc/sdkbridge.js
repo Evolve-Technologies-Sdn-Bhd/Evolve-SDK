@@ -1,5 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog } from 'electron'; 
 import path from 'path';
+import fs from 'fs'; 
 import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -9,7 +10,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 const formatPayload = async (tag) => {
   try {
-    // Use absolute path from project root for reliable module resolution
     const projectRoot = path.resolve(__dirname, '../../../');
     const sdkPath = path.resolve(projectRoot, 'sdk/dist/index.js');
     const sdkUrl = pathToFileURL(sdkPath).href;
@@ -28,6 +28,8 @@ const formatPayload = async (tag) => {
 };
 
 export function registerSdkBridge({ mainWindow, sdk }) {
+  // --- SDK HANDLERS ---
+
   ipcMain.handle('reader:connect', async (_event, config) => {
     console.log('[IPC] reader:connect', config);
     if (!sdk) return { success: true, mock: true };
@@ -35,7 +37,7 @@ export function registerSdkBridge({ mainWindow, sdk }) {
     return { success: true };
   });
 
-  // MQTT connect handler
+ // MQTT connection handler
   ipcMain.handle('reader:connect-mqtt', async (_event, { brokerUrl, topic, options }) => {
     console.log('[IPC] reader:connect-mqtt', brokerUrl, topic);
     if (!sdk) return { success: true, mock: true };
@@ -43,7 +45,7 @@ export function registerSdkBridge({ mainWindow, sdk }) {
     return { success: true };
   });
 
-  // Publish to MQTT via SDK
+  // MQTT publish handler
   ipcMain.handle('mqtt:publish', async (_event, { tag, topic }) => {
     console.log('[IPC] mqtt:publish', topic);
     if (!sdk) return { success: false, error: 'SDK not initialized' };
@@ -107,5 +109,50 @@ export function registerSdkBridge({ mainWindow, sdk }) {
   ipcMain.on('reader:stop-scan', () => {
     console.log('[IPC] reader:stop-scan');
     if (sdk) sdk.stop();
+  });
+
+  // Save CSV Data handler
+  ipcMain.handle('data:save-csv', async (event, { content, days }) => {
+    // Requires 'dialog' to be imported at top
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: `Export RFID Data (Last ${days} Days)`,
+      defaultPath: `EvolveSDK_RFID_Data_Last_${days}_Days_${Date.now()}.csv`,
+      filters: [
+        { name: 'CSV Files', extensions: ['csv'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePath) return { success: false };
+
+    try {
+      fs.writeFileSync(filePath, content, 'utf-8');
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to save CSV file:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Save System Logs handler
+  ipcMain.handle('logs:save-to-file', async (event, logContent) => {
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export System Logs',
+      defaultPath: `EvolveSDK_Logs_${Date.now()}.txt`,
+      filters: [
+        { name: 'Text Files', extensions: ['txt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePath) return { success: false };
+
+    try {
+      fs.writeFileSync(filePath, logContent, 'utf-8');
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to save log file:', err);
+      return { success: false, error: err.message };
+    }
   });
 }

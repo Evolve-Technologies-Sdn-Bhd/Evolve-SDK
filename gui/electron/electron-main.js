@@ -50,15 +50,15 @@ let mainWindow = null;
 
 function createWindow() {
   console.log('[Main] Creating window...');
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    title: 'Evolve SDK - RFID Management',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
+    mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      title: 'Evolve SDK - RFID Management',
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
   });
   
   console.log('[Main] Window created');
@@ -92,71 +92,104 @@ function createApplicationMenu() {
   const isMac = process.platform === 'darwin';
 
   const template = [
+    // FILE MENU
     {
       label: 'File',
       submenu: [
         {
           label: 'Export Data',
           submenu: [
-            { label: 'Last 24 Hours', click: () => mainWindow?.webContents.send('menu:export-data', '1') },
-            { label: 'Last 7 Days', click: () => mainWindow?.webContents.send('menu:export-data', '7') },
-            { label: 'Last 30 Days', click: () => mainWindow?.webContents.send('menu:export-data', '30') },
-          ],
+            {
+              label: 'Last 24 Hours',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('menu:export-data', '1');
+              }
+            },
+            {
+              label: 'Last 7 Days',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('menu:export-data', '7');
+              }
+            },
+            {
+              label: 'Last 30 Days',
+              click: () => {
+                if (mainWindow) mainWindow.webContents.send('menu:export-data', '30');
+              }
+            },
+          ]
         },
         { type: 'separator' },
-        {
-          label: 'Exit',
-          accelerator: isMac ? 'Cmd+Q' : 'Ctrl+Q',
-          click: () => app.quit(),
-        },
-      ],
-    },
-    {
-      label: 'Edit',
-      submenu: [
-        { label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
-        { label: 'Redo', accelerator: 'CmdOrCtrl+Y', role: 'redo' },
-        { type: 'separator' },
-        { label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut' },
-        { label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy' },
-        { label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste' },
-      ],
-    },
-    {
-      label: 'Tools',
-      submenu: [
-        {
-          label: 'Settings',
-          click: () => mainWindow?.webContents.send('menu:open-settings'),
-        },
         {
           label: 'Export Logs',
-          click: () => mainWindow?.webContents.send('menu:export-logs'),
+          click: async () => {
+            if (mainWindow) mainWindow.webContents.send('menu:export-logs');
+          }
         },
-      ],
+        { type: 'separator' },
+        isMac ? { role: 'close' } : { role: 'quit' }
+      ]
     },
+    // EDIT MENU
+    {
+      label: 'Edit',
+      role: 'editMenu'
+    },
+    // VIEW MENU
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    // SETTINGS MENU
+    {
+      label: 'Settings',
+      click: () => {
+        if (mainWindow) mainWindow.webContents.send('menu:open-settings');
+      }
+    },
+    // HELP MENU
     {
       label: 'Help',
       submenu: [
+        {
+          label: 'Documentation',
+          click: async () => {
+            await shell.openExternal('https://github.com/KhairulAnuar11/RFID-SDK.git');
+          }
+        },
+        { type: 'separator' },
         {
           label: 'About',
           click: () => {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About Evolve SDK',
-              message: 'Evolve SDK - RFID Management',
-              detail: 'An electron-based RFID reader management system.',
+              message: 'SDK Information',
+              detail: 'Version: 1.0.0\nBuild: 2026-02-03\n\n(c) 2026 Evolve Technology Platform',
+              buttons: ['OK'],
             });
-          },
-        },
-      ],
-    },
+          }
+        }
+      ]
+    }
   ];
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
 
+
+// --- 4. APP LIFECYCLE ---
 app.on('ready', async () => {
   await initializeSDK();
   createWindow();
