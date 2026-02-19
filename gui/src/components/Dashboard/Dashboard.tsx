@@ -19,12 +19,14 @@ export default function Dashboard() {
 
   // Subscribe to real tag stream via IPC
   useEffect(() => {
+    console.log('[Dashboard] Setting up tag listener - electronAPI exists:', !!window.electronAPI);
+    
     const onTag = (tag: any) => {
-      console.log('[Dashboard] Received tag event:', tag);
+      console.log('[Dashboard] ✓ Received tag event:', tag);
       
       // Use PayloadFormatter to format the tag data
       const formattedTag = PayloadFormatter.formatTagForDisplay(tag);
-      console.log('[Dashboard] Formatted tag:', formattedTag);
+      console.log('[Dashboard] ✓ Formatted tag:', formattedTag);
 
       const newLog: RawPacket = {
         id: formattedTag.id,
@@ -33,18 +35,27 @@ export default function Dashboard() {
         data: formattedTag.data,
       };
 
-      console.log('[Dashboard] Adding to logs:', newLog);
+      console.log('[Dashboard] ✓ Adding to logs:', newLog);
       setLogs((prev) => [...prev.slice(-100), newLog]);
     };
 
     // subscribe
     // @ts-ignore
-    window.electronAPI && window.electronAPI.onTagRead && window.electronAPI.onTagRead(onTag);
+    if (window.electronAPI && window.electronAPI.onTagRead) {
+      console.log('[Dashboard] ✓ Registering onTagRead listener');
+      // @ts-ignore
+      window.electronAPI.onTagRead(onTag);
+    } else {
+      console.error('[Dashboard] ✗ electronAPI.onTagRead not available');
+    }
 
     return () => {
       // remove listener
       // @ts-ignore
-      window.electronAPI && window.electronAPI.removeTagListener && window.electronAPI.removeTagListener();
+      if (window.electronAPI && window.electronAPI.removeTagListener) {
+        // @ts-ignore
+        window.electronAPI.removeTagListener();
+      }
     };
   }, []);
 

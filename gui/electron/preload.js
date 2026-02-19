@@ -10,6 +10,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onTagRead: (callback) => ipcRenderer.on('rfid:tag-read', (_event, value) => callback(value)),
   removeTagListener: () => ipcRenderer.removeAllListeners('rfid:tag-read'),
 
+  onSystemMessage: (callback) => {
+    const subscription = (_event, message, level) => callback(message, level);
+    ipcRenderer.on('system:message', subscription);
+    return () => ipcRenderer.removeListener('system:message', subscription);
+  },
+  removeSystemMessageListener: () => ipcRenderer.removeAllListeners('system:message'),
+
   onOpenSettings: (callback) => {
     const subscription = (_event, value) => callback(value);
     ipcRenderer.on('menu:open-settings', subscription);

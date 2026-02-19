@@ -87,6 +87,9 @@ function createWindow() {
   // Listen for did-finish-load to confirm window is ready
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('[Main] Window loaded successfully');
+    
+    // Setup log forwarding to GUI after window is loaded
+    setupLogForwarding(mainWindow);
   });
   
   mainWindow.webContents.on('render-process-gone', () => {
@@ -102,6 +105,77 @@ function createWindow() {
 
   // Register SDK bridge handlers
   registerSdkBridge({ mainWindow, sdk });
+}
+
+/**
+ * Forward console logs from main process to Electron window
+ */
+function setupLogForwarding(mainWindow) {
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalWarn = console.warn;
+
+  console.log = function(...args) {
+    originalLog.apply(console, args);
+    // Forward to GUI if window exists and is not destroyed
+    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
+      try {
+        const message = args.map(arg => {
+          if (typeof arg === 'object') {
+            try { return JSON.stringify(arg); } catch { return String(arg); }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        // Only forward messages that have [IPC], [MqttReader], [RfidSdk], etc tags
+        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+          mainWindow.webContents.send('system:message', message, 'info');
+        }
+      } catch (err) {
+        // Silently ignore errors when sending to destroyed window
+      }
+    }
+  };
+
+  console.error = function(...args) {
+    originalError.apply(console, args);
+    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
+      try {
+        const message = args.map(arg => {
+          if (typeof arg === 'object') {
+            try { return JSON.stringify(arg); } catch { return String(arg); }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+          mainWindow.webContents.send('system:message', message, 'error');
+        }
+      } catch (err) {
+        // Silently ignore errors when sending to destroyed window
+      }
+    }
+  };
+
+  console.warn = function(...args) {
+    originalWarn.apply(console, args);
+    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
+      try {
+        const message = args.map(arg => {
+          if (typeof arg === 'object') {
+            try { return JSON.stringify(arg); } catch { return String(arg); }
+          }
+          return String(arg);
+        }).join(' ');
+        
+        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+          mainWindow.webContents.send('system:message', message, 'warn');
+        }
+      } catch (err) {
+        // Silently ignore errors when sending to destroyed window
+      }
+    }
+  };
 }
 
 function createApplicationMenu() {

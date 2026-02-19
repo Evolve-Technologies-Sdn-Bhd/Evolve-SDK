@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron . --user-data-dir \"%USERPROFILE%\\.evolve-sdk-electron\"",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build": "vite build",
     "preview": "vite preview"
   },
