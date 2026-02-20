@@ -7,6 +7,10 @@ export class MqttReader extends ReaderManager {
   private brokerUrl: string;
   private topic: string;
   private options?: mqtt.IClientOptions;
+  private retryCount = 0;
+  private maxRetries = 5;
+  private retryTimeout?: NodeJS.Timeout;
+  private isManuallyDisconnected = false;
 
   constructor(brokerUrl: string, topic: string, emitter: RfidEventEmitter, options?: mqtt.IClientOptions) {
     super(emitter);
@@ -17,48 +21,141 @@ export class MqttReader extends ReaderManager {
 
   async connect() {
     return new Promise<void>((resolve, reject) => {
-      this.client = mqtt.connect(this.brokerUrl, this.options as any);
-
-      this.client.on('connect', () => {
-        console.log('[MqttReader] Connected to broker:', this.brokerUrl);
-        this.emit('connected');
-        this.client?.subscribe(this.topic, (err) => {
-          if (err) {
-            console.error('[MqttReader] Subscribe error:', err);
-            return reject(err);
-          }
-          console.log('[MqttReader] Subscribed to topic:', this.topic);
-          resolve();
-        });
-      });
-
-      this.client.on('message', (topic, payload) => {
-        console.log('[MqttReader] Message received on', topic, '- Payload length:', payload.length);
-        const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
-        const tag: TagData = {
-          id: buffer.toString('hex'),
-          timestamp: Date.now(),
-          raw: buffer,
+      this.isManuallyDisconnected = false;
+      this.retryCount = 0;
+      let hasSettled = false;
+      
+      const attemptConnection = () => {
+        // Disable automatic reconnection and handle it manually
+        const clientOptions: mqtt.IClientOptions = {
+          ...this.options,
+          reconnectPeriod: 0, // Disable automatic reconnection
+          connectTimeout: 10000,
         };
 
-        console.log('[MqttReader] Emitting tag:', tag);
-        this.emitTag(tag);
-      });
+        this.client = mqtt.connect(this.brokerUrl, clientOptions);
+        let connectResolved = false;
 
-      this.client.on('error', (err) => {
-        console.error('[MqttReader] Connection error:', err);
-        this.emit('error', err);
-        reject(err);
-      });
+        const timeout = setTimeout(() => {
+          if (!connectResolved && !hasSettled) {
+            connectResolved = true;
+            this.handleConnectionFailure('Connection timeout', () => {
+              if (!hasSettled) {
+                hasSettled = true;
+                reject(new Error('Connection timeout'));
+              }
+            }, attemptConnection);
+          }
+        }, 12000);
 
-      this.client.on('close', () => {
-        console.log('[MqttReader] Connection closed');
-        this.emit('disconnected');
-      });
+        this.client.once('connect', () => {
+          if (connectResolved || hasSettled) return;
+          connectResolved = true;
+          clearTimeout(timeout);
+          
+          this.client?.subscribe(this.topic, (err) => {
+            if (connectResolved && hasSettled) return;
+            if (err) {
+              console.error('[MqttReader] Subscribe error:', err);
+              connectResolved = true;
+              this.handleConnectionFailure(err.message, () => {
+                if (!hasSettled) {
+                  hasSettled = true;
+                  reject(err);
+                }
+              }, attemptConnection);
+              return;
+            }
+            console.log('[MqttReader] Subscribed to topic:', this.topic);
+            console.log('[MqttReader] Connected to broker:', this.brokerUrl);
+            
+            if (!hasSettled) {
+              hasSettled = true;
+              this.retryCount = 0;
+              this.emit('connected');
+              resolve();
+            }
+          });
+        });
+
+        this.client.on('message', (topic, payload) => {
+          console.log('[MqttReader] Message received on', topic, '- Payload length:', payload.length);
+          const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
+          const tag: TagData = {
+            id: buffer.toString('hex'),
+            timestamp: Date.now(),
+            raw: buffer,
+          };
+
+          console.log('[MqttReader] Emitting tag:', tag);
+          this.emitTag(tag);
+        });
+
+        this.client.once('error', (err) => {
+          if (connectResolved || hasSettled) return;
+          connectResolved = true;
+          clearTimeout(timeout);
+          console.error('[MqttReader] Connection error:', err);
+          this.handleConnectionFailure(err.message, () => {
+            if (!hasSettled) {
+              hasSettled = true;
+              reject(err);
+            }
+          }, attemptConnection);
+        });
+
+        this.client.on('close', () => {
+          if (!this.isManuallyDisconnected) {
+            console.log('[MqttReader] Connection closed unexpectedly');
+            this.emit('disconnected');
+          }
+        });
+
+        this.client.on('disconnect', () => {
+          if (!this.isManuallyDisconnected) {
+            console.log('[MqttReader] Disconnected from broker');
+            this.emit('disconnected');
+          }
+        });
+      };
+
+      attemptConnection();
     });
   }
 
+  private handleConnectionFailure(
+    error: string,
+    onMaxRetriesExceeded: () => void,
+    attemptConnection: () => void
+  ) {
+    this.client?.end(true);
+    this.client = undefined;
+
+    if (this.retryCount < this.maxRetries) {
+      this.retryCount++;
+      const delay = Math.min(1000 * Math.pow(2, this.retryCount - 1), 30000); // Exponential backoff, max 30s
+      console.log(
+        `[MqttReader] Connection failed: ${error}. Retrying in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`
+      );
+      this.retryTimeout = setTimeout(attemptConnection, delay);
+    } else {
+      console.error(
+        `[MqttReader] Failed to connect after ${this.maxRetries} attempts. Giving up.`
+      );
+      // Only emit error event if there are listeners (EventEmitter throws if no listeners exist)
+      if (this.listenerCount('error') > 0) {
+        this.emit('error', new Error(`Connection failed after ${this.maxRetries} attempts: ${error}`));
+      }
+      onMaxRetriesExceeded();
+    }
+  }
+
   async disconnect() {
+    this.isManuallyDisconnected = true;
+    if (this.retryTimeout) {
+      clearTimeout(this.retryTimeout);
+      this.retryTimeout = undefined;
+    }
     if (this.client) {
       this.client.end(true);
       this.client = undefined;

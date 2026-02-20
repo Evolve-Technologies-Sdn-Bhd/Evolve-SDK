@@ -53,10 +53,8 @@ export function registerSdkBridge({ mainWindow, sdk }) {
       return { success: true };
     } catch (err) {
       console.error('[IPC] MQTT connection error:', err);
-      return { 
-        success: false, 
-        error: err?.message || String(err) 
-      };
+      // Throw error so GUI receives promise rejection
+      throw new Error(err?.message || String(err));
     }
   });
 
