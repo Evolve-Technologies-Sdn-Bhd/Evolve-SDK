@@ -66,10 +66,13 @@ let mainWindow = null;
 
 function createWindow() {
   console.log('[Main] Creating window...');
+  const iconPath = path.join(__dirname, '../resources/CLB_letterhead.ico');
+  
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
       title: 'Evolve SDK - RFID Management',
+      icon: iconPath,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
