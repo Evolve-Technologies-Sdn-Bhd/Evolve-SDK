@@ -135,13 +135,11 @@ export function registerSdkBridge({ mainWindow, sdk }) {
 
     // Remove old listeners if they exist to prevent duplicates
     if (currentTagListener !== null) {
-      console.log('[IPC] Removing old tag listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('tag', currentTagListener);
       }
     }
     if (currentStatsListener !== null) {
-      console.log('[IPC] Removing old stats listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('stats', currentStatsListener);
       }
@@ -149,11 +147,8 @@ export function registerSdkBridge({ mainWindow, sdk }) {
 
     const tagListener = async (tag) => {
       try {
-        console.log('[IPC] Tag received from SDK:', tag);
         const payload = await formatPayload(tag);
-        console.log('[IPC] Formatted payload ready to send:', payload);
         mainWindow.webContents.send('rfid:tag-read', payload);
-        console.log('[IPC] Tag sent to renderer process');
       } catch (err) {
         console.error('[IPC] Error formatting/sending tag:', err);
       }
@@ -161,9 +156,7 @@ export function registerSdkBridge({ mainWindow, sdk }) {
 
     const statsListener = (stats) => {
       try {
-        console.log('[IPC] Stats received from SDK:', stats);
         mainWindow.webContents.send('rfid:stats', stats);
-        console.log('[IPC] Stats sent to renderer process');
       } catch (err) {
         console.error('[IPC] Error sending stats:', err);
       }
