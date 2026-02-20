@@ -37,8 +37,11 @@ export class TcpReader extends ReaderManager {
       });
 
       this.client.on('error', (err) => {
-        this.emit('error', err);
-        reject(err); // Added reject to handle connection failures
+        // Only emit error if there are listeners (EventEmitter throws if no listeners exist)
+        if (this.listenerCount('error') > 0) {
+          this.emit('error', err);
+        }
+        reject(err); // Always reject the promise
       });
 
       this.client.on('close', () => this.emit('disconnected'));
