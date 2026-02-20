@@ -52,20 +52,61 @@ export class RfidSdk {
 
   // --- CONNECT / DISCONNECT ---
   async connectTcp(host: string, port: number) {
-    this.reader = new TcpReader(host, port, this.emitter);
-    await this.reader.connect();
-    return true;
+    try {
+      // Disconnect any existing reader before connecting a new one
+      if (this.reader) {
+        await this.disconnect();
+      }
+      
+      this.reader = new TcpReader(host, port, this.emitter);
+      await this.reader.connect();
+      return true;
+    } catch (err) {
+      // Clean up reader instance on connection failure
+      if (this.reader) {
+        try {
+          await this.reader.disconnect();
+        } catch (cleanupErr) {
+          console.error('[RfidSdk] Error during cleanup:', cleanupErr);
+        }
+        this.reader = undefined;
+      }
+      // Re-throw the original error so it propagates to the caller
+      throw err;
+    }
   }
 
   async connectMqtt(brokerUrl: string, topic: string, options?: any) {
-    this.reader = new MqttReader(brokerUrl, topic, this.emitter, options);
-    await this.reader.connect();
-    return true;
+    try {
+      // Disconnect any existing reader before connecting a new one
+      if (this.reader) {
+        await this.disconnect();
+      }
+      
+      this.reader = new MqttReader(brokerUrl, topic, this.emitter, options);
+      await this.reader.connect();
+      return true;
+    } catch (err) {
+      // Clean up reader instance on connection failure
+      if (this.reader) {
+        try {
+          await this.reader.disconnect();
+        } catch (cleanupErr) {
+          console.error('[RfidSdk] Error during cleanup:', cleanupErr);
+        }
+        this.reader = undefined;
+      }
+      // Re-throw the original error so it propagates to the caller
+      throw err;
+    }
   }
 
   async disconnect() {
-    await this.reader?.disconnect();
-    this.reader = undefined;
+    try {
+      await this.reader?.disconnect();
+    } finally {
+      this.reader = undefined;
+    }
   }
 
   // --- CONFIGURE READER ---

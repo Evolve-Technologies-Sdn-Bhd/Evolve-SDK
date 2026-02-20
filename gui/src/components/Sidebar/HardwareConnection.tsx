@@ -61,21 +61,29 @@ export default function HardwareConnection() {
     }));
   };
 
+  // 3.5 Helper: Add timeout wrapper to promises
+  const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number = 180000): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs / 1000} seconds`)), timeoutMs)
+      ),
+    ]);
+  };
+
   // 4. Form Submit Handler - Connect to MQTT Broker
   const handleMqttSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+    
     try {
-      setError('');
-      setLoading(true);
-      
       // Build broker URL from components
       const brokerUrl = `${mqttConfig.protocol}${mqttConfig.host}:${mqttConfig.port}`;
       
       // Validate topic
       if (!mqttConfig.topic.trim()) {
-        setError('Topic is required');
-        setLoading(false);
-        return;
+        throw new Error('Topic is required');
       }
       
       // Build options for authentication
@@ -92,8 +100,16 @@ export default function HardwareConnection() {
         clientId: mqttConfig.clientId,
       });
       
-      // Call SDK service to connect
-      await sdkService.connectMqtt(brokerUrl, mqttConfig.topic, options);
+      // Call SDK service to connect with 3-minute timeout
+      const result = await withTimeout(
+        sdkService.connectMqtt(brokerUrl, mqttConfig.topic, options),
+        180000
+      );
+      
+      // Check if connection was successful (handle both response objects and direct resolution)
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Connection failed');
+      }
       
       console.log('[GUI] MQTT Connection Successful');
       setConnected(true);
@@ -102,6 +118,13 @@ export default function HardwareConnection() {
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(errorMsg);
       console.error('[GUI] MQTT Connection Error:', err);
+      
+      // Attempt graceful disconnect on connection error
+      try {
+        await sdkService.disconnect();
+      } catch (disconnectErr) {
+        console.error('[GUI] Error during disconnect after connection failure:', disconnectErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -220,13 +243,6 @@ export default function HardwareConnection() {
           </div>
         )}
 
-        {/* Main Connect Button */}
-        {error && (
-          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
-            <p className="text-[10px] text-red-600">{error}</p>
-          </div>
-        )}
-        
         <div className="mb-3 flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
           <span className="text-[10px] text-gray-600">
