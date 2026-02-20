@@ -79,7 +79,6 @@ export class MqttReader extends ReaderManager {
         });
 
         this.client.on('message', (topic, payload) => {
-          console.log('[MqttReader] Message received on', topic, '- Payload length:', payload.length);
           const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
           const tag: TagData = {
             id: buffer.toString('hex'),
@@ -87,7 +86,6 @@ export class MqttReader extends ReaderManager {
             raw: buffer,
           };
 
-          console.log('[MqttReader] Emitting tag:', tag);
           this.emitTag(tag);
         });
 

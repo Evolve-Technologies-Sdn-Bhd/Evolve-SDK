@@ -107,10 +107,8 @@ export function registerSdkBridge({ mainWindow, sdk }) {
     }
 
     const tagListener = async (tag) => {
-      console.log('[IPC] Tag event received:', tag);
       try {
         const payload = await formatPayload(tag);
-        console.log('[IPC] Sending rfid:tag-read to GUI:', payload);
         mainWindow.webContents.send('rfid:tag-read', payload);
       } catch (err) {
         console.error('[IPC] Error formatting/sending tag:', err);
