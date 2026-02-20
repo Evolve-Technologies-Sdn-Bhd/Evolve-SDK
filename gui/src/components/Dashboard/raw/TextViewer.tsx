@@ -28,7 +28,7 @@ export default function TextViewer({ logs, formatter = TextFormatter }: TextView
                 <span>{log.timestamp}</span>
               </div>
               <div className="text-xs text-gray-700 whitespace-pre-wrap">
-                {formatter.format(log.data)}
+                {formatter.getDisplayText(log.data)}
               </div>
             </div>
         ))}

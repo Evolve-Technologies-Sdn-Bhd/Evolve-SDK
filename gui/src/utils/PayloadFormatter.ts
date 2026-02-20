@@ -184,13 +184,41 @@ export class PayloadFormatter {
 }
 
 export class HexFormatter {
-  static toHex(data: string): string {
-    return data.replace(/\s/g, '').toUpperCase();
+  static toHex(data: any): string {
+    if (typeof data === 'string') {
+      // Convert string to hex
+      return Array.from(data)
+        .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join(' ')
+        .toUpperCase();
+    } else if (typeof data === 'object' && data !== null) {
+      // Convert object to JSON string, then to hex
+      const jsonStr = JSON.stringify(data);
+      return Array.from(jsonStr)
+        .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join(' ')
+        .toUpperCase();
+    }
+    return '';
   }
 
   static fromHex(hex: string): string {
     const cleaned = hex.replace(/\s/g, '');
     return cleaned.match(/.{1,2}/g)?.join(' ') || cleaned;
+  }
+
+  static getDisplayHex(data: any): string {
+    if (typeof data === 'string') {
+      // If it's already hex-like, just format it
+      if (/^[0-9A-Fa-f\s]+$/.test(data)) {
+        return this.fromHex(data);
+      }
+      // Otherwise convert to hex
+      return this.toHex(data);
+    } else if (typeof data === 'object' && data !== null) {
+      return this.toHex(data);
+    }
+    return data.toString();
   }
 
   static highlight(hex: string, pattern: string): string {
@@ -205,7 +233,20 @@ export class HexFormatter {
 export class JSONFormatter {
   static format(data: any, indent: number = 2): string {
     try {
-      return JSON.stringify(data, null, indent);
+      if (typeof data === 'string') {
+        // Try to parse as JSON first
+        try {
+          const parsed = JSON.parse(data);
+          return JSON.stringify(parsed, null, indent);
+        } catch {
+          // If not JSON, wrap as a string value
+          return JSON.stringify({ message: data }, null, indent);
+        }
+      } else if (typeof data === 'object' && data !== null) {
+        return JSON.stringify(data, null, indent);
+      } else {
+        return JSON.stringify({ value: data }, null, indent);
+      }
     } catch (error) {
       return `Error formatting JSON: ${error}`;
     }
@@ -217,6 +258,10 @@ export class JSONFormatter {
     } catch (error) {
       return { error: `Invalid JSON: ${error}` };
     }
+  }
+
+  static getDisplayJson(data: any): string {
+    return this.format(data, 2);
   }
 }
 
@@ -233,7 +278,7 @@ export class TextFormatter {
       data.forEach((item, idx) => {
         lines.push(`  [${idx}]: ${this.formatValue(item)}`);
       });
-    } else if (typeof data === 'object') {
+    } else if (typeof data === 'object' && data !== null) {
       lines.push('Object:');
       Object.entries(data).forEach(([key, value]) => {
         lines.push(`  ${key}: ${this.formatValue(value)}`);
@@ -245,11 +290,21 @@ export class TextFormatter {
     return lines.join('\n');
   }
 
+  static getDisplayText(data: any): string {
+    return this.format(data);
+  }
+
   private static formatValue(value: any): string {
     if (value === null) return 'null';
     if (value === undefined) return 'undefined';
     if (typeof value === 'string') return `"${value}"`;
-    if (typeof value === 'object') return `[${typeof value}]`;
+    if (typeof value === 'object') {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return `[${typeof value}]`;
+      }
+    }
     return String(value);
   }
 }

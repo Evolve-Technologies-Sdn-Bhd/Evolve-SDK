@@ -19,13 +19,8 @@ export default function RawHexView({ logs, formatter = HexFormatter }: RawHexVie
     return (
         <>
             {logs.map((log) => {
-                // Handle both string and object data
-                let displayData = '';
-                if (typeof log.data === 'string') {
-                    displayData = formatter.fromHex(log.data);
-                } else if (typeof log.data === 'object') {
-                    displayData = JSONFormatter.format(log.data);
-                }
+                // Use HexFormatter's getDisplayHex to properly convert data
+                const displayData = formatter.getDisplayHex(log.data);
 
                 return (
                     <div
