@@ -80,8 +80,23 @@ export class MqttReader extends ReaderManager {
 
         this.client.on('message', (topic, payload) => {
           const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
+          
+          // Try to decode as UTF-8 text first, fall back to hex if not valid text
+          let id = '';
+          try {
+            const textDecoded = buffer.toString('utf-8');
+            // Check if it's valid UTF-8 and mostly printable characters
+            if (textDecoded && /^[\x20-\x7E\n\r\t]+$/.test(textDecoded)) {
+              id = textDecoded.trim();
+            } else {
+              id = buffer.toString('hex');
+            }
+          } catch {
+            id = buffer.toString('hex');
+          }
+          
           const tag: TagData = {
-            id: buffer.toString('hex'),
+            id: id,
             timestamp: Date.now(),
             raw: buffer,
           };

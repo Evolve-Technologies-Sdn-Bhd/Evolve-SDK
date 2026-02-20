@@ -43,8 +43,23 @@ export class TcpReader extends ReaderManager {
     const cmd = frame[3];
     if (cmd === 0x89 || cmd === 0x80) { // Inventory Report
       const epc = frame.subarray(7, frame.length - 2);
+      
+      // Try to decode as UTF-8 text first, fall back to hex if not valid text
+      let id = '';
+      try {
+        const textDecoded = epc.toString('utf-8');
+        // Check if it's valid UTF-8 and mostly printable characters
+        if (textDecoded && /^[\x20-\x7E\n\r\t]+$/.test(textDecoded)) {
+          id = textDecoded.trim();
+        } else {
+          id = epc.toString('hex').toUpperCase();
+        }
+      } catch {
+        id = epc.toString('hex').toUpperCase();
+      }
+      
       this.emitTag({
-        id: epc.toString('hex').toUpperCase(),
+        id: id,
         timestamp: Date.now(),
         rssi: frame[frame.length - 2] * -1,
         raw: frame
