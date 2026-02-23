@@ -10,6 +10,18 @@ export default function HardwareConnection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   
+  // Serial Form State
+  const [serialConfig, setSerialConfig] = useState({
+    comPort: 'COM1',
+    baudRate: 115200
+  });
+
+  // TCP Form State
+  const [tcpConfig, setTcpConfig] = useState({
+    ip: '192.168.1.100',
+    port: 8088
+  });
+  
   // Form State
   const [mqttConfig, setMqttConfig] = useState({
     name: 'RFID_Reader_01',
@@ -151,6 +163,94 @@ export default function HardwareConnection() {
       await handleDisconnect();
     } else if (mode === 'mqtt') {
       setMqttModalOpen(true);
+    } else if (mode === 'serial') {
+      await handleSerialConnect();
+    } else if (mode === 'tcp') {
+      await handleTcpConnect();
+    }
+  };
+
+  // 7. Handle Serial Connection
+  const handleSerialConnect = async () => {
+    setError('');
+    setLoading(true);
+    
+    try {
+      if (!serialConfig.comPort) {
+        throw new Error('COM port is required');
+      }
+      
+      console.log('[GUI] Serial Connection Attempt:', {
+        comPort: serialConfig.comPort,
+        baudRate: serialConfig.baudRate,
+      });
+      
+      // Call SDK service to connect
+      const result = await withTimeout(
+        // @ts-ignore
+        window.electronAPI.connectSerial(serialConfig.comPort, serialConfig.baudRate),
+        180000
+      );
+      
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Connection failed');
+      }
+      
+      console.log('[GUI] Serial Connection Successful');
+      setConnected(true);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
+      console.error('[GUI] Serial Connection Error:', err);
+      
+      try {
+        await sdkService.disconnect();
+      } catch (disconnectErr) {
+        console.error('[GUI] Error during disconnect after connection failure:', disconnectErr);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 8. Handle TCP Connection
+  const handleTcpConnect = async () => {
+    setError('');
+    setLoading(true);
+    
+    try {
+      if (!tcpConfig.ip || !tcpConfig.port) {
+        throw new Error('IP and Port are required');
+      }
+      
+      console.log('[GUI] TCP Connection Attempt:', {
+        ip: tcpConfig.ip,
+        port: tcpConfig.port,
+      });
+      
+      const result = await withTimeout(
+        sdkService.connect(tcpConfig.ip, tcpConfig.port),
+        180000
+      );
+      
+      if (result && result.success === false) {
+        throw new Error(result.error || 'Connection failed');
+      }
+      
+      console.log('[GUI] TCP Connection Successful');
+      setConnected(true);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
+      console.error('[GUI] TCP Connection Error:', err);
+      
+      try {
+        await sdkService.disconnect();
+      } catch (disconnectErr) {
+        console.error('[GUI] Error during disconnect after connection failure:', disconnectErr);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -193,11 +293,23 @@ export default function HardwareConnection() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[10px] text-gray-500">IP Address</label>
-                <input type="text" defaultValue="192.168.1.100" className="w-full border p-1 text-xs" disabled={connected} />
+                <input 
+                  type="text" 
+                  value={tcpConfig.ip}
+                  onChange={(e) => setTcpConfig({...tcpConfig, ip: e.target.value})}
+                  className="w-full border p-1 text-xs" 
+                  disabled={connected} 
+                />
               </div>
               <div>
                 <label className="block text-[10px] text-gray-500">Port</label>
-                <input type="number" defaultValue="8088" className="w-full border p-1 text-xs" disabled={connected} />
+                <input 
+                  type="number" 
+                  value={tcpConfig.port}
+                  onChange={(e) => setTcpConfig({...tcpConfig, port: parseInt(e.target.value) || 8088})}
+                  className="w-full border p-1 text-xs" 
+                  disabled={connected} 
+                />
               </div>
             </div>
           </div>
@@ -209,16 +321,34 @@ export default function HardwareConnection() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[10px] text-gray-500">COM Port</label>
-                <select className="w-full border p-1 text-xs" disabled={connected}>
+                <select 
+                  value={serialConfig.comPort}
+                  onChange={(e) => setSerialConfig({...serialConfig, comPort: e.target.value})}
+                  className="w-full border p-1 text-xs" 
+                  disabled={connected}
+                >
                   <option>COM1</option>
+                  <option>COM2</option>
                   <option>COM3</option>
+                  <option>COM4</option>
+                  <option>COM5</option>
+                  <option>COM6</option>
                 </select>
               </div>
               <div>
                 <label className="block text-[10px] text-gray-500">Baud Rate</label>
-                <select className="w-full border p-1 text-xs" defaultValue="115200" disabled={connected}>
+                <select 
+                  value={serialConfig.baudRate}
+                  onChange={(e) => setSerialConfig({...serialConfig, baudRate: parseInt(e.target.value) || 115200})}
+                  className="w-full border p-1 text-xs" 
+                  disabled={connected}
+                >
                   <option value="9600">9600</option>
+                  <option value="19200">19200</option>
+                  <option value="38400">38400</option>
+                  <option value="57600">57600</option>
                   <option value="115200">115200</option>
+                  <option value="230400">230400</option>
                 </select>
               </div>
             </div>

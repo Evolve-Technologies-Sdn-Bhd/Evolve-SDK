@@ -173,6 +173,20 @@ export class RfidSdk {
     this.reader.stopScan();
   }
 
+  /**
+   * Alias for start() - more intuitive naming
+   */
+  startScan() {
+    this.start();
+  }
+
+  /**
+   * Alias for stop() - more intuitive naming
+   */
+  stopScan() {
+    this.stop();
+  }
+
   // --- SESSION STATS API ---
 
   /**

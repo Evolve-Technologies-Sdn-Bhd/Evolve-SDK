@@ -29,6 +29,14 @@ export const sdkService = {
   },
 
   /**
+   * Connect to RFID reader via Serial RS-232/COM
+   */
+  connectSerial: async (comPort: string, baudRate: number) => {
+    // @ts-ignore
+    return await window.electronAPI.connectSerial({ comPort, baudRate });
+  },
+
+  /**
    * Connect to MQTT broker for RFID tag data
    * 
    * @param brokerUrl - MQTT broker URL (e.g., mqtt://broker.hivemq.com or mqtts://localhost:8883)

@@ -45,24 +45,56 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   // TCP Connection
   ipcMain.handle('reader:connect', async (_event, { host, port }) => {
     try {
+      if (!sdk) {
+        throw new Error('SDK not initialized. Cannot connect to TCP reader.');
+      }
+      if (typeof sdk.connectTcp !== 'function') {
+        throw new Error('SDK does not have connectTcp method. SDK may not be properly loaded.');
+      }
+      if (!host) {
+        throw new Error('Host IP is required');
+      }
+      if (!port) {
+        throw new Error('Port is required');
+      }
+      
+      console.log(`[IPC] Attempting TCP connection to ${host}:${port}`);
       await sdk.connectTcp(host, port);
       console.log(`[IPC] Connection Successful: TCP ${host}:${port}`);
       return { success: true };
     } catch (err) {
-      console.error(`[IPC] Connection Failed: TCP ${host}:${port} - ${err.message}`);
-      throw err;
+      const errorMsg = err?.message || String(err);
+      console.error(`[IPC] Connection Failed: TCP ${host}:${port} - ${errorMsg}`);
+      console.error(`[IPC] Error details:`, err);
+      throw new Error(errorMsg);
     }
   });
 
   // Serial Connection
-  ipcMain.handle('reader:connect-serial', async (_event, { path, baudRate }) => {
+  ipcMain.handle('reader:connect-serial', async (_event, { comPort, baudRate }) => {
     try {
-      await sdk.connectSerial(path, baudRate);
-      console.log(`[IPC] Connection Successful: Serial ${path}`);
+      if (!sdk) {
+        throw new Error('SDK not initialized. Cannot connect to serial reader.');
+      }
+      if (typeof sdk.connectSerial !== 'function') {
+        throw new Error('SDK does not have connectSerial method. SDK may not be properly loaded.');
+      }
+      if (!comPort) {
+        throw new Error('COM port is required');
+      }
+      if (!baudRate) {
+        throw new Error('Baud rate is required');
+      }
+      
+      console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud`);
+      await sdk.connectSerial(comPort, baudRate);
+      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud`);
       return { success: true };
     } catch (err) {
-      console.error(`[IPC] Connection Failed: Serial ${path} - ${err.message}`);
-      throw err;
+      const errorMsg = err?.message || String(err);
+      console.error(`[IPC] Connection Failed: Serial ${comPort} - ${errorMsg}`);
+      console.error(`[IPC] Error details:`, err);
+      throw new Error(errorMsg);
     }
   });
 

@@ -45,5 +45,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExportData: (days) => ipcRenderer.invoke('data:export-database', days),
   saveExportedCSV: (content, days) => ipcRenderer.invoke('data:save-csv', { content, days }),
 
-  connectSerial: (path, baudRate) => ipcRenderer.invoke('reader:connect-serial', { path, baudRate }),
+  connectSerial: (comPort, baudRate) => ipcRenderer.invoke('reader:connect-serial', { comPort, baudRate }),
 });
