@@ -45,7 +45,12 @@ export default function Dashboard() {
       setLogs((prev) => [...prev.slice(-100), newLog]);
     };
 
-    // subscribe
+    const onRawData = (packet: RawPacket) => {
+      console.log('[Dashboard] ✓ Received raw data packet:', packet);
+      setLogs((prev) => [...prev.slice(-100), packet]);
+    };
+
+    // subscribe to tag reads
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onTagRead) {
       console.log('[Dashboard] ✓ Registering onTagRead listener');
@@ -55,12 +60,27 @@ export default function Dashboard() {
       console.error('[Dashboard] ✗ electronAPI.onTagRead not available');
     }
 
+    // subscribe to raw data
+    // @ts-ignore
+    if (window.electronAPI && window.electronAPI.onRawData) {
+      console.log('[Dashboard] ✓ Registering onRawData listener');
+      // @ts-ignore
+      window.electronAPI.onRawData(onRawData);
+    } else {
+      console.warn('[Dashboard] ⚠ electronAPI.onRawData not available');
+    }
+
     return () => {
-      // remove listener
+      // remove listeners
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.removeTagListener) {
         // @ts-ignore
         window.electronAPI.removeTagListener();
+      }
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.removeRawDataListener) {
+        // @ts-ignore
+        window.electronAPI.removeRawDataListener();
       }
     };
   }, []);

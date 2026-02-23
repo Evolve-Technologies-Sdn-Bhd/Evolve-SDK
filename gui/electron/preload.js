@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeTagListener: () => ipcRenderer.removeAllListeners('rfid:tag-read'),
   onStats: (callback) => ipcRenderer.on('rfid:stats', (_event, stats) => callback(stats)),
   removeStatsListener: () => ipcRenderer.removeAllListeners('rfid:stats'),
+  onRawData: (callback) => ipcRenderer.on('rfid:raw-data', (_event, packet) => callback(packet)),
+  removeRawDataListener: () => ipcRenderer.removeAllListeners('rfid:raw-data'),
 
   onSystemMessage: (callback) => {
     const subscription = (_event, message, level) => callback(message, level);
