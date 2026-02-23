@@ -138,17 +138,27 @@ export class RfidSdk {
       // ✅ Update in-memory session counters
       this.totalCount++;
 
-      // Track unique tags: use 'epc' for serial readers, 'id' for MQTT
+      // 🔧 NORMALIZED UNIQUE IDENTIFICATION
+      // Both A0 and BB protocols extract exactly ~7 bytes of EPC
+      // This ensures same physical tag = same identifier across protocols
       const uniqueIdentifier = rawTagData?.epc || rawTagData?.id;
+      
       if (uniqueIdentifier) {
+        const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
         this.uniqueTags.add(uniqueIdentifier);
+        
+        console.log(`[RfidSdk] Tag read: ID=${uniqueIdentifier}, Protocol=${rawTagData._protocol || 'unknown'}, NEW=${isNewTag}, Total=${this.totalCount}, Unique=${this.uniqueTags.size}`);
+      } else {
+        console.warn(`[RfidSdk] ⚠️ Tag received but no EPC/ID field - cannot add to unique set`, rawTagData);
       }
 
       // ✅ Emit raw data to consumers (no formatting)
       this.emit('tag', rawTagData);
 
       // ✅ Emit stats update event (optional but recommended)
-      this.emit('stats', this.getCumulativeStats());
+      const stats = this.getCumulativeStats();
+      console.log('[RfidSdk] Emitting stats event:', stats);
+      this.emit('stats', stats);
     };
 
     // Register the new listener

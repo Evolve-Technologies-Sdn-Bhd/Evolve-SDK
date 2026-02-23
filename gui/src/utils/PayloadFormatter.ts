@@ -4,6 +4,8 @@
  * SDK provides raw data, GUI formats for display
  */
 
+import { PayloadDecryptor } from './PayloadDecryptor';
+
 export interface FormattedTag {
   tagId: string;
   epc: string;
@@ -22,75 +24,40 @@ export interface TagDataDisplay {
 }
 
 export class PayloadFormatter {
-  /**
-   * Parse raw payload - handles both JSON and hex formats
-   */
   static parsePayload(rawData: any): { data: Record<string, any>; isJson: boolean } {
     // Check if raw data is available
     if (!rawData) {
       return { data: {}, isJson: false };
     }
 
-    // For serial data, we get EPC ID, RSSI, and hex frame
-    // Build the display object
+    // ✅ SIMPLIFIED FORMAT: Only essential EPC/ID and RSSI
     const displayData: Record<string, any> = {};
 
-    // Extract EPC
+    // Extract clean EPC - use normalized 7-byte EPC from SerialTransport fix
     if (rawData.epc) {
       displayData.EPC = rawData.epc;
-      displayData['EPC_ID'] = rawData.epc;
+      console.log(`[PayloadFormatter] ✓ EPC: ${rawData.epc}`);
+    } else if (rawData.id) {
+      displayData.EPC = rawData.id;
+      console.log(`[PayloadFormatter] ✓ EPC (from id): ${rawData.id}`);
     }
 
-    // Extract ID (fallback if epc not present)
-    if (rawData.id) {
-      displayData.ID = rawData.id;
-    }
-
-    // Extract RSSI
+    // RSSI - simplified to just numeric value
     if (rawData.rssi !== null && rawData.rssi !== undefined) {
-      displayData.RSSI = `${rawData.rssi} dBm`;
-      displayData.RSSI_Value = rawData.rssi;
+      displayData.RSSI = rawData.rssi;  // Just the number, no " dBm" suffix
+      console.log(`[PayloadFormatter] ✓ RSSI: ${rawData.rssi}`);
     }
 
-    // Extract timestamp
+    // Timestamp - clean ISO format only
     if (rawData.timestamp) {
       displayData.Timestamp = new Date(rawData.timestamp).toISOString();
+      console.log(`[PayloadFormatter] ✓ Timestamp: ${displayData.Timestamp}`);
     }
 
-    // Extract frame data (hex representation)
-    if (rawData.raw) {
-      displayData['Frame_Hex'] = rawData.raw;
-    }
-
-    // If frameHex exists separately (from our formatPayload)
-    if (rawData._frameHex) {
-      displayData['Protocol_Frame'] = rawData._frameHex;
-    }
-
-    // Check if there's actual JSON content to parse
-    const rawContent = rawData.raw || '';
-    let payloadString = '';
+    // 🔧 MINIMIZED: Skip redundant fields (no ID, Frame_Hex, EPC_Decrypted)
+    // These aren't needed for cumulative display and only add noise
     
-    if (typeof rawContent === 'string') {
-      payloadString = rawContent;
-    } else if (Buffer.isBuffer(rawContent)) {
-      payloadString = rawContent.toString('utf-8');
-    }
-
-    // Attempt JSON parsing if it looks like JSON
-    if (payloadString.trim().startsWith('{')) {
-      try {
-        const jsonData = JSON.parse(payloadString);
-        return { 
-          data: { ...displayData, ...jsonData }, 
-          isJson: true 
-        };
-      } catch (e) {
-        console.log('[PayloadFormatter] Not valid JSON, using structured data');
-      }
-    }
-
-    // Return structured data from serial frame
+    console.log('[PayloadFormatter] Final output:', displayData);
     return { data: displayData, isJson: false };
   }
 
@@ -277,12 +244,37 @@ export class JSONFormatter {
   static format(data: any, indent: number = 2): string {
     try {
       if (typeof data === 'string') {
-        // Try to parse as JSON first
-        try {
-          const parsed = JSON.parse(data);
-          return JSON.stringify(parsed, null, indent);
-        } catch {
-          // If not JSON, wrap as a string value
+        // First try to parse as JSON
+        if (data.trim().startsWith('{') || data.trim().startsWith('[')) {
+          try {
+            const parsed = JSON.parse(data);
+            return JSON.stringify(parsed, null, indent);
+          } catch {
+            // If JSON parsing fails, try hex decryption
+            if (/^[0-9A-Fa-f\s]+$/.test(data)) {
+              try {
+                const decrypted = PayloadDecryptor.parseEpcFromHex(data);
+                return JSON.stringify(decrypted, null, indent);
+              } catch {
+                // Fall back to wrapping as string
+                return JSON.stringify({ message: data }, null, indent);
+              }
+            }
+            // Otherwise wrap as a string value
+            return JSON.stringify({ message: data }, null, indent);
+          }
+        }
+        // If it looks like hex, try to decrypt
+        else if (/^[0-9A-Fa-f\s]+$/.test(data)) {
+          try {
+            const decrypted = PayloadDecryptor.parseEpcFromHex(data);
+            return JSON.stringify(decrypted, null, indent);
+          } catch {
+            return JSON.stringify({ message: data }, null, indent);
+          }
+        }
+        // Otherwise just wrap the text
+        else {
           return JSON.stringify({ message: data }, null, indent);
         }
       } else if (typeof data === 'object' && data !== null) {

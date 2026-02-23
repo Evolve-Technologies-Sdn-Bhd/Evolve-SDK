@@ -25,12 +25,16 @@ export const TagProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Listen to SDK stats updates
   useEffect(() => {
+    console.log('[TagContext] Setting up stats listener...');
     const unsubscribe = sdkService.onStats((stats) => {
+      console.log('[TagContext] ✓ Received stats update:', stats);
+      console.log(`[TagContext] Setting total=${stats?.total}, unique=${stats?.unique}`);
       setTotalReads(stats.total);
       setUniqueCount(stats.unique);
     });
 
     return () => {
+      console.log('[TagContext] Cleaning up stats listener');
       if (unsubscribe) unsubscribe();
     };
   }, []);

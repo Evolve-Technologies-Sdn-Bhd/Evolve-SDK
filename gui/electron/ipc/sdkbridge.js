@@ -245,7 +245,10 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
 
     const statsListener = (stats) => {
       try {
+        console.log('[IPC] ✓ Received stats event from SDK:', stats);
+        console.log(`[IPC] Stats: total=${stats?.total}, unique=${stats?.unique}`);
         mainWindow.webContents.send('rfid:stats', stats);
+        console.log('[IPC] ✓ Sent rfid:stats to renderer');
       } catch (err) {
         console.error('[IPC] Error sending stats:', err);
       }

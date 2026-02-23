@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTags } from '../../contexts/TagContext';
 import { RotateCcw, Hash, Tags } from 'lucide-react'; // Ensure lucide-react is installed, or use text
 
 export default function CumulativeCount() {
   const { totalReads, uniqueCount, clearTags } = useTags();
+
+  useEffect(() => {
+    console.log('[CumulativeCount] Updated - totalReads:', totalReads, 'uniqueCount:', uniqueCount);
+  }, [totalReads, uniqueCount]);
 
   return (
     <div className="mb-4 p-3 border border-gray-300 rounded bg-white shadow-sm">

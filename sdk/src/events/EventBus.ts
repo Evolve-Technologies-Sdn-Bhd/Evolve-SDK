@@ -3,9 +3,11 @@ import { EventEmitter } from 'events';
 
 export interface TagData {
   id: string;
+  epc?: string; // EPC identifier (6-7 bytes, extracted cleanly)
   timestamp: number;
   raw: Buffer;
   rssi?: number;
+  id_full?: string; // Full payload data (for display)
 }
 
 export interface RawPacket {
