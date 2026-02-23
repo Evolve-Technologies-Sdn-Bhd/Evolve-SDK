@@ -208,8 +208,14 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        // Only forward messages that have [IPC], [MqttReader], [RfidSdk], etc tags
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        // Forward all important SDK/transport logs to the GUI
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'info');
         }
       } catch (err) {
@@ -229,7 +235,13 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'error');
         }
       } catch (err) {
@@ -249,7 +261,13 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'warn');
         }
       } catch (err) {

@@ -27,39 +27,71 @@ export class PayloadFormatter {
    */
   static parsePayload(rawData: any): { data: Record<string, any>; isJson: boolean } {
     // Check if raw data is available
-    if (!rawData.raw) {
+    if (!rawData) {
       return { data: {}, isJson: false };
     }
 
-    // Try to parse as JSON if it's a string or buffer
-    let payloadString = '';
-    
-    if (typeof rawData.raw === 'string') {
-      payloadString = rawData.raw;
-    } else if (Buffer.isBuffer(rawData.raw)) {
-      payloadString = rawData.raw.toString('utf-8');
+    // For serial data, we get EPC ID, RSSI, and hex frame
+    // Build the display object
+    const displayData: Record<string, any> = {};
+
+    // Extract EPC
+    if (rawData.epc) {
+      displayData.EPC = rawData.epc;
+      displayData['EPC_ID'] = rawData.epc;
     }
 
-    // Attempt JSON parsing
+    // Extract ID (fallback if epc not present)
+    if (rawData.id) {
+      displayData.ID = rawData.id;
+    }
+
+    // Extract RSSI
+    if (rawData.rssi !== null && rawData.rssi !== undefined) {
+      displayData.RSSI = `${rawData.rssi} dBm`;
+      displayData.RSSI_Value = rawData.rssi;
+    }
+
+    // Extract timestamp
+    if (rawData.timestamp) {
+      displayData.Timestamp = new Date(rawData.timestamp).toISOString();
+    }
+
+    // Extract frame data (hex representation)
+    if (rawData.raw) {
+      displayData['Frame_Hex'] = rawData.raw;
+    }
+
+    // If frameHex exists separately (from our formatPayload)
+    if (rawData._frameHex) {
+      displayData['Protocol_Frame'] = rawData._frameHex;
+    }
+
+    // Check if there's actual JSON content to parse
+    const rawContent = rawData.raw || '';
+    let payloadString = '';
+    
+    if (typeof rawContent === 'string') {
+      payloadString = rawContent;
+    } else if (Buffer.isBuffer(rawContent)) {
+      payloadString = rawContent.toString('utf-8');
+    }
+
+    // Attempt JSON parsing if it looks like JSON
     if (payloadString.trim().startsWith('{')) {
       try {
         const jsonData = JSON.parse(payloadString);
         return { 
-          data: jsonData, 
+          data: { ...displayData, ...jsonData }, 
           isJson: true 
         };
       } catch (e) {
-        // Not valid JSON, fall through to hex parsing
-        console.log('[PayloadFormatter] Failed to parse JSON:', e);
+        console.log('[PayloadFormatter] Not valid JSON, using structured data');
       }
     }
 
-    // Fall back to hex representation
-    const hex = payloadString 
-      ? payloadString.toUpperCase() 
-      : (Buffer.isBuffer(rawData.raw) ? rawData.raw.toString('hex').toUpperCase() : 'N/A');
-    
-    return { data: { raw: hex }, isJson: false };
+    // Return structured data from serial frame
+    return { data: displayData, isJson: false };
   }
 
   /**
@@ -87,16 +119,27 @@ export class PayloadFormatter {
   static formatTag(rawData: any): FormattedTag {
     const { data } = this.parsePayload(rawData);
     
-    // Extract EPC from parsed data if available
-    const epcKey = Object.keys(data).find(key => key.toUpperCase() === 'EPC');
-    const epc = epcKey ? String(data[epcKey]) : 'N/A';
+    // Extract EPC - try multiple sources
+    let epc = 'N/A';
+    if (rawData.epc) {
+      epc = String(rawData.epc);
+    } else if (rawData.id) {
+      epc = String(rawData.id);
+    } else if (data.EPC) {
+      epc = String(data.EPC);
+    } else if (data.EPC_ID) {
+      epc = String(data.EPC_ID);
+    }
+    
+    const rssi = rawData.rssi || 0;
+    const id = rawData.id || epc || 'Unknown';
     
     return {
-      tagId: rawData.id || epc || 'Unknown',
-      epc: epc.toUpperCase() || 'N/A',
-      rssi: rawData.rssi || 0,
-      rssiDb: `${rawData.rssi || 0} dBm`,
-      timestamp: new Date(rawData.timestamp).toISOString(),
+      tagId: id,
+      epc: epc.toUpperCase(),
+      rssi: rssi,
+      rssiDb: `${rssi} dBm`,
+      timestamp: new Date(rawData.timestamp || Date.now()).toISOString(),
       readableTime: this.formatTime(rawData.timestamp),
       direction: 'RX'
     };

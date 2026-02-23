@@ -101,5 +101,15 @@ export const sdkService = {
   onStats: (callback: (stats: { total: number; unique: number }) => void) => {
     // @ts-ignore
     window.electronAPI.onStats(callback);
+  },
+
+  /**
+   * Register callback for raw data stream packets
+   * 
+   * @param callback - Function called for each raw data packet { id, timestamp, direction, data }
+   */
+  onRawData: (callback: (packet: any) => void) => {
+    // @ts-ignore
+    window.electronAPI.onRawData(callback);
   }
 };

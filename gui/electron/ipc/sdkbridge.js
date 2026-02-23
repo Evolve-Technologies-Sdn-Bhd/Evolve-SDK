@@ -7,29 +7,41 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Helper function to format the tag - convert Buffer to serializable format
+ * For binary protocol data (like A0Protocol), convert to hex.
+ * For text data, keep as-is.
  */
 const formatPayload = async (tag) => {
   try {
-    // Convert Buffer to string for IPC serialization
+    // Convert Buffer to hex string for binary frames (A0Protocol)
     let rawData = tag.raw;
+    let rawHex = '';
     
     if (Buffer.isBuffer(rawData)) {
-      // Convert buffer to UTF-8 string  
-      rawData = rawData.toString('utf-8');
+      // Convert binary frame to hex with spaces for readability
+      rawHex = rawData.toString('hex').toUpperCase();
+      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
     } else if (Array.isArray(rawData)) {
-      rawData = Buffer.from(rawData).toString('utf-8');
+      rawHex = Buffer.from(rawData).toString('hex').toUpperCase();
+      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
+    } else if (typeof rawData === 'string') {
+      rawHex = rawData;
     }
 
+    // Return tag with formatted raw data and original id as epc
     return {
       ...tag,
-      raw: rawData
+      epc: tag.id,  // Store the EPC ID from serial reader
+      raw: rawHex,  // Store as hex for binary protocol frames
+      _frameHex: rawHex  // Also store separately for debugging
     };
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
-    // Fallback: convert buffer to base64 if all else fails
+    // Fallback
     return {
       ...tag,
-      raw: Buffer.isBuffer(tag.raw) ? tag.raw.toString('base64') : tag.raw
+      epc: tag.id,
+      raw: Buffer.isBuffer(tag.raw) ? tag.raw.toString('hex').toUpperCase() : (tag.raw || ''),
+      _error: err.message
     };
   }
 };
@@ -114,8 +126,10 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   // Track active listeners to prevent duplicates
   let currentTagListener = null;
   let currentStatsListener = null;
+  let currentRawDataListener = null;
+  let scanActive = false;
 
- // MQTT connection handler
+  // MQTT connection handler
   ipcMain.handle('reader:connect-mqtt', async (_event, { brokerUrl, topic, options }) => {
     console.log('[IPC] reader:connect-mqtt', brokerUrl, topic);
     if (!sdk) return { success: true, mock: true };
@@ -153,8 +167,15 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   ipcMain.on('reader:start-scan', () => {
     console.log('[IPC] reader:start-scan');
 
+    // Prevent multiple simultaneous scans
+    if (scanActive) {
+      console.log('[IPC] Scan already active, ignoring duplicate start request');
+      return;
+    }
+
     if (!sdk) {
       console.log('[IPC] No SDK, entering mock mode');
+      scanActive = true;
       const interval = setInterval(async () => {
         const mockTag = {
           raw: Buffer.from('MOCK_TAG'),
@@ -166,19 +187,28 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         mainWindow.webContents.send('rfid:tag-read', formatted);
       }, 1000);
 
-      ipcMain.once('reader:stop-scan', () => clearInterval(interval));
+      // Store interval ID for cleanup
+      currentTagListener = { interval, isMock: true };
       return;
     }
 
-    // Remove old listeners if they exist to prevent duplicates
-    if (currentTagListener !== null) {
+    // Clean up any old listeners first
+    if (currentTagListener && typeof currentTagListener === 'function') {
+      console.log('[IPC] Removing old tag listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('tag', currentTagListener);
       }
     }
-    if (currentStatsListener !== null) {
+    if (currentStatsListener && typeof currentStatsListener === 'function') {
+      console.log('[IPC] Removing old stats listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('stats', currentStatsListener);
+      }
+    }
+    if (currentRawDataListener && typeof currentRawDataListener === 'function') {
+      console.log('[IPC] Removing old raw data listener');
+      if (typeof sdk.removeListener === 'function') {
+        sdk.removeListener('rawData', currentRawDataListener);
       }
     }
 
@@ -195,7 +225,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
               VALUES (?, ?, ?, ?)
             `, [
               tag.id || tag.epc || 'UNKNOWN',
-              'MQTT_READER',
+              'SERIAL_READER',
               tag.antenna || 0,
               tag.rssi || 0
             ]);
@@ -221,46 +251,88 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       }
     };
 
+    const rawDataListener = (packet) => {
+      try {
+        mainWindow.webContents.send('rfid:raw-data', packet);
+      } catch (err) {
+        console.error('[IPC] Error sending raw data:', err);
+      }
+    };
+
     // Store listeners for cleanup
     currentTagListener = tagListener;
     currentStatsListener = statsListener;
+    currentRawDataListener = rawDataListener;
 
-    console.log('[IPC] Registering tag and stats listeners, then starting SDK');
+    console.log('[IPC] Registering tag, stats, and raw data listeners');
     sdk.on('tag', tagListener);
     sdk.on('stats', statsListener);
+    sdk.on('rawData', rawDataListener);
     
     try {
+      console.log('[IPC] Starting SDK scan');
       sdk.start();
+      scanActive = true;
       console.log('[IPC] SDK started successfully');
     } catch (err) {
       console.error('[IPC] Error starting SDK:', err);
-    }
-
-    ipcMain.once('reader:stop-scan', () => {
-      try {
-        console.log('[IPC] Stopping scan');
-        sdk.stop();
-        // Safely remove listeners if method exists
-        if (typeof sdk.removeListener === 'function') {
-          sdk.removeListener('tag', tagListener);
-          sdk.removeListener('stats', statsListener);
-        }
-        currentTagListener = null;
-        currentStatsListener = null;
-      } catch (err) {
-        console.error('[IPC] Error during stop-scan:', err);
+      scanActive = false;
+      // Clean up listeners on error
+      if (typeof sdk.removeListener === 'function') {
+        sdk.removeListener('tag', tagListener);
+        sdk.removeListener('stats', statsListener);
+        sdk.removeListener('rawData', rawDataListener);
       }
-    });
+      currentTagListener = null;
+      currentStatsListener = null;
+      currentRawDataListener = null;
+    }
   });
 
+  // Stop scan handler
   ipcMain.on('reader:stop-scan', () => {
     console.log('[IPC] reader:stop-scan');
-    if (sdk) {
-      try {
-        sdk.stop();
-      } catch (err) {
-        console.error('[IPC] Error stopping reader:', err);
+
+    if (!scanActive) {
+      console.log('[IPC] No active scan to stop');
+      return;
+    }
+
+    try {
+      // Handle mock mode
+      if (currentTagListener && currentTagListener.isMock) {
+        clearInterval(currentTagListener.interval);
+        currentTagListener = null;
+        scanActive = false;
+        console.log('[IPC] Mock mode stopped');
+        return;
       }
+
+      // Handle SDK mode
+      if (sdk) {
+        console.log('[IPC] Stopping SDK scan');
+        sdk.stop();
+        
+        // Clean up listeners
+        if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
+          sdk.removeListener('tag', currentTagListener);
+        }
+        if (currentStatsListener && typeof currentStatsListener === 'function' && typeof sdk.removeListener === 'function') {
+          sdk.removeListener('stats', currentStatsListener);
+        }
+        if (currentRawDataListener && typeof currentRawDataListener === 'function' && typeof sdk.removeListener === 'function') {
+          sdk.removeListener('rawData', currentRawDataListener);
+        }
+      }
+
+      currentTagListener = null;
+      currentStatsListener = null;
+      currentRawDataListener = null;
+      scanActive = false;
+      console.log('[IPC] Scan stopped successfully');
+    } catch (err) {
+      console.error('[IPC] Error stopping scan:', err);
+      scanActive = false;
     }
   });
 
