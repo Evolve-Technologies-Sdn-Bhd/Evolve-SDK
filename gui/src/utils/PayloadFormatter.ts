@@ -4,6 +4,8 @@
  * SDK provides raw data, GUI formats for display
  */
 
+import { PayloadDecryptor } from './PayloadDecryptor';
+
 export interface FormattedTag {
   tagId: string;
   epc: string;
@@ -22,44 +24,41 @@ export interface TagDataDisplay {
 }
 
 export class PayloadFormatter {
-  /**
-   * Parse raw payload - handles both JSON and hex formats
-   */
   static parsePayload(rawData: any): { data: Record<string, any>; isJson: boolean } {
     // Check if raw data is available
-    if (!rawData.raw) {
+    if (!rawData) {
       return { data: {}, isJson: false };
     }
 
-    // Try to parse as JSON if it's a string or buffer
-    let payloadString = '';
-    
-    if (typeof rawData.raw === 'string') {
-      payloadString = rawData.raw;
-    } else if (Buffer.isBuffer(rawData.raw)) {
-      payloadString = rawData.raw.toString('utf-8');
+    // ✅ SIMPLIFIED FORMAT: Only essential EPC/ID and RSSI
+    const displayData: Record<string, any> = {};
+
+    // Extract clean EPC - use normalized 7-byte EPC from SerialTransport fix
+    if (rawData.epc) {
+      displayData.EPC = rawData.epc;
+      console.log(`[PayloadFormatter] ✓ EPC: ${rawData.epc}`);
+    } else if (rawData.id) {
+      displayData.EPC = rawData.id;
+      console.log(`[PayloadFormatter] ✓ EPC (from id): ${rawData.id}`);
     }
 
-    // Attempt JSON parsing
-    if (payloadString.trim().startsWith('{')) {
-      try {
-        const jsonData = JSON.parse(payloadString);
-        return { 
-          data: jsonData, 
-          isJson: true 
-        };
-      } catch (e) {
-        // Not valid JSON, fall through to hex parsing
-        console.log('[PayloadFormatter] Failed to parse JSON:', e);
-      }
+    // RSSI - simplified to just numeric value
+    if (rawData.rssi !== null && rawData.rssi !== undefined) {
+      displayData.RSSI = rawData.rssi;  // Just the number, no " dBm" suffix
+      console.log(`[PayloadFormatter] ✓ RSSI: ${rawData.rssi}`);
     }
 
-    // Fall back to hex representation
-    const hex = payloadString 
-      ? payloadString.toUpperCase() 
-      : (Buffer.isBuffer(rawData.raw) ? rawData.raw.toString('hex').toUpperCase() : 'N/A');
+    // Timestamp - clean ISO format only
+    if (rawData.timestamp) {
+      displayData.Timestamp = new Date(rawData.timestamp).toISOString();
+      console.log(`[PayloadFormatter] ✓ Timestamp: ${displayData.Timestamp}`);
+    }
+
+    // 🔧 MINIMIZED: Skip redundant fields (no ID, Frame_Hex, EPC_Decrypted)
+    // These aren't needed for cumulative display and only add noise
     
-    return { data: { raw: hex }, isJson: false };
+    console.log('[PayloadFormatter] Final output:', displayData);
+    return { data: displayData, isJson: false };
   }
 
   /**
@@ -87,16 +86,27 @@ export class PayloadFormatter {
   static formatTag(rawData: any): FormattedTag {
     const { data } = this.parsePayload(rawData);
     
-    // Extract EPC from parsed data if available
-    const epcKey = Object.keys(data).find(key => key.toUpperCase() === 'EPC');
-    const epc = epcKey ? String(data[epcKey]) : 'N/A';
+    // Extract EPC - try multiple sources
+    let epc = 'N/A';
+    if (rawData.epc) {
+      epc = String(rawData.epc);
+    } else if (rawData.id) {
+      epc = String(rawData.id);
+    } else if (data.EPC) {
+      epc = String(data.EPC);
+    } else if (data.EPC_ID) {
+      epc = String(data.EPC_ID);
+    }
+    
+    const rssi = rawData.rssi || 0;
+    const id = rawData.id || epc || 'Unknown';
     
     return {
-      tagId: rawData.id || epc || 'Unknown',
-      epc: epc.toUpperCase() || 'N/A',
-      rssi: rawData.rssi || 0,
-      rssiDb: `${rawData.rssi || 0} dBm`,
-      timestamp: new Date(rawData.timestamp).toISOString(),
+      tagId: id,
+      epc: epc.toUpperCase(),
+      rssi: rssi,
+      rssiDb: `${rssi} dBm`,
+      timestamp: new Date(rawData.timestamp || Date.now()).toISOString(),
       readableTime: this.formatTime(rawData.timestamp),
       direction: 'RX'
     };
@@ -234,12 +244,37 @@ export class JSONFormatter {
   static format(data: any, indent: number = 2): string {
     try {
       if (typeof data === 'string') {
-        // Try to parse as JSON first
-        try {
-          const parsed = JSON.parse(data);
-          return JSON.stringify(parsed, null, indent);
-        } catch {
-          // If not JSON, wrap as a string value
+        // First try to parse as JSON
+        if (data.trim().startsWith('{') || data.trim().startsWith('[')) {
+          try {
+            const parsed = JSON.parse(data);
+            return JSON.stringify(parsed, null, indent);
+          } catch {
+            // If JSON parsing fails, try hex decryption
+            if (/^[0-9A-Fa-f\s]+$/.test(data)) {
+              try {
+                const decrypted = PayloadDecryptor.parseEpcFromHex(data);
+                return JSON.stringify(decrypted, null, indent);
+              } catch {
+                // Fall back to wrapping as string
+                return JSON.stringify({ message: data }, null, indent);
+              }
+            }
+            // Otherwise wrap as a string value
+            return JSON.stringify({ message: data }, null, indent);
+          }
+        }
+        // If it looks like hex, try to decrypt
+        else if (/^[0-9A-Fa-f\s]+$/.test(data)) {
+          try {
+            const decrypted = PayloadDecryptor.parseEpcFromHex(data);
+            return JSON.stringify(decrypted, null, indent);
+          } catch {
+            return JSON.stringify({ message: data }, null, indent);
+          }
+        }
+        // Otherwise just wrap the text
+        else {
           return JSON.stringify({ message: data }, null, indent);
         }
       } else if (typeof data === 'object' && data !== null) {

@@ -61,10 +61,17 @@ export class RfidSdk {
     console.log(`[RfidSdk] TCP Reader connected at ${host}:${port}`);
   }
 
-  async connectSerial(path: string, baudRate: number) {
-    this.reader = new SerialReader(path, baudRate, this.emitter);
+  async connectSerial(path: string, baudRate: number, protocol: 'A0' | 'BB' | 'AUTO' = 'AUTO') {
+    const reader = new SerialReader(path, baudRate, this.emitter);
+    this.reader = reader;
+    
+    // Set protocol if provided
+    if (protocol !== 'AUTO') {
+      await reader.configure({ protocol });
+    }
+    
     await this.reader.connect();
-    console.log(`[RfidSdk] Serial Reader connected at ${path}`);
+    console.log(`[RfidSdk] Serial Reader connected at ${path} (Protocol: ${protocol})`);
   }
 
   async connectMqtt(brokerUrl: string, topic: string, options?: any) {
@@ -138,17 +145,27 @@ export class RfidSdk {
       // ✅ Update in-memory session counters
       this.totalCount++;
 
-      // Track unique tags: use 'epc' for serial readers, 'id' for MQTT
+      // 🔧 NORMALIZED UNIQUE IDENTIFICATION
+      // Both A0 and BB protocols extract exactly ~7 bytes of EPC
+      // This ensures same physical tag = same identifier across protocols
       const uniqueIdentifier = rawTagData?.epc || rawTagData?.id;
+      
       if (uniqueIdentifier) {
+        const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
         this.uniqueTags.add(uniqueIdentifier);
+        
+        console.log(`[RfidSdk] Tag read: ID=${uniqueIdentifier}, Protocol=${rawTagData._protocol || 'unknown'}, NEW=${isNewTag}, Total=${this.totalCount}, Unique=${this.uniqueTags.size}`);
+      } else {
+        console.warn(`[RfidSdk] ⚠️ Tag received but no EPC/ID field - cannot add to unique set`, rawTagData);
       }
 
       // ✅ Emit raw data to consumers (no formatting)
       this.emit('tag', rawTagData);
 
       // ✅ Emit stats update event (optional but recommended)
-      this.emit('stats', this.getCumulativeStats());
+      const stats = this.getCumulativeStats();
+      console.log('[RfidSdk] Emitting stats event:', stats);
+      this.emit('stats', stats);
     };
 
     // Register the new listener
@@ -171,6 +188,20 @@ export class RfidSdk {
     }
     
     this.reader.stopScan();
+  }
+
+  /**
+   * Alias for start() - more intuitive naming
+   */
+  startScan() {
+    this.start();
+  }
+
+  /**
+   * Alias for stop() - more intuitive naming
+   */
+  stopScan() {
+    this.stop();
   }
 
   // --- SESSION STATS API ---

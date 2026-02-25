@@ -3,7 +3,7 @@ export class A0Protocol {
   static HEADER = 0xA0;
 
   /**
-   * Calculates the checksum for the Seuic protocol (Sum of bytes, then 2's complement)
+   * Calculates the checksum for the A0 protocol (Sum of bytes, then 2's complement)
    */
   static calculateChecksum(data: Buffer): number {
     let sum = 0;
@@ -35,4 +35,17 @@ export class A0Protocol {
     
     return frame;
   }
+
+  /**
+   * Common A0 Commands
+   */
+  static COMMANDS = {
+    INVENTORY: 0x80,
+    MULTI_INVENTORY: 0x82,
+    REALTIME_INVENTORY: 0x88,
+    STOP_INVENTORY: 0x89,
+    GET_READER_INFO: 0x21,
+    SET_OUTPUT_POWER: 0x76,
+    GET_OUTPUT_POWER: 0x77
+  };
 }

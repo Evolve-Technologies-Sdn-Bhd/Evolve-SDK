@@ -4,6 +4,7 @@ import RawDataConsole, {
   DataViewType,
 } from '../Dashboard/raw/RawDataConsole';
 import { PayloadFormatter } from '../../utils/PayloadFormatter';
+import { PayloadDecryptor } from '../../utils/PayloadDecryptor';
 
 declare global {
   interface Window {
@@ -45,7 +46,102 @@ export default function Dashboard() {
       setLogs((prev) => [...prev.slice(-100), newLog]);
     };
 
-    // subscribe
+    const onRawData = (packet: RawPacket) => {
+      console.log('[Dashboard] ✓ Received raw data packet:', packet);
+      
+      // Check if packet data needs processing
+      let processedData: any = packet.data;
+      
+      if (typeof packet.data === 'string') {
+        // First check if it's direct JSON
+        if (packet.data.trim().startsWith('{') || packet.data.trim().startsWith('[')) {
+          try {
+            console.log('[Dashboard] Attempting to parse JSON payload...');
+            const jsonData = JSON.parse(packet.data);
+            console.log('[Dashboard] ✓ Parsed JSON:', jsonData);
+            processedData = jsonData;
+          } catch (error) {
+            console.error('[Dashboard] Error parsing JSON:', error);
+            // Fall back to hex decoding
+            if (/^[0-9A-Fa-f\s]+$/.test(packet.data)) {
+              try {
+                // Try to decode hex to JSON
+                console.log('[Dashboard] Attempting to decode hex to JSON...');
+                const cleanHex = packet.data.replace(/\s/g, '');
+                let decodedString = '';
+                for (let i = 0; i < cleanHex.length; i += 2) {
+                  const char = String.fromCharCode(parseInt(cleanHex.substr(i, 2), 16));
+                  decodedString += char;
+                }
+                
+                const decodedTrimmed = decodedString.trim();
+                if (decodedTrimmed.startsWith('{')) {
+                  const jsonData = JSON.parse(decodedTrimmed);
+                  console.log('[Dashboard] ✓ Hex decoded to JSON:', jsonData);
+                  processedData = jsonData;
+                } else {
+                  // Hex decode didn't give JSON, try binary protocol
+                  console.log('[Dashboard] Hex decoding did not produce JSON, trying binary protocol...');
+                  const decrypted = PayloadDecryptor.parseEpcFromHex(packet.data);
+                  if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
+                    processedData = {
+                      EPC: decrypted.EPC,
+                      Frame_Hex: packet.data,
+                    };
+                    console.log('[Dashboard] ✓ Binary protocol decode succeeded:', processedData);
+                  }
+                }
+              } catch (error) {
+                console.error('[Dashboard] Error in hex/binary processing:', error);
+              }
+            }
+          }
+        } 
+        // If not JSON text, try hex decoding
+        else if (/^[0-9A-Fa-f\s]+$/.test(packet.data)) {
+          try {
+            // Try hex to JSON first
+            console.log('[Dashboard] Attempting hex to JSON conversion...');
+            const cleanHex = packet.data.replace(/\s/g, '');
+            let decodedString = '';
+            for (let i = 0; i < cleanHex.length; i += 2) {
+              const char = String.fromCharCode(parseInt(cleanHex.substr(i, 2), 16));
+              decodedString += char;
+            }
+            
+            const decodedTrimmed = decodedString.trim();
+            if (decodedTrimmed.startsWith('{')) {
+              const jsonData = JSON.parse(decodedTrimmed);
+              console.log('[Dashboard] ✓ Hex decoded to JSON:', jsonData);
+              processedData = jsonData;
+            } else {
+              // Hex doesn't decode to JSON, try binary protocol
+              console.log('[Dashboard] Hex does not decode to JSON, trying binary protocol...');
+              const decrypted = PayloadDecryptor.parseEpcFromHex(packet.data);
+              if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
+                processedData = {
+                  EPC: decrypted.EPC,
+                  Frame_Hex: packet.data,
+                };
+                console.log('[Dashboard] ✓ Binary protocol decode succeeded:', processedData);
+              }
+            }
+          } catch (error) {
+            console.error('[Dashboard] Error in hex processing:', error);
+          }
+        }
+      }
+      
+      const newLog: RawPacket = {
+        ...packet,
+        data: processedData
+      };
+      
+      console.log('[Dashboard] ✓ Adding to logs:', newLog);
+      setLogs((prev) => [...prev.slice(-100), newLog]);
+    };
+
+    // subscribe to tag reads
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onTagRead) {
       console.log('[Dashboard] ✓ Registering onTagRead listener');
@@ -55,12 +151,27 @@ export default function Dashboard() {
       console.error('[Dashboard] ✗ electronAPI.onTagRead not available');
     }
 
+    // subscribe to raw data
+    // @ts-ignore
+    if (window.electronAPI && window.electronAPI.onRawData) {
+      console.log('[Dashboard] ✓ Registering onRawData listener');
+      // @ts-ignore
+      window.electronAPI.onRawData(onRawData);
+    } else {
+      console.warn('[Dashboard] ⚠ electronAPI.onRawData not available');
+    }
+
     return () => {
-      // remove listener
+      // remove listeners
       // @ts-ignore
       if (window.electronAPI && window.electronAPI.removeTagListener) {
         // @ts-ignore
         window.electronAPI.removeTagListener();
+      }
+      // @ts-ignore
+      if (window.electronAPI && window.electronAPI.removeRawDataListener) {
+        // @ts-ignore
+        window.electronAPI.removeRawDataListener();
       }
     };
   }, []);

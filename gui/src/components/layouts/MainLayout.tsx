@@ -48,27 +48,24 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // @ts-ignore
     const removeDataListener = window.electronAPI.onExportDataTrigger(async (daysString: string) => {
       const days = parseInt(daysString);
-      const currentTags = tagsRef.current;
-      
-      const msInDay = 24 * 60 * 60 * 1000;
-      const cutoffTime = Date.now() - (days * msInDay);
-      const filteredTags = Array.from(currentTags.values()).filter(tag => tag.lastSeen >= cutoffTime);
 
-      if (filteredTags.length === 0) {
-        addLog(`No tag data found for the last ${days} days.`, "WARNING");
+      // Get data from database
+      // @ts-ignore
+      const dbResult = await window.electronAPI.getExportData(days);
+
+      if (!dbResult.success) {
+        addLog(dbResult.error || `No tag data found for the last ${days} days.`, "WARNING");
         return;
       }
 
-      const header = "EPC,Count,RSSI,Last Seen\n";
-      const rows = filteredTags.map(tag => 
-        `${tag.epc},${tag.count},${tag.rssi},"${new Date(tag.lastSeen).toLocaleString()}"`
-      ).join("\n");
-      const csvContent = header + rows;
-
+      // Save the CSV file
       // @ts-ignore
-      const res = await window.electronAPI.saveDataCSV(csvContent, days);
-      if (res.success) addLog(`Successfully exported ${filteredTags.length} unique tags.`, "SUCCESS");
-      else addLog(`Export failed: ${res.error}`, "ERROR");
+      const saveResult = await window.electronAPI.saveExportedCSV(dbResult.content, days);
+      if (saveResult.success) {
+        addLog(`Successfully exported ${dbResult.count} tag records.`, "SUCCESS");
+      } else {
+        addLog(`Export failed: ${saveResult.error}`, "ERROR");
+      }
     });
 
     // 4. System Messages Listener

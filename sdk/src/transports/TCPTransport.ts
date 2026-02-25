@@ -43,8 +43,23 @@ export class TcpReader extends ReaderManager {
     const cmd = frame[3];
     if (cmd === 0x89 || cmd === 0x80) { // Inventory Report
       const epc = frame.subarray(7, frame.length - 2);
+      
+      // Try to decode as UTF-8 text first, fall back to hex if not valid text
+      let id = '';
+      try {
+        const textDecoded = epc.toString('utf-8');
+        // Check if it's valid UTF-8 and mostly printable characters
+        if (textDecoded && /^[\x20-\x7E\n\r\t]+$/.test(textDecoded)) {
+          id = textDecoded.trim();
+        } else {
+          id = epc.toString('hex').toUpperCase();
+        }
+      } catch {
+        id = epc.toString('hex').toUpperCase();
+      }
+      
       this.emitTag({
-        id: epc.toString('hex').toUpperCase(),
+        id: id,
         timestamp: Date.now(),
         rssi: frame[frame.length - 2] * -1,
         raw: frame
@@ -53,13 +68,55 @@ export class TcpReader extends ReaderManager {
   }
 
   startScan() {
-    // 0x89 = Real time inventory, 0xFF = keep reading
-    const cmd = A0Protocol.encode(0x01, 0x89, [0xFF]);
-    this.client?.write(cmd);
+    try {
+      if (!this.client || !this.client.writable) {
+        console.error('[TcpReader] Socket not writable, cannot start scan. Socket state:', {
+          clientExists: !!this.client,
+          writable: this.client?.writable,
+          connecting: this.client?.connecting,
+          destroyed: this.client?.destroyed
+        });
+        throw new Error('TCP socket is not connected or writable');
+      }
+      
+      // 0x89 = Real time inventory, 0xFF = keep reading
+      const cmd = A0Protocol.encode(0x01, 0x89, [0xFF]);
+      console.log('[TcpReader] Sending start scan command:', cmd.toString('hex'));
+      
+      this.client.write(cmd, (err) => {
+        if (err) {
+          console.error('[TcpReader] Error writing start scan command:', err);
+        } else {
+          console.log('[TcpReader] Start scan command sent successfully');
+        }
+      });
+    } catch (err) {
+      console.error('[TcpReader] Error in startScan:', err instanceof Error ? err.message : err);
+      throw err;
+    }
   }
 
   stopScan() {
-    this.client?.write(A0Protocol.encode(0x01, 0x8C)); // 0x8C = Stop/Reset
+    try {
+      if (!this.client || !this.client.writable) {
+        console.error('[TcpReader] Socket not writable, cannot stop scan');
+        throw new Error('TCP socket is not connected or writable');
+      }
+
+      const cmd = A0Protocol.encode(0x01, 0x8C); // 0x8C = Stop/Reset
+      console.log('[TcpReader] Sending stop scan command:', cmd.toString('hex'));
+      
+      this.client.write(cmd, (err) => {
+        if (err) {
+          console.error('[TcpReader] Error writing stop scan command:', err);
+        } else {
+          console.log('[TcpReader] Stop scan command sent successfully');
+        }
+      });
+    } catch (err) {
+      console.error('[TcpReader] Error in stopScan:', err instanceof Error ? err.message : err);
+      throw err;
+    }
   }
 
   async disconnect() { this.client?.destroy(); }

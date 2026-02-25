@@ -1,0 +1,40 @@
+{
+  "events": [
+    {
+      "epc": "ABC1234567890ABCDEF0",
+      "readerId": "mqtt-reader-01",
+      "antenna": 1,
+      "rssi": -52
+    },
+    {
+      "epc": "DEF0987654321FEDCBA0",
+      "readerId": "mqtt-reader-01",
+      "antenna": 2,
+      "rssi": -48
+    },
+    {
+      "epc": "GHI1357924680GIHI123",
+      "readerId": "mqtt-reader-02",
+      "antenna": 1,
+      "rssi": -55
+    },
+    {
+      "epc": "JKL2468135792JKLJKL0",
+      "readerId": "mqtt-reader-02",
+      "antenna": 3,
+      "rssi": -50
+    },
+    {
+      "epc": "MNO3692581470MNOMNO0",
+      "readerId": "serial-reader-01",
+      "antenna": 1,
+      "rssi": -45
+    }
+  ],
+  "metadata": {
+    "description": "Sample RFID tag seed data for initial database population or testing",
+    "createdAt": "2026-02-20T15:00:00.000Z",
+    "tags": ["sample", "demo", "testing"],
+    "source": "Manual seed data"
+  }
+}

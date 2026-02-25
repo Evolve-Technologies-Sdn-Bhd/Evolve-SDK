@@ -16,6 +16,7 @@ try {
 }
 
 let sdk = null;
+let db = null;
 
 async function initializeSDK() {
   try {
@@ -37,6 +38,81 @@ async function initializeSDK() {
   } catch (err) {
     console.warn('[Electron] SDK not available; running in mock mode.', err?.message ?? err);
     sdk = null;
+  }
+}
+
+async function initializeDatabase() {
+  try {
+    console.log('[App] Starting database initialization...');
+    
+    // Database path in user data directory
+    const userDataDir = path.join(app.getPath('home'), '.evolve-sdk-electron');
+    
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(userDataDir)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+      console.log('[App] Created user data directory:', userDataDir);
+    }
+    
+    const dbPath = path.join(userDataDir, 'rfid_events.db');
+    console.log('[App] Database path:', dbPath);
+    
+    // Initialize sql.js
+    console.log('[App] Loading sql.js...');
+    const initSqlJs = (await import('sql.js')).default;
+    const SQL = await initSqlJs();
+    console.log('[App] sql.js loaded');
+    
+    // Load existing database file or create new one
+    let dbData;
+    if (fs.existsSync(dbPath)) {
+      console.log('[App] Loading existing database file...');
+      dbData = fs.readFileSync(dbPath);
+      db = new SQL.Database(dbData);
+      console.log('[App] Existing database loaded');
+    } else {
+      console.log('[App] Creating new database...');
+      db = new SQL.Database();
+      console.log('[App] New database created');
+    }
+    
+    // Initialize tables if needed
+    console.log('[App] Creating tables...');
+    db.run(`
+      CREATE TABLE IF NOT EXISTS rfid_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        epc TEXT,
+        reader_id TEXT,
+        antenna INTEGER,
+        rssi REAL,
+        read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Save database to file
+    console.log('[App] Saving database to file...');
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+    
+    // Store save function for later use
+    db.saveToFile = () => {
+      try {
+        const data = db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(dbPath, buffer);
+        console.log('[App] Database saved to file');
+      } catch (err) {
+        console.error('[App] Error saving database:', err?.message);
+      }
+    };
+    
+    console.log('[App] Database initialized successfully at', dbPath);
+  } catch (err) {
+    console.error('[App] Database initialization failed:');
+    console.error('[App] Error message:', err?.message);
+    console.error('[App] Error stack:', err?.stack);
+    db = null;
   }
 }
 
@@ -107,7 +183,9 @@ function createWindow() {
   createApplicationMenu();
 
   // Register SDK bridge handlers
-  registerSdkBridge({ mainWindow, sdk });
+  console.log('[Main] About to register SDK bridge. db status:', db ? 'initialized' : 'null/undefined');
+  registerSdkBridge({ mainWindow, sdk, db });
+  console.log('[Main] SDK bridge registered successfully');
 }
 
 /**
@@ -130,8 +208,14 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        // Only forward messages that have [IPC], [MqttReader], [RfidSdk], etc tags
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        // Forward all important SDK/transport logs to the GUI
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'info');
         }
       } catch (err) {
@@ -151,7 +235,13 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'error');
         }
       } catch (err) {
@@ -171,7 +261,13 @@ function setupLogForwarding(mainWindow) {
           return String(arg);
         }).join(' ');
         
-        if (message.includes('[IPC]') || message.includes('[MqttReader]') || message.includes('[RfidSdk]')) {
+        if (message.includes('[IPC]') || 
+            message.includes('[MqttReader]') || 
+            message.includes('[RfidSdk]') ||
+            message.includes('[SerialReader]') ||
+            message.includes('[TcpReader]') ||
+            message.includes('[App]') ||
+            message.includes('[Main]')) {
           mainWindow.webContents.send('system:message', message, 'warn');
         }
       } catch (err) {
@@ -288,7 +384,11 @@ function createApplicationMenu() {
 
 // --- 4. APP LIFECYCLE ---
 app.on('ready', async () => {
+  console.log('[App] App ready event');
   await initializeSDK();
+  console.log('[App] SDK initialization complete');
+  await initializeDatabase();
+  console.log('[App] Database initialization complete, db:', db ? 'initialized' : 'failed');
   createWindow();
 });
 
