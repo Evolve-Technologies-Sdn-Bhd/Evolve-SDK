@@ -55,7 +55,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   // --- SDK HANDLERS ---
 
   // TCP Connection
-  ipcMain.handle('reader:connect', async (_event, { host, port }) => {
+  ipcMain.handle('reader:connect', async (_event, { host, ip, address, port }) => {
     try {
       if (!sdk) {
         throw new Error('SDK not initialized. Cannot connect to TCP reader.');
@@ -63,20 +63,22 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       if (typeof sdk.connectTcp !== 'function') {
         throw new Error('SDK does not have connectTcp method. SDK may not be properly loaded.');
       }
-      if (!host) {
+      const resolvedHost = host || ip || address;
+      if (!resolvedHost) {
         throw new Error('Host IP is required');
       }
-      if (!port) {
+      const resolvedPort = typeof port === 'string' ? Number(port) : port;
+      if (!resolvedPort || Number.isNaN(resolvedPort)) {
         throw new Error('Port is required');
       }
       
-      console.log(`[IPC] Attempting TCP connection to ${host}:${port}`);
-      await sdk.connectTcp(host, port);
-      console.log(`[IPC] Connection Successful: TCP ${host}:${port}`);
+      console.log(`[IPC] Attempting TCP connection to ${resolvedHost}:${resolvedPort}`);
+      await sdk.connectTcp(resolvedHost, resolvedPort);
+      console.log(`[IPC] Connection Successful: TCP ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
-      console.error(`[IPC] Connection Failed: TCP ${host}:${port} - ${errorMsg}`);
+      console.error(`[IPC] Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`);
       console.error(`[IPC] Error details:`, err);
       throw new Error(errorMsg);
     }

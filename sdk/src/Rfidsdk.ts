@@ -56,9 +56,28 @@ export class RfidSdk {
 
   // --- CONNECT / DISCONNECT ---
   async connectTcp(host: string, port: number) {
-    this.reader = new TcpReader(host, port, this.emitter);
-    await this.reader.connect();
-    console.log(`[RfidSdk] TCP Reader connected at ${host}:${port}`);
+    try {
+      // Disconnect any existing reader before connecting a new one
+      if (this.reader) {
+        await this.disconnect();
+      }
+
+      this.reader = new TcpReader(host, port, this.emitter);
+      await this.reader.connect();
+      console.log(`[RfidSdk] TCP Reader connected at ${host}:${port}`);
+      return true;
+    } catch (err) {
+      // Clean up reader instance on connection failure
+      if (this.reader) {
+        try {
+          await this.reader.disconnect();
+        } catch (cleanupErr) {
+          console.error('[RfidSdk] Error during cleanup:', cleanupErr);
+        }
+        this.reader = undefined;
+      }
+      throw err;
+    }
   }
 
   async connectSerial(path: string, baudRate: number) {
