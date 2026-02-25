@@ -1,6 +1,7 @@
 import { SerialPort } from 'serialport';
 import { ReaderManager } from '../readers/ReaderManager';
 import { A0Protocol } from '../utils/A0Protocol';
+import { BBProtocol } from '../utils/BBProtocol';
 
 export class SerialReader extends ReaderManager {
   private port?: SerialPort;
@@ -8,6 +9,7 @@ export class SerialReader extends ReaderManager {
   private isConnected: boolean = false;
   private frameCount: number = 0;
   private scanTimeout?: NodeJS.Timeout;
+  private readerProtocol: 'A0' | 'BB' | 'AUTO' = 'AUTO';
 
   constructor(private path: string, private baud: number, emitter: any) { 
     super(emitter); 
@@ -72,111 +74,126 @@ export class SerialReader extends ReaderManager {
     // Emit to data stream
     this.emitRawData(data, 'RX');
     
-    // Process frames: Support both A0 protocol (0xA0 header) and BB protocol (0xBB header)
-    while (this.buffer.length >= 5) {
+    // Process frames: Support A0 (0xA0), BB (0xBB), and SL500 (0x7E) headers
+    while (this.buffer.length >= 3) {
       const header = this.buffer[0];
       
       // 📋 PROTOCOL DETECTION
       if (header === A0Protocol.HEADER) {
         // ✅ A0 PROTOCOL: A0 <len> <addr> <cmd> [...payload...] <checksum>
-        console.log(`[SerialReader] ✓ A0 Protocol frame detected`);
-        
         const len = this.buffer[1];
         
         // Sanity check: length shouldn't be more than 1024
         if (len > 1024 || len < 3) {
-          console.warn(`[SerialReader] Invalid A0 length byte: 0x${len.toString(16)} (${len}), expected 3-1024`);
           this.buffer = this.buffer.subarray(1);
           continue;
         }
         
         // Check if frame is complete
-        if (this.buffer.length < len + 2) {
-          console.log(`[SerialReader] Waiting for more A0 data... (have ${this.buffer.length} bytes, need ${len + 2})`);
-          break; // Wait for more data
-        }
+        if (this.buffer.length < len + 2) break;
 
-        // Extract complete frame
         const frame = this.buffer.subarray(0, len + 2);
         this.frameCount++;
-        console.log(`[SerialReader] Frame #${this.frameCount} complete (${frame.length} bytes, A0 protocol)`);
-      
-        try {
-          this.processFrame(frame, 'A0');
-        } catch (err) {
-          console.error(`[SerialReader] Error processing A0 frame:`, err);
-        }
-
-        // Remove processed frame from buffer
+        this.processFrame(frame, 'A0');
         this.buffer = this.buffer.subarray(len + 2);
         
       } else if (header === 0xBB) {
-        // ✅ BB PROTOCOL: BB <len> [...payload...] <checksum>
-        // ⚠️ NOTE: BB frames may be concatenated with 0x0D 0x0A (CR+LF) separators
-        console.log(`[SerialReader] ✓ BB Protocol frame detected`);
+        // ✅ BB PROTOCOL (Sanray/Hopeland or Generic BB)
+        // Format 1 (Generic): BB <len> [...payload...] <checksum>
+        // Format 2 (Sanray): BB <type> <cmd> <len_h> <len_l> ... <checksum> 7E
         
-        const len = this.buffer[1];
-        const totalFrameLength = len + 2; // BB + len + payload + checksum
+        const lenByte = this.buffer[1];
         
-        // Sanity check
-        if (len > 1024 || len < 3) {
-          console.warn(`[SerialReader] Invalid BB length byte: 0x${len.toString(16)} (${len}), expected 3-1024`);
+        // Try Sanray format first (more specific with 7E footer)
+        if (this.buffer.length >= 7) {
+          const payloadLen = (this.buffer[3] << 8) | this.buffer[4];
+          const sanrayTotalLen = 7 + payloadLen;
+          
+          if (sanrayTotalLen <= 1024 && this.buffer.length >= sanrayTotalLen && this.buffer[sanrayTotalLen - 1] === 0x7E) {
+            const frame = this.buffer.subarray(0, sanrayTotalLen);
+            this.frameCount++;
+            this.processFrame(frame, 'BB');
+            this.buffer = this.buffer.subarray(sanrayTotalLen);
+            continue;
+          }
+        }
+        
+        // Try Generic format
+        const genericTotalLen = lenByte + 2;
+        if (lenByte > 2 && lenByte < 128 && this.buffer.length >= genericTotalLen) {
+          const frame = this.buffer.subarray(0, genericTotalLen);
+          this.frameCount++;
+          this.processFrame(frame, 'BB');
+          this.buffer = this.buffer.subarray(genericTotalLen);
+          continue;
+        }
+
+        // If neither matches but we have enough data, it might be a status message (like BB 40 02 D0 40 52)
+        if (this.buffer.length >= 6 && this.buffer[0] === 0xBB && this.buffer[1] === 0x40) {
+           console.log(`[SerialReader] Detected BB Status/Heartbeat frame, skipping`);
+           this.buffer = this.buffer.subarray(6);
+           continue;
+        }
+        
+        // If we can't determine length yet, wait for more data (up to a limit)
+        if (this.buffer.length < 128) break; 
+        
+        // Too much data and no match, skip this BB
+        this.buffer = this.buffer.subarray(1);
+        
+      } else if (header === 0x7E) {
+        // ✅ SL500 / 7E PROTOCOL: 7E <len> [...payload...] <checksum>
+        if (this.buffer.length < 2) break;
+        
+        // Check for 7E 7E double header (common in some readers)
+        const offset = this.buffer[1] === 0x7E ? 2 : 1;
+        if (this.buffer.length < offset + 1) break;
+        
+        const len = this.buffer[offset];
+        const totalLen = offset + len; // Simplified length check
+        
+        if (totalLen > 1024 || totalLen < 3) {
           this.buffer = this.buffer.subarray(1);
           continue;
         }
         
-        // Check if frame is complete
-        if (this.buffer.length < totalFrameLength) {
-          console.log(`[SerialReader] Waiting for more BB data... (have ${this.buffer.length} bytes, need ${totalFrameLength})`);
-          break; // Wait for more data
-        }
+        if (this.buffer.length < totalLen) break;
         
-        // Extract complete BB frame
-        const frame = this.buffer.subarray(0, totalFrameLength);
+        const frame = this.buffer.subarray(0, totalLen);
         this.frameCount++;
-        console.log(`[SerialReader] Frame #${this.frameCount} complete (${frame.length} bytes, BB protocol)`);
-        
-        try {
-          this.processFrame(frame, 'BB');
-        } catch (err) {
-          console.error(`[SerialReader] Error processing BB frame:`, err);
-        }
-        
-        // Remove processed frame from buffer
-        this.buffer = this.buffer.subarray(totalFrameLength);
-        
-        // 🔍 Check for concatenated frames: Skip 0x0D 0x0A (CR+LF) separators
-        if (this.buffer.length >= 2 && this.buffer[0] === 0x0D && this.buffer[1] === 0x0A) {
-          console.log(`[SerialReader] Skipping CR+LF separator (0x0D 0x0A)`);
-          this.buffer = this.buffer.subarray(2);
-        }
-        
+        console.log(`[SerialReader] ✓ 7E Protocol frame detected`);
+        this.processFrame(frame, 'A0'); // Reuse A0 processing logic for now
+        this.buffer = this.buffer.subarray(totalLen);
+
       } else {
-        // ❌ UNKNOWN PROTOCOL
-        const invalidByte = this.buffer[0].toString(16).padStart(2, '0').toUpperCase();
-        console.warn(`[SerialReader] ⚠️ Unknown protocol header: 0x${invalidByte} (${this.buffer[0]})`);
-        console.warn(`[SerialReader] Looking for A0 (0xA0) or BB (0xBB) headers...`);
-        
-        // Search for next valid header (A0 or BB)
+        // ❌ UNKNOWN PROTOCOL - Seek for next header
         let nextHeaderIndex = -1;
         for (let i = 1; i < Math.min(this.buffer.length, 1000); i++) {
-          if (this.buffer[i] === A0Protocol.HEADER || this.buffer[i] === 0xBB) {
+          if (this.buffer[i] === 0xA0 || this.buffer[i] === 0xBB || this.buffer[i] === 0x7E) {
             nextHeaderIndex = i;
-            const foundProtocol = this.buffer[i] === A0Protocol.HEADER ? 'A0' : 'BB';
-            console.log(`[SerialReader] Found ${foundProtocol} header at index ${i}, skipping ${i} bytes`);
             break;
           }
         }
         
         if (nextHeaderIndex > 0) {
           this.buffer = this.buffer.subarray(nextHeaderIndex);
-          continue;
         } else {
-          console.warn(`[SerialReader] No valid headers found in buffer (${this.buffer.length} bytes), clearing buffer`);
           this.buffer = Buffer.alloc(0);
           break;
         }
       }
+
+      // Skip CR+LF if present
+      if (this.buffer.length >= 2 && this.buffer[0] === 0x0D && this.buffer[1] === 0x0A) {
+        this.buffer = this.buffer.subarray(2);
+      }
+    }
+  }
+
+  async configure(settings: Record<string, any>): Promise<void> {
+    if (settings.protocol) {
+      this.readerProtocol = settings.protocol as 'A0' | 'BB' | 'AUTO';
+      console.log(`[SerialReader] Protocol set to: ${this.readerProtocol}`);
     }
   }
   
@@ -272,20 +289,39 @@ export class SerialReader extends ReaderManager {
           console.log(`[SerialReader] [A0] Format: EPC starts at byte 4 (normalized 7-byte extraction)`);
         }
       } else if (protocolName === 'BB') {
-        // BB Protocol: BB <len> [data...] <checksum>
-        // ⚠️ NORMALIZATION: Standardized extraction to match A0 format
-        // Standard BB format: byte 2 = RSSI, bytes 3-9 = EPC (7 bytes), rest = additional data
+        // BB Protocol: 
+        // Format 1 (Generic): BB <len> [data...] <checksum>
+        // Format 2 (Sanray): BB <type> <cmd> <len_h> <len_l> [payload...] <checksum> 7E
         
-        if (frame.length > 5) {
+        if (frame.length >= 7 && frame[frame.length - 1] === 0x7E) {
+          // ✅ SANRAY/HOPELAND FORMAT
+          const type = frame[1];
+          const cmd = frame[2];
+          const payloadLen = (frame[3] << 8) | frame[4];
+          const payload = frame.subarray(5, 5 + payloadLen);
+          
+          console.log(`[SerialReader] [BB-Sanray] Type=0x${type.toString(16)}, Cmd=0x${cmd.toString(16)}, Payload=${payload.toString('hex').toUpperCase()}`);
+          
+          if (type === 0x02 && cmd === 0x22) {
+            // Inventory notification: RSSI at byte 0 of payload, EPC starts at byte 1
+            rssi = payload[0] * -1;
+            epcStart = 5 + 1; // 5 (header) + 1 (RSSI)
+            epcEnd = 5 + payloadLen; 
+            console.log(`[SerialReader] [BB-Sanray] Inventory Tag: RSSI=${rssi}, EPC Start=${epcStart}`);
+          } else {
+             // Default extraction for other BB types
+             epcStart = 5;
+             epcEnd = 5 + payloadLen;
+          }
+        } else if (frame.length > 5) {
+          // ✅ GENERIC BB FORMAT
           rssi = (frame[2] * -1); // Byte 2 is RSSI
           epcStart = 3;
-          epcEnd = 10; // 🔧 Standardized: Extract exactly 7 bytes (bytes 3-9 inclusive)
-          console.log(`[SerialReader] [BB] Format: RSSI at byte 2 (${frame[2]}), EPC at bytes 3-9 (standardized 7-byte extraction)`);
+          epcEnd = 10; // 🔧 Standardized: Extract exactly 7 bytes
+          console.log(`[SerialReader] [BB-Generic] Format: RSSI at byte 2 (${frame[2]}), EPC at bytes 3-9`);
         } else {
-          // Fallback if frame is short
           epcStart = 3;
           epcEnd = Math.min(frame.length - 1, 10); 
-          console.log(`[SerialReader] [BB] Short frame format (${frame.length} bytes)`);
         }
       }
 
@@ -383,17 +419,32 @@ export class SerialReader extends ReaderManager {
         throw new Error('Serial port is not open');
       }
 
-      // Send start inventory command (0x88)
-      const command = A0Protocol.encode(0x01, 0x88, [0xFF]);
-      console.log('[SerialReader] Sending start command');
+      // 🔍 PROTOCOL-AGNOSTIC START SCAN
+      // We send start commands for both A0 and BB protocols if in AUTO mode
+      // This ensures we can wake up different readers without manual selection
       
-      this.port.write(command, (err) => {
-        if (err) {
-          console.error('[SerialReader] Error sending start command:', err.message);
-        } else {
-          console.log('[SerialReader] ✓ Start command sent');
-        }
-      });
+      const commands: Buffer[] = [];
+      
+      if (this.readerProtocol === 'A0' || this.readerProtocol === 'AUTO') {
+        // A0 Start (Seuic) - try both address 0x01 and 0xFF
+        commands.push(A0Protocol.encode(0x01, A0Protocol.COMMANDS.REALTIME_INVENTORY, [0x01])); // Fast Real-time
+        commands.push(A0Protocol.encode(0xFF, A0Protocol.COMMANDS.REALTIME_INVENTORY, [0x01])); // Broadcast
+        commands.push(A0Protocol.encode(0x01, A0Protocol.COMMANDS.MULTI_INVENTORY)); // Multi-tag
+      }
+      
+      if (this.readerProtocol === 'BB' || this.readerProtocol === 'AUTO') {
+        // BB Start (Sanray/Hopeland) - Command 0x22 (Inventory)
+        // Format: BB 00 22 00 00 22 7E
+        commands.push(BBProtocol.encode(0x00, BBProtocol.COMMANDS.INVENTORY)); 
+      }
+
+      console.log(`[SerialReader] Sending ${commands.length} start commands to reader...`);
+      
+      for (const cmd of commands) {
+        this.port.write(cmd, (err) => {
+          if (err) console.error(`[SerialReader] Error sending ${cmd[0] === 0xA0 ? 'A0' : 'BB'} start command:`, err.message);
+        });
+      }
 
       // Set timeout to warn if no data received after 5 seconds
       if (this.scanTimeout) clearTimeout(this.scanTimeout);
@@ -402,7 +453,7 @@ export class SerialReader extends ReaderManager {
           console.warn('[SerialReader] ⚠️ No data received for 5 seconds');
           console.warn('[SerialReader] Possible issues:');
           console.warn('[SerialReader]   - Device not powered on');
-          console.warn('[SerialReader]   - Wrong COM port or baud rate');
+          console.warn('[SerialReader]   - Wrong COM port or baud rate (Try 115200 or 57600)');
           console.warn('[SerialReader]   - Device not in read mode');
           console.warn('[SerialReader]   - Cable not connected properly');
         }
@@ -427,17 +478,26 @@ export class SerialReader extends ReaderManager {
         throw new Error('Serial port is not open');
       }
 
-      // Send stop inventory command (0x89)
-      const command = A0Protocol.encode(0x01, 0x89);
-      console.log('[SerialReader] Sending stop command');
+      const commands: Buffer[] = [];
       
-      this.port.write(command, (err) => {
-        if (err) {
-          console.error('[SerialReader] Error sending stop command:', err.message);
-        } else {
-          console.log('[SerialReader] ✓ Stop command sent');
-        }
-      });
+      if (this.readerProtocol === 'A0' || this.readerProtocol === 'AUTO') {
+        commands.push(A0Protocol.encode(0x01, A0Protocol.COMMANDS.STOP_INVENTORY));
+        commands.push(A0Protocol.encode(0xFF, A0Protocol.COMMANDS.STOP_INVENTORY));
+      }
+      
+      if (this.readerProtocol === 'BB' || this.readerProtocol === 'AUTO') {
+        // Many BB readers stop when any new command is sent, or have specific stop codes
+        // We'll send a "Get Reader Info" as a safe way to stop inventory on some modules
+        commands.push(BBProtocol.encode(0x00, BBProtocol.COMMANDS.GET_READER_INFO));
+      }
+
+      console.log(`[SerialReader] Sending ${commands.length} stop commands to reader...`);
+      
+      for (const cmd of commands) {
+        this.port.write(cmd, (err) => {
+          if (err) console.error(`[SerialReader] Error sending ${cmd[0] === 0xA0 ? 'A0' : 'BB'} stop command:`, err.message);
+        });
+      }
 
       console.log(`[SerialReader] Scan complete - received ${this.frameCount} frames`);
       this.frameCount = 0;

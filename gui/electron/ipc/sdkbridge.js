@@ -83,7 +83,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   });
 
   // Serial Connection
-  ipcMain.handle('reader:connect-serial', async (_event, { comPort, baudRate }) => {
+  ipcMain.handle('reader:connect-serial', async (_event, { comPort, baudRate, protocol }) => {
     try {
       if (!sdk) {
         throw new Error('SDK not initialized. Cannot connect to serial reader.');
@@ -98,8 +98,9 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         throw new Error('Baud rate is required');
       }
       
-      console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud`);
-      await sdk.connectSerial(comPort, baudRate);
+      const selectedProtocol = protocol || 'AUTO';
+      console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
+      await sdk.connectSerial(comPort, baudRate, selectedProtocol);
       console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud`);
       return { success: true };
     } catch (err) {
@@ -113,7 +114,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   // Disconnect
   ipcMain.handle('reader:disconnect', async () => {
     try {
-      const type = sdk.reader?.constructor.name;
+      const type = sdk.reader?.constructor.name || 'Reader';
       await sdk.disconnect();
       console.log(`[IPC] ${type} disconnected successfully`);
       return { success: true };

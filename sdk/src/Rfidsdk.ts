@@ -61,10 +61,17 @@ export class RfidSdk {
     console.log(`[RfidSdk] TCP Reader connected at ${host}:${port}`);
   }
 
-  async connectSerial(path: string, baudRate: number) {
-    this.reader = new SerialReader(path, baudRate, this.emitter);
+  async connectSerial(path: string, baudRate: number, protocol: 'A0' | 'BB' | 'AUTO' = 'AUTO') {
+    const reader = new SerialReader(path, baudRate, this.emitter);
+    this.reader = reader;
+    
+    // Set protocol if provided
+    if (protocol !== 'AUTO') {
+      await reader.configure({ protocol });
+    }
+    
     await this.reader.connect();
-    console.log(`[RfidSdk] Serial Reader connected at ${path}`);
+    console.log(`[RfidSdk] Serial Reader connected at ${path} (Protocol: ${protocol})`);
   }
 
   async connectMqtt(brokerUrl: string, topic: string, options?: any) {
