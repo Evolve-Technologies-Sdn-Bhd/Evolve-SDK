@@ -122,9 +122,38 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       const type = sdk.reader?.constructor.name || 'Reader';
       await sdk.disconnect();
       console.log(`[IPC] ${type} disconnected successfully`);
+      
+      // Stop scan if active
+      if (scanActive) {
+        console.log('[IPC] Stopping active scan on disconnect');
+        try {
+          sdk.stop();
+          if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('tag', currentTagListener);
+          }
+          if (currentStatsListener && typeof currentStatsListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('stats', currentStatsListener);
+          }
+          if (currentRawDataListener && typeof currentRawDataListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('rawData', currentRawDataListener);
+          }
+          currentTagListener = null;
+          currentStatsListener = null;
+          currentRawDataListener = null;
+          scanActive = false;
+        } catch (stopErr) {
+          console.error('[IPC] Error stopping scan on disconnect:', stopErr);
+        }
+      }
+      
+      // Notify renderer that disconnection occurred
+      mainWindow.webContents.send('rfid:disconnected', { type });
+      
       return { success: true };
     } catch (err) {
       console.error(`[IPC] Disconnect failed: ${err.message}`);
+      // Still notify renderer of disconnection even if there's an error
+      mainWindow.webContents.send('rfid:disconnected', { type: 'Reader', error: err.message });
       throw err;
     }
   });
