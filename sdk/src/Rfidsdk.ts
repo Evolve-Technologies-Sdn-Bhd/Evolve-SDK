@@ -80,14 +80,12 @@ export class RfidSdk {
     }
   }
 
-  async connectSerial(path: string, baudRate: number, protocol: 'A0' | 'BB' | 'AUTO' = 'AUTO') {
+  async connectSerial(path: string, baudRate: number, protocol: 'UF3-S' | 'BB' | 'A0' = 'A0') {
     const reader = new SerialReader(path, baudRate, this.emitter);
     this.reader = reader;
     
-    // Set protocol if provided
-    if (protocol !== 'AUTO') {
-      await reader.configure({ protocol });
-    }
+    // Configure protocol before connecting
+    await reader.configure({ protocol });
     
     await this.reader.connect();
     console.log(`[RfidSdk] Serial Reader connected at ${path} (Protocol: ${protocol})`);

@@ -100,10 +100,13 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         throw new Error('Baud rate is required');
       }
       
-      const selectedProtocol = protocol || 'AUTO';
+      // Validate protocol selection - supported: UF3-S, BB, A0
+      const validProtocols = ['UF3-S', 'BB', 'A0'];
+      const selectedProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'A0';
+      
       console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
       await sdk.connectSerial(comPort, baudRate, selectedProtocol);
-      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud`);
+      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);

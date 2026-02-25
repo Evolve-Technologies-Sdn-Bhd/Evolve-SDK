@@ -46,9 +46,11 @@ export class BBProtocol {
    */
   static COMMANDS = {
     INVENTORY: 0x22,
-    STOP_INVENTORY: 0x22, // Same command, but parameter might differ or just stop reading
+    REALTIME_INVENTORY: 0x27,
+    STOP_INVENTORY: 0x28, // Stop command (often 0x28 or generic stop)
     GET_READER_INFO: 0x03,
     SET_OUTPUT_POWER: 0xB6,
     GET_OUTPUT_POWER: 0xB7
   };
 }
+

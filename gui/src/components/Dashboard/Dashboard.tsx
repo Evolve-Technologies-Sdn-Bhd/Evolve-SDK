@@ -49,6 +49,21 @@ export default function Dashboard() {
     const onRawData = (packet: RawPacket) => {
       console.log('[Dashboard] ✓ Received raw data packet:', packet);
       
+      // Skip TX (command) packets and very short packets that are likely control frames
+      if (packet.direction === 'TX') {
+        console.log('[Dashboard] ⊘ Skipping TX command packet');
+        return;
+      }
+      
+      // Skip very short hex strings (likely ACK/control frames, not tag data)
+      if (typeof packet.data === 'string') {
+        const cleanHex = packet.data.replace(/\s/g, '');
+        if (cleanHex.length < 20) {
+          console.log('[Dashboard] ⊘ Skipping short control frame');
+          return;
+        }
+      }
+      
       // Check if packet data needs processing
       let processedData: any = packet.data;
       
@@ -132,6 +147,22 @@ export default function Dashboard() {
         }
       }
       
+      // Filter out entries with unknown/error EPC to prevent clutter
+      if (typeof processedData === 'object' && processedData !== null) {
+        if (processedData.EPC === 'UNKNOWN' || processedData.EPC === 'ERROR') {
+          console.log('[Dashboard] ⊘ Skipping entry with', processedData.EPC, 'EPC');
+          return;
+        }
+      }
+      
+      // Also filter if packet data itself is already parsed as UNKNOWN/ERROR
+      if (typeof packet.data === 'object' && packet.data !== null) {
+        if (packet.data.EPC === 'UNKNOWN' || packet.data.EPC === 'ERROR') {
+          console.log('[Dashboard] ⊘ Skipping raw packet with', packet.data.EPC, 'EPC');
+          return;
+        }
+      }
+
       const newLog: RawPacket = {
         ...packet,
         data: processedData
