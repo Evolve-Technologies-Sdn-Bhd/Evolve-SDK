@@ -12,8 +12,9 @@ export default function HardwareConnection() {
   
   // Serial Form State
   const [serialConfig, setSerialConfig] = useState({
-    comPort: 'COM1',
-    baudRate: 115200
+    comPort: 'COM4',
+    baudRate: 115200,
+    protocol: 'AUTO' // Default to AUTO for reader-agnostic behavior
   });
 
   // TCP Form State
@@ -183,18 +184,14 @@ export default function HardwareConnection() {
       console.log('[GUI] Serial Connection Attempt:', {
         comPort: serialConfig.comPort,
         baudRate: serialConfig.baudRate,
+        protocol: serialConfig.protocol
       });
       
       // Call SDK service to connect
       const result = await withTimeout(
-        // @ts-ignore
-        window.electronAPI.connectSerial(serialConfig.comPort, serialConfig.baudRate),
+        sdkService.connectSerial(serialConfig.comPort, serialConfig.baudRate, serialConfig.protocol),
         180000
       );
-      
-      if (result && result.success === false) {
-        throw new Error(result.error || 'Connection failed');
-      }
       
       console.log('[GUI] Serial Connection Successful');
       setConnected(true);
@@ -349,6 +346,19 @@ export default function HardwareConnection() {
                   <option value="57600">57600</option>
                   <option value="115200">115200</option>
                   <option value="230400">230400</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[10px] text-gray-500">Reader Protocol (Agnostic)</label>
+                <select 
+                  value={serialConfig.protocol}
+                  onChange={(e) => setSerialConfig({...serialConfig, protocol: e.target.value})}
+                  className="w-full border p-1 text-xs bg-blue-50" 
+                  disabled={connected}
+                >
+                  <option value="AUTO">AUTO (Try All Protocols)</option>
+                  <option value="A0">Seuic / A0 Protocol</option>
+                  <option value="BB">Sanray / BB Protocol</option>
                 </select>
               </div>
             </div>
