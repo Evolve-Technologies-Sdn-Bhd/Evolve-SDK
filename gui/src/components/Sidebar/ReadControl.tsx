@@ -1,9 +1,31 @@
 // gui/src/components/Sidebar/ReadControl.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { sdkService } from '../../services/sdkService';
 
 export default function ReadControl() {
   const [scanning, setScanning] = useState(false);
+
+  // Auto-stop scan when reader disconnects
+  useEffect(() => {
+    const handleDisconnect = (data: any) => {
+      console.log('[ReadControl] Reader disconnected:', data);
+      if (scanning) {
+        console.log('[ReadControl] Auto-stopping scan due to disconnect');
+        try {
+          sdkService.stopScan();
+        } catch (err) {
+          console.error('[ReadControl] Error stopping scan on disconnect:', err);
+        }
+        setScanning(false);
+      }
+    };
+
+    sdkService.onDisconnected(handleDisconnect);
+
+    return () => {
+      // Note: IPC listeners persist, but this component cleanup is still good practice
+    };
+  }, [scanning]);
 
   return (
     <div className="mb-4 p-2 border border-gray-300 rounded bg-white shadow-sm">

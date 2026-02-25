@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStats: (callback) => ipcRenderer.on('rfid:stats', (_event, stats) => callback(stats)),
   removeStatsListener: () => ipcRenderer.removeAllListeners('rfid:stats'),
   onRawData: (callback) => ipcRenderer.on('rfid:raw-data', (_event, packet) => callback(packet)),
+  onDisconnected: (callback) => ipcRenderer.on('rfid:disconnected', (_event, data) => callback(data)),
   removeRawDataListener: () => ipcRenderer.removeAllListeners('rfid:raw-data'),
 
   onSystemMessage: (callback) => {

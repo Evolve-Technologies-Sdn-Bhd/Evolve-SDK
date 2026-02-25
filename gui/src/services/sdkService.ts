@@ -111,5 +111,15 @@ export const sdkService = {
   onRawData: (callback: (packet: any) => void) => {
     // @ts-ignore
     window.electronAPI.onRawData(callback);
+  },
+
+  /**
+   * Register callback for disconnection events
+   * 
+   * @param callback - Function called when reader is disconnected
+   */
+  onDisconnected: (callback: (data: { type: string; error?: string }) => void) => {
+    // @ts-ignore
+    window.electronAPI.onDisconnected(callback);
   }
 };
