@@ -101,7 +101,6 @@ async function initializeDatabase() {
         const data = db.export();
         const buffer = Buffer.from(data);
         fs.writeFileSync(dbPath, buffer);
-        console.log('[App] Database saved to file');
       } catch (err) {
         console.error('[App] Error saving database:', err?.message);
       }

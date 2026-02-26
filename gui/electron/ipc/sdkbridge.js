@@ -250,7 +250,6 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
     const tagListener = async (tag) => {
       try {
         const payload = await formatPayload(tag);
-        console.log('[IPC] Tag Sent to Renderer:', payload?.epc || payload?.id);
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database
