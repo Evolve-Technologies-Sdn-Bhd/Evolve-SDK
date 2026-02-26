@@ -310,4 +310,61 @@ export class TcpReader extends ReaderManager {
     // Implementation of abstract method from ReaderManager
     // Tag reading is handled through the data event listener in connect()
   }
+
+  /**
+   * Factory method to create and connect a TCP reader
+   * 
+   * @param host - TCP server IP address (e.g., '192.168.1.100')
+   * @param port - TCP server port (e.g., 5005, 8088)
+   * @param emitter - RfidEventEmitter instance for event propagation
+   * @returns Promise<TcpReader> - Connected reader instance
+   */
+  static async createAndConnect(host: string, port: number, emitter: any): Promise<TcpReader> {
+    if (!host || typeof host !== 'string') {
+      throw new Error('Invalid host: must be a valid IP address string');
+    }
+    if (!port || typeof port !== 'number' || port < 1 || port > 65535) {
+      throw new Error('Invalid port: must be a number between 1 and 65535');
+    }
+
+    const reader = new TcpReader(host, port, emitter);
+    console.log(`[TcpReader] Creating TCP connection to ${host}:${port}`);
+    
+    try {
+      await reader.connect();
+      console.log(`[TcpReader] ✓ Successfully connected to ${host}:${port}`);
+      return reader;
+    } catch (err) {
+      console.error(`[TcpReader] ✗ Failed to connect to ${host}:${port}:`, err);
+      throw err;
+    }
+  }
+}
+
+/**
+ * Utility function to create and connect to a TCP RFID reader
+ * 
+ * Usage:
+ *   const reader = await connectTcpReader('192.168.1.100', 5005, eventEmitter);
+ *   reader.startScan();
+ * 
+ * @param host - TCP server IP address (e.g., '192.168.1.100')
+ * @param port - TCP server port (e.g., 5005, 8088, 4001)
+ * @param emitter - RfidEventEmitter instance for event propagation
+ * @returns Promise<TcpReader> - Connected reader instance ready to use
+ */
+export async function connectTcpReader(
+  host: string,
+  port: number,
+  emitter: any
+): Promise<TcpReader> {
+  try {
+    console.log(`[connectTcpReader] Connecting to TCP reader at ${host}:${port}`);
+    const reader = await TcpReader.createAndConnect(host, port, emitter);
+    console.log(`[connectTcpReader] ✓ Connection established successfully`);
+    return reader;
+  } catch (err) {
+    console.error(`[connectTcpReader] ✗ Connection failed:`, err);
+    throw new Error(`Unable to connect to TCP reader at ${host}:${port} - ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
