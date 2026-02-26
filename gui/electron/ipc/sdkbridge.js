@@ -100,8 +100,8 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         throw new Error('Baud rate is required');
       }
       
-      // Validate protocol selection - supported: UF3-S, BB, A0
-      const validProtocols = ['UF3-S', 'BB', 'A0'];
+      // Validate protocol selection - supported: UF3-S, F5001, A0
+      const validProtocols = ['UF3-S', 'F5001', 'A0'];
       const selectedProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'A0';
       
       console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
@@ -250,6 +250,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
     const tagListener = async (tag) => {
       try {
         const payload = await formatPayload(tag);
+        console.log('[IPC] Tag Sent to Renderer:', payload?.epc || payload?.id);
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database

@@ -80,7 +80,7 @@ export class RfidSdk {
     }
   }
 
-  async connectSerial(path: string, baudRate: number, protocol: 'UF3-S' | 'BB' | 'A0' = 'A0') {
+  async connectSerial(path: string, baudRate: number, protocol: 'UF3-S' | 'F5001' | 'A0' = 'A0') {
     const reader = new SerialReader(path, baudRate, this.emitter);
     this.reader = reader;
     

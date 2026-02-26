@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 import { Settings, X, RefreshCw, Info } from 'lucide-react';
 import { sdkService } from '../../services/sdkService';
 
+interface ConnectionResult {
+  success: boolean;
+  error?: string;
+}
+
 export default function HardwareConnection() {
   const [mode, setMode] = useState<'serial' | 'tcp' | 'mqtt'>('tcp');
   const [connected, setConnected] = useState(false);
@@ -14,8 +19,7 @@ export default function HardwareConnection() {
   const [serialConfig, setSerialConfig] = useState({
     comPort: 'COM4',
     baudRate: 115200,
-    // FIX 1: Set default to 'BB' because we know it's an F5001/Sanray reader
-    protocol: 'BB' 
+    protocol: 'F5001' 
   });
 
   // TCP Form State
@@ -101,7 +105,7 @@ export default function HardwareConnection() {
       const result = await withTimeout(
         sdkService.connectMqtt(brokerUrl, mqttConfig.topic, options),
         180000
-      );
+      ) as ConnectionResult;
       
       if (result && result.success === false) throw new Error(result.error || 'Connection failed');
       
@@ -161,7 +165,7 @@ export default function HardwareConnection() {
             serialConfig.protocol // Sending the correct 'BB' protocol here
         ),
         180000
-      );
+      ) as ConnectionResult;
       
       if (result && result.success === false) throw new Error(result.error || 'Connection failed');
       
@@ -184,7 +188,7 @@ export default function HardwareConnection() {
       const result = await withTimeout(
         sdkService.connect(tcpConfig.ip, tcpConfig.port),
         180000
-      );
+      ) as ConnectionResult;
       
       if (result && result.success === false) throw new Error(result.error || 'Connection failed');
       setConnected(true);
@@ -267,7 +271,8 @@ export default function HardwareConnection() {
                   className="w-full border p-1 text-xs bg-blue-50" 
                   disabled={connected}
                 >
-                  <option value="BB">BB Protocol (F5001/Sanray)</option>
+                  <option value="F5001">F5001 (BB over RS232)</option>
+                  <option value="BB">BB Protocol (legacy)</option>
                   <option value="A0">A0 Protocol (Seuic)</option>
                   <option value="UF3-S">UF3-S</option>
                 </select>
