@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStats: (callback) => ipcRenderer.on('rfid:stats', (_event, stats) => callback(stats)),
   removeStatsListener: () => ipcRenderer.removeAllListeners('rfid:stats'),
   onRawData: (callback) => ipcRenderer.on('rfid:raw-data', (_event, packet) => callback(packet)),
+  onDisconnected: (callback) => ipcRenderer.on('rfid:disconnected', (_event, data) => callback(data)),
   removeRawDataListener: () => ipcRenderer.removeAllListeners('rfid:raw-data'),
 
   onSystemMessage: (callback) => {
@@ -47,5 +48,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExportData: (days) => ipcRenderer.invoke('data:export-database', days),
   saveExportedCSV: (content, days) => ipcRenderer.invoke('data:save-csv', { content, days }),
 
-  connectSerial: (config) => ipcRenderer.invoke('reader:connect-serial', config),
+  connectSerial: (comPort, baudRate, protocol) => 
+    ipcRenderer.invoke('reader:connect-serial', { comPort, baudRate, protocol }),
 });

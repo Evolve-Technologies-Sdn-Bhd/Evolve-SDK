@@ -55,7 +55,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   // --- SDK HANDLERS ---
 
   // TCP Connection
-  ipcMain.handle('reader:connect', async (_event, { host, port }) => {
+  ipcMain.handle('reader:connect', async (_event, { host, ip, address, port }) => {
     try {
       if (!sdk) {
         throw new Error('SDK not initialized. Cannot connect to TCP reader.');
@@ -63,20 +63,22 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       if (typeof sdk.connectTcp !== 'function') {
         throw new Error('SDK does not have connectTcp method. SDK may not be properly loaded.');
       }
-      if (!host) {
+      const resolvedHost = host || ip || address;
+      if (!resolvedHost) {
         throw new Error('Host IP is required');
       }
-      if (!port) {
+      const resolvedPort = typeof port === 'string' ? Number(port) : port;
+      if (!resolvedPort || Number.isNaN(resolvedPort)) {
         throw new Error('Port is required');
       }
       
-      console.log(`[IPC] Attempting TCP connection to ${host}:${port}`);
-      await sdk.connectTcp(host, port);
-      console.log(`[IPC] Connection Successful: TCP ${host}:${port}`);
+      console.log(`[IPC] Attempting TCP connection to ${resolvedHost}:${resolvedPort}`);
+      await sdk.connectTcp(resolvedHost, resolvedPort);
+      console.log(`[IPC] Connection Successful: TCP ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
-      console.error(`[IPC] Connection Failed: TCP ${host}:${port} - ${errorMsg}`);
+      console.error(`[IPC] Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`);
       console.error(`[IPC] Error details:`, err);
       throw new Error(errorMsg);
     }
@@ -98,10 +100,13 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         throw new Error('Baud rate is required');
       }
       
-      const selectedProtocol = protocol || 'AUTO';
+      // Validate protocol selection - supported: UF3-S, F5001, A0
+      const validProtocols = ['UF3-S', 'F5001', 'A0'];
+      const selectedProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'A0';
+      
       console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
       await sdk.connectSerial(comPort, baudRate, selectedProtocol);
-      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud`);
+      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
@@ -117,9 +122,38 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       const type = sdk.reader?.constructor.name || 'Reader';
       await sdk.disconnect();
       console.log(`[IPC] ${type} disconnected successfully`);
+      
+      // Stop scan if active
+      if (scanActive) {
+        console.log('[IPC] Stopping active scan on disconnect');
+        try {
+          sdk.stop();
+          if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('tag', currentTagListener);
+          }
+          if (currentStatsListener && typeof currentStatsListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('stats', currentStatsListener);
+          }
+          if (currentRawDataListener && typeof currentRawDataListener === 'function' && typeof sdk.removeListener === 'function') {
+            sdk.removeListener('rawData', currentRawDataListener);
+          }
+          currentTagListener = null;
+          currentStatsListener = null;
+          currentRawDataListener = null;
+          scanActive = false;
+        } catch (stopErr) {
+          console.error('[IPC] Error stopping scan on disconnect:', stopErr);
+        }
+      }
+      
+      // Notify renderer that disconnection occurred
+      mainWindow.webContents.send('rfid:disconnected', { type });
+      
       return { success: true };
     } catch (err) {
       console.error(`[IPC] Disconnect failed: ${err.message}`);
+      // Still notify renderer of disconnection even if there's an error
+      mainWindow.webContents.send('rfid:disconnected', { type: 'Reader', error: err.message });
       throw err;
     }
   });
@@ -216,6 +250,7 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
     const tagListener = async (tag) => {
       try {
         const payload = await formatPayload(tag);
+        console.log('[IPC] Tag Sent to Renderer:', payload?.epc || payload?.id);
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database

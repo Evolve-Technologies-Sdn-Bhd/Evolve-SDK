@@ -23,6 +23,7 @@ export abstract class ReaderManager extends EventEmitter {
   }
 
   protected emitTag(tag: TagData) {
+    console.log('[ReaderManager] Tag Emitted:', tag?.epc || tag?.id);
     this.rfidEmitter.emitTag(tag);
     this.emit('tagRead', tag); // now BaseReader emits too
   }

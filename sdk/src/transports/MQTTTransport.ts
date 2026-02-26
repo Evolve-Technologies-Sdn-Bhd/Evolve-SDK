@@ -81,24 +81,62 @@ export class MqttReader extends ReaderManager {
         this.client.on('message', (topic, payload) => {
           const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
           
-          // Try to decode as UTF-8 text first, fall back to hex if not valid text
           let id = '';
+          let parsedData: any = null;
+          
           try {
             const textDecoded = buffer.toString('utf-8');
-            // Check if it's valid UTF-8 and mostly printable characters
-            if (textDecoded && /^[\x20-\x7E\n\r\t]+$/.test(textDecoded)) {
-              id = textDecoded.trim();
-            } else {
-              id = buffer.toString('hex');
+            
+            // Parse the JSON payload
+            try {
+              parsedData = JSON.parse(textDecoded);
+              
+              // Extract EPC from the data structure
+              if (parsedData.data && parsedData.data.EPC) {
+                id = parsedData.data.EPC;
+              } else if (parsedData.EPC) {
+                id = parsedData.EPC;
+              } else if (parsedData.id) {
+                id = parsedData.id;
+              } else {
+                id = JSON.stringify(parsedData);
+              }
+            } catch {
+              // If JSON parsing fails, try treating as hex-encoded JSON
+              if (textDecoded && /^[0-9a-fA-F]+$/.test(textDecoded)) {
+                try {
+                  const hexDecodedBuffer = Buffer.from(textDecoded, 'hex');
+                  const jsonString = hexDecodedBuffer.toString('utf-8');
+                  parsedData = JSON.parse(jsonString);
+                  
+                  if (parsedData.data && parsedData.data.EPC) {
+                    id = parsedData.data.EPC;
+                  } else if (parsedData.EPC) {
+                    id = parsedData.EPC;
+                  } else if (parsedData.id) {
+                    id = parsedData.id;
+                  } else {
+                    id = JSON.stringify(parsedData);
+                  }
+                } catch {
+                  // Not valid hex or JSON, use raw text
+                  id = textDecoded.trim();
+                }
+              } else {
+                // Plain text, use as-is
+                id = textDecoded.trim();
+              }
             }
           } catch {
             id = buffer.toString('hex');
           }
           
-          const tag: TagData = {
+          // Create tag with full structure: preserve parsed JSON while maintaining TagData format
+          const tag: TagData & any = {
             id: id,
             timestamp: Date.now(),
             raw: buffer,
+            ...(parsedData || {}), // Spread parsed JSON into tag object
           };
 
           this.emitTag(tag);

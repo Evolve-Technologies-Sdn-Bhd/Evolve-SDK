@@ -191,89 +191,48 @@ function createWindow() {
 /**
  * Forward console logs from main process to Electron window
  */
+// Replace your setupLogForwarding function with this safer version:
 function setupLogForwarding(mainWindow) {
   const originalLog = console.log;
   const originalError = console.error;
   const originalWarn = console.warn;
 
+  const safeSend = (message, level) => {
+    // CRITICAL FIX: Check if window exists AND is not destroyed before sending
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
+      try {
+        mainWindow.webContents.send('system:message', message, level);
+      } catch (err) {
+        // Window might have been destroyed between the check and the send
+      }
+    }
+  };
+
+  const formatArgs = (args) => {
+    return args.map(arg => {
+      if (typeof arg === 'object') {
+        try { return JSON.stringify(arg); } catch { return String(arg); }
+      }
+      return String(arg);
+    }).join(' ');
+  };
+
   console.log = function(...args) {
     originalLog.apply(console, args);
-    // Forward to GUI if window exists and is not destroyed
-    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
-      try {
-        const message = args.map(arg => {
-          if (typeof arg === 'object') {
-            try { return JSON.stringify(arg); } catch { return String(arg); }
-          }
-          return String(arg);
-        }).join(' ');
-        
-        // Forward all important SDK/transport logs to the GUI
-        if (message.includes('[IPC]') || 
-            message.includes('[MqttReader]') || 
-            message.includes('[RfidSdk]') ||
-            message.includes('[SerialReader]') ||
-            message.includes('[TcpReader]') ||
-            message.includes('[App]') ||
-            message.includes('[Main]')) {
-          mainWindow.webContents.send('system:message', message, 'info');
-        }
-      } catch (err) {
-        // Silently ignore errors when sending to destroyed window
-      }
+    const message = formatArgs(args);
+    if (message.includes('[IPC]') || message.includes('[SerialReader]') || message.includes('[RfidSdk]')) {
+      safeSend(message, 'info');
     }
   };
 
   console.error = function(...args) {
     originalError.apply(console, args);
-    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
-      try {
-        const message = args.map(arg => {
-          if (typeof arg === 'object') {
-            try { return JSON.stringify(arg); } catch { return String(arg); }
-          }
-          return String(arg);
-        }).join(' ');
-        
-        if (message.includes('[IPC]') || 
-            message.includes('[MqttReader]') || 
-            message.includes('[RfidSdk]') ||
-            message.includes('[SerialReader]') ||
-            message.includes('[TcpReader]') ||
-            message.includes('[App]') ||
-            message.includes('[Main]')) {
-          mainWindow.webContents.send('system:message', message, 'error');
-        }
-      } catch (err) {
-        // Silently ignore errors when sending to destroyed window
-      }
-    }
+    safeSend(formatArgs(args), 'error');
   };
 
   console.warn = function(...args) {
     originalWarn.apply(console, args);
-    if (mainWindow && mainWindow.webContents && !mainWindow.isDestroyed()) {
-      try {
-        const message = args.map(arg => {
-          if (typeof arg === 'object') {
-            try { return JSON.stringify(arg); } catch { return String(arg); }
-          }
-          return String(arg);
-        }).join(' ');
-        
-        if (message.includes('[IPC]') || 
-            message.includes('[MqttReader]') || 
-            message.includes('[RfidSdk]') ||
-            message.includes('[SerialReader]') ||
-            message.includes('[TcpReader]') ||
-            message.includes('[App]') ||
-            message.includes('[Main]')) {
-          mainWindow.webContents.send('system:message', message, 'warn');
-        }
-      } catch (err) {
-        // Silently ignore errors when sending to destroyed window
-      }
-    }
+    safeSend(formatArgs(args), 'warn');
   };
 }
 
