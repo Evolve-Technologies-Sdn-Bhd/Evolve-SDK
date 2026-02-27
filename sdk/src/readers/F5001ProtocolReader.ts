@@ -27,14 +27,32 @@ export class F5001ProtocolReader extends ReaderManager {
 
   private processBuffer(): void {
     while (true) {
-      const endIndex = this.buffer.indexOf(Buffer.from([0x0D, 0x0A]));
-      if (endIndex === -1) return;
+      // ✅ SYNC on BB frame marker to skip garbage bytes between frames
+      let bbIndex = this.buffer.indexOf(0xBB);
+      if (bbIndex === -1) {
+        // No frame start found, clear junk
+        this.buffer = Buffer.alloc(0);
+        return;
+      }
 
+      // Remove any garbage before the frame marker
+      if (bbIndex > 0) {
+        console.debug(`[F5001] Skipping ${bbIndex} garbage bytes before frame marker`);
+        this.buffer = this.buffer.subarray(bbIndex);
+      }
+
+      // Now look for frame terminator (0D 0A)
+      const endIndex = this.buffer.indexOf(Buffer.from([0x0D, 0x0A]));
+      if (endIndex === -1) {
+        // Frame incomplete, wait for more data
+        return;
+      }
+
+      // Extract complete frame (includes terminator)
       const frame = this.buffer.subarray(0, endIndex + 2);
       this.buffer = this.buffer.subarray(endIndex + 2);
 
-      if (frame[0] !== 0xBB) continue;
-
+      // Parse the frame (already confirmed to start with BB)
       this.parseFrame(frame);
     }
   }

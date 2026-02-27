@@ -64,6 +64,14 @@ export class SerialReader extends ReaderManager {
       case 'A0':    this.protocolReader = new AOProtocolReader(this.rfidEmitter); break;
       default:      this.protocolReader = new AOProtocolReader(this.rfidEmitter); break;
     }
+
+    // ✅ RELAY tagRead events from protocolReader to SerialReader
+    // This ensures cumulative stats are updated for serial transport
+    if (this.protocolReader) {
+      this.protocolReader.on('tagRead', (tag) => {
+        this.emit('tagRead', tag);
+      });
+    }
   }
 
   private handleIncomingData(data: Buffer): void {
