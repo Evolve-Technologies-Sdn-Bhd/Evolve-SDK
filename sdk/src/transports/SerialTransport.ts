@@ -1,6 +1,6 @@
 import { SerialPort } from 'serialport';
 import { ReaderManager } from '../readers/ReaderManager';
-import { UF3SReader } from '../readers/UF3-SReader';
+import { UF3SReader }  from '../readers/UF3-SProtocolReader';
 import { F5001ProtocolReader } from '../readers/F5001ProtocolReader';
 import { AOProtocolReader } from '../readers/AOProtocolReader';
 import { A0Protocol } from '../utils/A0Protocol';
@@ -61,7 +61,7 @@ export class SerialReader extends ReaderManager {
     switch (this.selectedProtocol) {
       case 'UF3-S': this.protocolReader = new UF3SReader(this.rfidEmitter); break;
       case 'F5001': this.protocolReader = new F5001ProtocolReader(this.rfidEmitter); break;
-      case 'A0':    
+      case 'A0':    this.protocolReader = new AOProtocolReader(this.rfidEmitter); break;
       default:      this.protocolReader = new AOProtocolReader(this.rfidEmitter); break;
     }
   }
@@ -74,7 +74,7 @@ export class SerialReader extends ReaderManager {
     console.log(`[SerialReader] RX ${data.length} bytes: ${formatted}`);
     
     if (formatted.includes('BB 97')) {
-      console.log('[SerialReader] ✓ TAG DETECTED (BB 97)');
+      console.log('[SerialReader] ✓ TAG DETECTED');
     }
 
     this.emitRawData(data, 'RX');
@@ -85,63 +85,61 @@ export class SerialReader extends ReaderManager {
     if (settings.protocol) this.selectedProtocol = settings.protocol as ProtocolType;
   }
 
-  /**
-   * FIXED START SCAN
-   * The sequence must be: Config Param 0 -> Config Param 1 -> Multi-EPC Inventory (0x17)
-   */
   async startScan(): Promise<void> {
     if (!this.port?.isOpen) return;
-
     if (this.protocolReader) this.protocolReader.startScan();
-    
-    console.log('[SerialReader] Initiating F5001 Start Sequence...');
-
-    // Step 1: Set Inventory Param 0
-    const p0 = F5001Protocol.setInventoryParam0();
-    this.port.write(p0);
-    this.emitRawData(p0, 'TX');
-
-    // Small delay for reader to process config
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Step 2: Set Inventory Param 1
-    const p1 = F5001Protocol.setInventoryParam1();
-    this.port.write(p1);
-    this.emitRawData(p1, 'TX');
-
-    // Small delay for reader to process config
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Step 3: THE ACTUAL INVENTORY START COMMAND (0x17)
-    // We use the 0x17 command here. Ensure F5001Protocol.stopMultiEPC returns BB 17 02 00 00 19 0D 0A
-    const startCmd = F5001Protocol.stopMultiEPC(); 
-    
-    console.log(`[SerialReader] TX START INVENTORY: ${startCmd.toString('hex').toUpperCase()}`);
-    this.port.write(startCmd);
-    this.emitRawData(startCmd, 'TX');
-    
-    console.log(`[SerialReader] Reader should now be scanning...`);
+  
+    if (this.selectedProtocol === 'F5001') {
+      console.log('[SerialReader] Initiating F5001 Start Sequence...');
+      const p0 = F5001Protocol.setInventoryParam0();
+      this.port.write(p0);
+      this.emitRawData(p0, 'TX');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const p1 = F5001Protocol.setInventoryParam1();
+      this.port.write(p1);
+      this.emitRawData(p1, 'TX');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const startCmd = F5001Protocol.startMultiEPC();
+      console.log(`[SerialReader] TX START INVENTORY: ${startCmd.toString('hex').toUpperCase()}`);
+      this.port.write(startCmd);
+      this.emitRawData(startCmd, 'TX');
+      console.log(`[SerialReader] Waiting for tag responses...`);
+    } else {
+      console.log('[SerialReader] Initiating UF3-S/A0 Start Sequence...');
+      // Typical A0 start sequence: REALTIME_INVENTORY enable
+      const rt1 = A0Protocol.encode(0xFF, A0Protocol.COMMANDS.REALTIME_INVENTORY, [0x01]);
+      const rt1Hex = rt1.toString('hex').toUpperCase();
+      console.log(`[SerialReader] TX REALTIME_INVENTORY: ${rt1Hex}`);
+      this.port.write(rt1);
+      this.emitRawData(rt1, 'TX');
+      // Optional multi-inventory kick
+      const multi = A0Protocol.encode(0xFF, A0Protocol.COMMANDS.MULTI_INVENTORY, []);
+      const multiHex = multi.toString('hex').toUpperCase();
+      console.log(`[SerialReader] TX MULTI_INVENTORY: ${multiHex}`);
+      this.port.write(multi);
+      this.emitRawData(multi, 'TX');
+      console.log(`[SerialReader] Waiting for tag responses...`);
+    }
   }
 
-  /**
-   * STOP SCAN
-   * Sends the toggle command (0x17) and clears the reader buffer
-   */
   stopScan(): void {
     if (!this.port?.isOpen) return;
-
-    // Send 0x17 to stop/toggle
-    const stopCmd = F5001Protocol.stopMultiEPC();
-    this.port.write(stopCmd);
-    this.emitRawData(stopCmd, 'TX');
-
-    // Clear buffer (0x18)
-    setTimeout(() => {
-      const clearCmd = F5001Protocol.clearBuffer();
-      this.port?.write(clearCmd);
-      this.emitRawData(clearCmd, 'TX');
-    }, 50);
-
+    if (this.selectedProtocol === 'F5001') {
+      const stopCmd = F5001Protocol.stopMultiEPC();
+      this.port.write(stopCmd);
+      this.emitRawData(stopCmd, 'TX');
+      setTimeout(() => {
+        const clearCmd = F5001Protocol.clearBuffer();
+        this.port?.write(clearCmd);
+        this.emitRawData(clearCmd, 'TX');
+      }, 50);
+    } else {
+      const stopCmd = A0Protocol.encode(0xFF, A0Protocol.COMMANDS.STOP_INVENTORY, []);
+      const stopHex = stopCmd.toString('hex').toUpperCase();
+      console.log(`[SerialReader] TX STOP_INVENTORY: ${stopHex}`);
+      this.port.write(stopCmd);
+      this.emitRawData(stopCmd, 'TX');
+    }
     if (this.protocolReader) this.protocolReader.stopScan();
   }
 
