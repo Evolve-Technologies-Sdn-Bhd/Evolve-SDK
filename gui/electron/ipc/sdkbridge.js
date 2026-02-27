@@ -66,6 +66,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   
   // --- SDK HANDLERS ---
 
+  // Track current reader type for database logging
+  let currentReaderType = 'UNKNOWN';
+
   // TCP Connection
   ipcMain.handle('reader:connect', async (_event, { host, ip, address, port }) => {
     try {
@@ -86,6 +89,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       console.log(`[IPC] Attempting TCP connection to ${resolvedHost}:${resolvedPort}`);
       await sdk.connectTcp(resolvedHost, resolvedPort);
+      currentReaderType = 'TCP';
       console.log(`[IPC] Connection Successful: TCP ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
@@ -118,6 +122,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
       await sdk.connectSerial(comPort, baudRate, selectedProtocol);
+      currentReaderType = 'SERIAL';
       console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
@@ -133,6 +138,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     try {
       const type = sdk.reader?.constructor.name || 'Reader';
       await sdk.disconnect();
+      currentReaderType = 'UNKNOWN';
       console.log(`[IPC] ${type} disconnected successfully`);
       
       // Stop scan if active
@@ -182,6 +188,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     if (!sdk) return { success: true, mock: true };
     try {
       await sdk.connectMqtt(brokerUrl, topic, options);
+      currentReaderType = 'MQTT';
       return { success: true };
     } catch (err) {
       console.error('[IPC] MQTT connection error:', err);
@@ -269,9 +276,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         if (currentDb) {
           try {
             const epc = (tag.id || tag.epc || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
+            // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
+            const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
-              INSERT INTO rfid_events (epc, reader_id, antenna, rssi)
-              VALUES ('${epc}', 'SERIAL_READER', ${tag.antenna || 0}, ${tag.rssi || 0})
+              INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at)
+              VALUES ('${epc}', '${currentReaderType}', ${tag.antenna || 0}, ${tag.rssi || 0}, '${readAt}')
             `;
             currentDb.exec(query);
             
@@ -468,7 +477,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       }
 
       // Generate CSV content
-      const header = 'EPC,Reader,Antenna,RSSI,Read Time\n';
+      const header = 'EPC,Connection,Antenna,RSSI,Read Time\n';
       const rows = events.map(evt => {
         // Safely escape CSV values
         const epc = (evt.epc || '').replace(/"/g, '""');
