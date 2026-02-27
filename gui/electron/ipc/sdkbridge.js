@@ -46,11 +46,23 @@ const formatPayload = async (tag) => {
   }
 };
 
-export function registerSdkBridge({ mainWindow, sdk, db }) {
+export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   console.log('[IPC] registerSdkBridge called');
   console.log('[IPC] sdk available:', !!sdk);
-  console.log('[IPC] db available:', !!db);
+  console.log('[IPC] db available (initial):', !!initialDb);
+  console.log('[IPC] global.dbInstance available:', !!global.dbInstance);
   console.log('[IPC] mainWindow available:', !!mainWindow);
+  
+  // Helper to get current database (prioritizes global.dbInstance)
+  const getDb = () => {
+    if (global.dbInstance) {
+      return global.dbInstance;
+    }
+    if (initialDb) {
+      return initialDb;
+    }
+    return null;
+  };
   
   // --- SDK HANDLERS ---
 
@@ -253,18 +265,19 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database
-        if (db) {
+        const currentDb = global.dbInstance || initialDb;
+        if (currentDb) {
           try {
             const epc = (tag.id || tag.epc || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
             const query = `
               INSERT INTO rfid_events (epc, reader_id, antenna, rssi)
               VALUES ('${epc}', 'SERIAL_READER', ${tag.antenna || 0}, ${tag.rssi || 0})
             `;
-            db.exec(query);
+            currentDb.exec(query);
             
             // Save database to file after each insert
-            if (db.saveToFile) {
-              db.saveToFile();
+            if (currentDb.saveToFile) {
+              currentDb.saveToFile();
             }
           } catch (dbErr) {
             console.error('[IPC] Error saving tag to database:', dbErr);
@@ -398,16 +411,30 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
   ipcMain.handle('data:export-database', async (event, days) => {
     console.log('[IPC] data:export-database called with days:', days);
     
-    if (!db) {
-      console.error('[IPC] Database not available for export');
-      return { success: false, error: 'Database not available' };
+    // Get database using the helper function
+    const currentDb = getDb();
+    console.log('[IPC] Database available:', currentDb ? 'YES' : 'NO');
+    
+    if (!currentDb) {
+      console.error('[IPC] ✗ Database not available for export');
+      return { success: false, error: 'Database not available - make sure it was initialized' };
     }
 
     try {
-      console.log('[IPC] Querying database for events from last', days, 'days');
+      console.log('[IPC] Querying database for events from last', days, 'days...');
       
-      // Query database for events from the last N days using sql.js
-      // Note: sql.js doesn't support parameterized queries via exec(), so we build the query directly
+      // First check if table exists
+      const tableCheckQuery = `SELECT name FROM sqlite_master WHERE type='table' AND name='rfid_events'`;
+      const tableCheck = currentDb.exec(tableCheckQuery);
+      
+      if (!tableCheck || tableCheck.length === 0 || tableCheck[0].values.length === 0) {
+        console.warn('[IPC] ⊘ Table rfid_events does not exist yet');
+        return { success: false, error: 'No data available yet - table not created', count: 0 };
+      }
+      
+      console.log('[IPC] ✓ Table rfid_events exists');
+      
+      // Build and execute the query
       const query = `
         SELECT epc, reader_id, antenna, rssi, read_at
         FROM rfid_events
@@ -415,12 +442,15 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         ORDER BY read_at DESC
       `;
       
-      const result = db.exec(query);
+      console.log('[IPC] Executing query:', query);
+      const result = currentDb.exec(query);
+      console.log('[IPC] Query returned result array with', result.length, 'statement(s)');
       
       // sql.js returns an array of statement results
       let events = [];
-      if (result.length > 0 && result[0].values.length > 0) {
+      if (result.length > 0 && result[0].values && result[0].values.length > 0) {
         const columns = result[0].columns;
+        console.log('[IPC] Query returned columns:', columns);
         events = result[0].values.map(row => {
           const obj = {};
           columns.forEach((col, idx) => {
@@ -428,9 +458,10 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
           });
           return obj;
         });
+        console.log('[IPC] ✓ Parsed', events.length, 'events from query result');
+      } else {
+        console.log('[IPC] Query returned 0 events - no data in time range');
       }
-      
-      console.log('[IPC] Database query returned', events.length, 'events');
 
       if (events.length === 0) {
         return { success: false, error: `No tag data found for the last ${days} days.`, count: 0 };
@@ -438,16 +469,22 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
 
       // Generate CSV content
       const header = 'EPC,Reader,Antenna,RSSI,Read Time\n';
-      const rows = events.map(evt => 
-        `${evt.epc},${evt.reader_id},${evt.antenna},${evt.rssi},"${evt.read_at}"`
-      ).join('\n');
+      const rows = events.map(evt => {
+        // Safely escape CSV values
+        const epc = (evt.epc || '').replace(/"/g, '""');
+        const reader = (evt.reader_id || '').replace(/"/g, '""');
+        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${evt.read_at}"`;
+      }).join('\n');
       const csvContent = header + rows;
 
-      console.log('[IPC] Generated CSV with', events.length, 'rows');
+      console.log('[IPC] ✓ Generated CSV with', events.length, 'rows');
+      console.log('[IPC] CSV content length:', csvContent.length, 'bytes');
       return { success: true, content: csvContent, count: events.length };
+      
     } catch (err) {
-      console.error('[IPC] Database export error:', err);
-      return { success: false, error: err.message };
+      console.error('[IPC] ✗ Database export error:', err.message);
+      console.error('[IPC] Error stack:', err.stack);
+      return { success: false, error: `Export error: ${err.message}` };
     }
   });
 
