@@ -18,6 +18,9 @@ try {
 let sdk = null;
 let db = null;
 
+// Make database globally accessible to IPC handlers
+global.dbInstance = null;
+
 async function initializeSDK() {
   try {
     // Attempt to import the compiled SDK. If unavailable, fall back to mock mode.
@@ -61,39 +64,96 @@ async function initializeDatabase() {
     console.log('[App] Loading sql.js...');
     const initSqlJs = (await import('sql.js')).default;
     const SQL = await initSqlJs();
-    console.log('[App] sql.js loaded');
+    console.log('[App] sql.js loaded successfully');
     
     // Load existing database file or create new one
     let dbData;
     if (fs.existsSync(dbPath)) {
       console.log('[App] Loading existing database file...');
-      dbData = fs.readFileSync(dbPath);
-      db = new SQL.Database(dbData);
-      console.log('[App] Existing database loaded');
+      try {
+        dbData = fs.readFileSync(dbPath);
+        db = new SQL.Database(dbData);
+        console.log('[App] ✓ Existing database loaded, size:', dbData.length, 'bytes');
+      } catch (readErr) {
+        console.warn('[App] Error loading existing database:', readErr.message);
+        console.warn('[App] Creating new database to replace corrupted one...');
+        // Delete the corrupted file
+        try {
+          fs.unlinkSync(dbPath);
+          console.log('[App] ✓ Removed corrupted database file');
+        } catch (unlinkErr) {
+          console.warn('[App] Could not delete corrupted file:', unlinkErr.message);
+        }
+        db = new SQL.Database();
+      }
     } else {
       console.log('[App] Creating new database...');
       db = new SQL.Database();
-      console.log('[App] New database created');
+      console.log('[App] ✓ New database created');
+    }
+    
+    // Verify database object exists
+    if (!db) {
+      throw new Error('Database object is null after initialization');
     }
     
     // Initialize tables if needed
     console.log('[App] Creating tables...');
-    db.run(`
-      CREATE TABLE IF NOT EXISTS rfid_events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        epc TEXT,
-        reader_id TEXT,
-        antenna INTEGER,
-        rssi REAL,
-        read_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS rfid_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          epc TEXT,
+          reader_id TEXT,
+          antenna INTEGER,
+          rssi REAL,
+          read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('[App] ✓ Tables created/verified');
+    } catch (tableErr) {
+      console.error('[App] Error creating tables:', tableErr.message);
+      // Try to recover by creating a fresh database
+      console.warn('[App] Attempting recovery: creating fresh database...');
+      try {
+        // Delete corrupted database file
+        if (fs.existsSync(dbPath)) {
+          fs.unlinkSync(dbPath);
+          console.log('[App] Deleted corrupted database');
+        }
+        // Create new database
+        db = new SQL.Database();
+        console.log('[App] Created fresh database');
+        
+        // Try creating table again
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS rfid_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            epc TEXT,
+            reader_id TEXT,
+            antenna INTEGER,
+            rssi REAL,
+            read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        console.log('[App] ✓ Tables created in fresh database');
+      } catch (recoveryErr) {
+        console.error('[App] Recovery failed:', recoveryErr.message);
+        throw recoveryErr;
+      }
+    }
     
     // Save database to file
     console.log('[App] Saving database to file...');
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
+    try {
+      const data = db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(dbPath, buffer);
+      console.log('[App] ✓ Database saved to file, size:', buffer.length, 'bytes');
+    } catch (saveErr) {
+      console.error('[App] Error saving database to file:', saveErr.message);
+      throw saveErr;
+    }
     
     // Store save function for later use
     db.saveToFile = () => {
@@ -101,18 +161,23 @@ async function initializeDatabase() {
         const data = db.export();
         const buffer = Buffer.from(data);
         fs.writeFileSync(dbPath, buffer);
-        console.log('[App] Database saved to file');
+        console.log('[App] Database auto-saved, size:', buffer.length, 'bytes');
       } catch (err) {
         console.error('[App] Error saving database:', err?.message);
       }
     };
     
-    console.log('[App] Database initialized successfully at', dbPath);
+    console.log('[App] ✓✓✓ Database initialized successfully at', dbPath);
+    
+    // Make database globally accessible
+    global.dbInstance = db;
+    console.log('[App] ✓ Global database reference set');
   } catch (err) {
-    console.error('[App] Database initialization failed:');
+    console.error('[App] ✗✗✗ Database initialization failed:');
     console.error('[App] Error message:', err?.message);
     console.error('[App] Error stack:', err?.stack);
     db = null;
+    global.dbInstance = null;
   }
 }
 
@@ -140,9 +205,24 @@ if (!fs.existsSync(LOG_DIR)) {
 
 let mainWindow = null;
 
+// Disable GPU cache to avoid permission errors on Windows
+// MUST be called before app is ready
+app.disableHardwareAcceleration();
+
 function createWindow() {
   console.log('[Main] Creating window...');
   const iconPath = path.join(__dirname, '../resources/CLB_letterhead.ico');
+  
+  // Ensure cache directory exists with proper permissions
+  const cacheDir = path.join(app.getPath('userData'), 'cache');
+  if (!fs.existsSync(cacheDir)) {
+    try {
+      fs.mkdirSync(cacheDir, { recursive: true });
+      console.log('[Main] Created cache directory:', cacheDir);
+    } catch (err) {
+      console.warn('[Main] Could not create cache directory:', err.message);
+    }
+  }
   
     mainWindow = new BrowserWindow({
       width: 1200,
@@ -153,6 +233,8 @@ function createWindow() {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
+        // Disable code cache to avoid permission issues
+        v8CodeCache: false,
       },
   });
   

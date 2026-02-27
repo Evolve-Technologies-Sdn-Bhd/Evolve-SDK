@@ -1,0 +1,19 @@
+directories:
+  output: dist_electron
+  buildResources: build
+appId: com.evolve.rfidsdk
+productName: Evolve SDK
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - package.json
+win:
+  target: nsis
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+electronVersion: 40.2.1

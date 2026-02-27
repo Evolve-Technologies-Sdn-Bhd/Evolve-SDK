@@ -7,11 +7,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   disconnectReader: () => ipcRenderer.invoke('reader:disconnect'),
   startScan: () => ipcRenderer.send('reader:start-scan'),
   stopScan: () => ipcRenderer.send('reader:stop-scan'),
-  onTagRead: (callback) => ipcRenderer.on('rfid:tag-read', (_event, value) => callback(value)),
+  onTagRead: (callback) => {
+    const subscription = (_event, value) => callback(value);
+    ipcRenderer.on('rfid:tag-read', subscription);
+    return () => ipcRenderer.removeListener('rfid:tag-read', subscription);
+  },
   removeTagListener: () => ipcRenderer.removeAllListeners('rfid:tag-read'),
-  onStats: (callback) => ipcRenderer.on('rfid:stats', (_event, stats) => callback(stats)),
+  onStats: (callback) => {
+    const subscription = (_event, stats) => callback(stats);
+    ipcRenderer.on('rfid:stats', subscription);
+    return () => ipcRenderer.removeListener('rfid:stats', subscription);
+  },
   removeStatsListener: () => ipcRenderer.removeAllListeners('rfid:stats'),
-  onRawData: (callback) => ipcRenderer.on('rfid:raw-data', (_event, packet) => callback(packet)),
+  onRawData: (callback) => {
+    const subscription = (_event, packet) => callback(packet);
+    ipcRenderer.on('rfid:raw-data', subscription);
+    return () => ipcRenderer.removeListener('rfid:raw-data', subscription);
+  },
   onDisconnected: (callback) => ipcRenderer.on('rfid:disconnected', (_event, data) => callback(data)),
   removeRawDataListener: () => ipcRenderer.removeAllListeners('rfid:raw-data'),
 

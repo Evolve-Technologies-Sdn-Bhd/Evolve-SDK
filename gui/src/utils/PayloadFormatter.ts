@@ -30,10 +30,10 @@ export class PayloadFormatter {
       return { data: {}, isJson: false };
     }
 
-    // ✅ SIMPLIFIED FORMAT: Only essential EPC/ID and RSSI
+    // ✅ CLEANED FORMAT: Extract individual EPC fields
     const displayData: Record<string, any> = {};
 
-    // Extract clean EPC - use normalized 7-byte EPC from SerialTransport fix
+    // Extract clean EPC - single value (not list)
     if (rawData.epc) {
       displayData.EPC = rawData.epc;
       console.log(`[PayloadFormatter] ✓ EPC: ${rawData.epc}`);
@@ -42,22 +42,31 @@ export class PayloadFormatter {
       console.log(`[PayloadFormatter] ✓ EPC (from id): ${rawData.id}`);
     }
 
-    // RSSI - simplified to just numeric value
+    // TID - Terminal ID
+    if (rawData.tid) {
+      displayData.TID = rawData.tid;
+      console.log(`[PayloadFormatter] ✓ TID: ${rawData.tid}`);
+    }
+
+    // RSSI - Signal strength as numeric value
     if (rawData.rssi !== null && rawData.rssi !== undefined) {
-      displayData.RSSI = rawData.rssi;  // Just the number, no " dBm" suffix
+      displayData.RSSI = rawData.rssi;
       console.log(`[PayloadFormatter] ✓ RSSI: ${rawData.rssi}`);
     }
 
-    // Timestamp - clean ISO format only
-    if (rawData.timestamp) {
-      displayData.Timestamp = new Date(rawData.timestamp).toISOString();
-      console.log(`[PayloadFormatter] ✓ Timestamp: ${displayData.Timestamp}`);
+    // Antenna ID
+    if (rawData.antId) {
+      displayData.AntId = rawData.antId;
+      console.log(`[PayloadFormatter] ✓ AntId: ${rawData.antId}`);
     }
 
-    // 🔧 MINIMIZED: Skip redundant fields (no ID, Frame_Hex, EPC_Decrypted)
-    // These aren't needed for cumulative display and only add noise
-    
-    console.log('[PayloadFormatter] Final output:', displayData);
+    // Read Time - when the tag was read
+    if (rawData.readTime) {
+      displayData.ReadTime = rawData.readTime;
+      console.log(`[PayloadFormatter] ✓ ReadTime: ${rawData.readTime}`);
+    }
+
+    console.log('[PayloadFormatter] Final cleaned output:', displayData);
     return { data: displayData, isJson: false };
   }
 

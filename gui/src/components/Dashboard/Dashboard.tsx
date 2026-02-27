@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [logs, setLogs] = useState<RawPacket[]>([]);
   const [viewType, setViewType] = useState<DataViewType>('raw');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const unsubscribeRef = useRef< { tagReadUnsub?: () => void; rawDataUnsub?: () => void } >({});
 
   // Auto-scroll
   useEffect(() => {
@@ -24,8 +25,8 @@ export default function Dashboard() {
     }
   }, [logs]);
 
-  // Subscribe to real tag stream via IPC
-  useEffect(() => {
+  // Setup and teardown listeners
+  const setupListeners = () => {
     console.log('[Dashboard] Setting up tag listener - electronAPI exists:', !!window.electronAPI);
     
     const onTag = (tag: any) => {
@@ -177,7 +178,8 @@ export default function Dashboard() {
     if (window.electronAPI && window.electronAPI.onTagRead) {
       console.log('[Dashboard] ✓ Registering onTagRead listener');
       // @ts-ignore
-      window.electronAPI.onTagRead(onTag);
+      const unsubscribe = window.electronAPI.onTagRead(onTag);
+      unsubscribeRef.current.tagReadUnsub = unsubscribe;
     } else {
       console.error('[Dashboard] ✗ electronAPI.onTagRead not available');
     }
@@ -187,23 +189,41 @@ export default function Dashboard() {
     if (window.electronAPI && window.electronAPI.onRawData) {
       console.log('[Dashboard] ✓ Registering onRawData listener');
       // @ts-ignore
-      window.electronAPI.onRawData(onRawData);
+      const unsubscribe = window.electronAPI.onRawData(onRawData);
+      unsubscribeRef.current.rawDataUnsub = unsubscribe;
     } else {
       console.warn('[Dashboard] ⚠ electronAPI.onRawData not available');
     }
+  };
+
+  const removeListeners = () => {
+    console.log('[Dashboard] Removing listeners');
+    // Unsubscribe using the stored unsubscribe functions
+    if (unsubscribeRef.current.tagReadUnsub) {
+      console.log('[Dashboard] Calling tagReadUnsub');
+      unsubscribeRef.current.tagReadUnsub();
+      unsubscribeRef.current.tagReadUnsub = undefined;
+    }
+    if (unsubscribeRef.current.rawDataUnsub) {
+      console.log('[Dashboard] Calling rawDataUnsub');
+      unsubscribeRef.current.rawDataUnsub();
+      unsubscribeRef.current.rawDataUnsub = undefined;
+    }
+  };
+
+  const handleRefresh = () => {
+    console.log('[Dashboard] Refresh button clicked');
+    removeListeners();
+    setLogs([]);
+    setupListeners();
+  };
+
+  // Subscribe to real tag stream via IPC on mount
+  useEffect(() => {
+    setupListeners();
 
     return () => {
-      // remove listeners
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.removeTagListener) {
-        // @ts-ignore
-        window.electronAPI.removeTagListener();
-      }
-      // @ts-ignore
-      if (window.electronAPI && window.electronAPI.removeRawDataListener) {
-        // @ts-ignore
-        window.electronAPI.removeRawDataListener();
-      }
+      removeListeners();
     };
   }, []);
 
@@ -230,7 +250,7 @@ export default function Dashboard() {
 
           {/* Refresh Button */}
           <button
-            onClick={() => setLogs([])}
+            onClick={handleRefresh}
             className="text-xs bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 rounded shadow-sm"
           >
             Refresh
