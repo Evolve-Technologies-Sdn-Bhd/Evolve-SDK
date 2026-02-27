@@ -255,15 +255,12 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
         // Save tag to database
         if (db) {
           try {
-            db.run(`
+            const epc = (tag.id || tag.epc || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
+            const query = `
               INSERT INTO rfid_events (epc, reader_id, antenna, rssi)
-              VALUES (?, ?, ?, ?)
-            `, [
-              tag.id || tag.epc || 'UNKNOWN',
-              'SERIAL_READER',
-              tag.antenna || 0,
-              tag.rssi || 0
-            ]);
+              VALUES ('${epc}', 'SERIAL_READER', ${tag.antenna || 0}, ${tag.rssi || 0})
+            `;
+            db.exec(query);
             
             // Save database to file after each insert
             if (db.saveToFile) {
@@ -410,12 +407,15 @@ export function registerSdkBridge({ mainWindow, sdk, db }) {
       console.log('[IPC] Querying database for events from last', days, 'days');
       
       // Query database for events from the last N days using sql.js
-      const result = db.exec(`
+      // Note: sql.js doesn't support parameterized queries via exec(), so we build the query directly
+      const query = `
         SELECT epc, reader_id, antenna, rssi, read_at
         FROM rfid_events
-        WHERE read_at >= datetime('now', ?)
+        WHERE read_at >= datetime('now', '-${days} days')
         ORDER BY read_at DESC
-      `, [`-${days} days`]);
+      `;
+      
+      const result = db.exec(query);
       
       // sql.js returns an array of statement results
       let events = [];

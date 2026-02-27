@@ -78,7 +78,7 @@ async function initializeDatabase() {
     
     // Initialize tables if needed
     console.log('[App] Creating tables...');
-    db.run(`
+    db.exec(`
       CREATE TABLE IF NOT EXISTS rfid_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         epc TEXT,
