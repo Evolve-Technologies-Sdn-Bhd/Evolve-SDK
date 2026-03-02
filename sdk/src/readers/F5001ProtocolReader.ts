@@ -13,7 +13,8 @@ export class F5001ProtocolReader extends ReaderManager {
 
   // ========== INCOMING DATA ==========
   public injectData(data: Buffer): void {
-    this.emitRawData(data, 'RX');
+    // ⚠️ Do NOT emit raw data here - will be included in final tagRead event
+    // this.emitRawData(data, 'RX');
 
     this.buffer = Buffer.concat([this.buffer, data]);
 
