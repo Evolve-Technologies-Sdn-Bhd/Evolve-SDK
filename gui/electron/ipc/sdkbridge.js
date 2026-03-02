@@ -207,6 +207,19 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     return { success: true };
   });
 
+  // Reset cumulative counters (totalCount and uniqueTags in SDK)
+  ipcMain.handle('reader:reset-counters', async () => {
+    if (!sdk) return { success: false, error: 'SDK not initialized' };
+    try {
+      sdk.resetCumulativeStats();
+      console.log('[IPC] Counters reset successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('[IPC] Error resetting counters:', err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   ipcMain.on('reader:start-scan', () => {
     console.log('[IPC] Starting scan');
     // Prevent multiple simultaneous scans

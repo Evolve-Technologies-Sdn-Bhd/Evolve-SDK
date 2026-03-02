@@ -62,4 +62,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   connectSerial: (comPort, baudRate, protocol) => 
     ipcRenderer.invoke('reader:connect-serial', { comPort, baudRate, protocol }),
+
+  resetCounters: () => ipcRenderer.invoke('reader:reset-counters'),
 });

@@ -1,13 +1,17 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTags } from '../../contexts/TagContext';
+import { sdkService } from '../../services/sdkService';
 import { RotateCcw, Hash, Tags } from 'lucide-react'; // Ensure lucide-react is installed, or use text
 
 export default function CumulativeCount() {
   const { totalReads, uniqueCount, clearTags } = useTags();
 
-  useEffect(() => {
-    console.log('[CumulativeCount] Updated - totalReads:', totalReads, 'uniqueCount:', uniqueCount);
-  }, [totalReads, uniqueCount]);
+  const handleReset = async () => {
+    // Reset SDK counters first
+    await sdkService.resetCounters();
+    // Then reset GUI state
+    clearTags();
+  };
 
   return (
     <div className="mb-4 p-3 border border-gray-300 rounded bg-white shadow-sm">
@@ -39,7 +43,7 @@ export default function CumulativeCount() {
 
       {/* Reset Button */}
       <button 
-        onClick={clearTags}
+        onClick={handleReset}
         className="w-full flex items-center justify-center gap-2 py-1.5 rounded text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-colors"
       >
         <RotateCcw className="w-3 h-3" />
