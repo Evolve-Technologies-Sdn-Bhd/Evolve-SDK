@@ -30,43 +30,42 @@ export class PayloadFormatter {
       return { data: {}, isJson: false };
     }
 
-    // ✅ CLEANED FORMAT: Extract individual EPC fields
+    // ✅ STANDARDIZED FORMAT: Ensure we extract from both old and new formats
     const displayData: Record<string, any> = {};
 
-    // Extract clean EPC - single value (not list)
-    if (rawData.epc) {
+    // Extract EPC - try all possible field names
+    if (rawData.EPC) {
+      displayData.EPC = rawData.EPC;
+    } else if (rawData.epc) {
       displayData.EPC = rawData.epc;
-      console.log(`[PayloadFormatter] ✓ EPC: ${rawData.epc}`);
     } else if (rawData.id) {
       displayData.EPC = rawData.id;
-      console.log(`[PayloadFormatter] ✓ EPC (from id): ${rawData.id}`);
     }
 
-    // TID - Terminal ID
+    // Extract RSSI
+    if (rawData.RSSI !== null && rawData.RSSI !== undefined) {
+      displayData.RSSI = rawData.RSSI;
+    } else if (rawData.rssi !== null && rawData.rssi !== undefined) {
+      displayData.RSSI = rawData.rssi;
+    }
+
+    // TID - Terminal ID (optional)
     if (rawData.tid) {
       displayData.TID = rawData.tid;
-      console.log(`[PayloadFormatter] ✓ TID: ${rawData.tid}`);
     }
 
-    // RSSI - Signal strength as numeric value
-    if (rawData.rssi !== null && rawData.rssi !== undefined) {
-      displayData.RSSI = rawData.rssi;
-      console.log(`[PayloadFormatter] ✓ RSSI: ${rawData.rssi}`);
+    // Antenna ID (optional)
+    if (rawData.antenna) {
+      displayData.Antenna = rawData.antenna;
+    } else if (rawData.antId) {
+      displayData.Antenna = rawData.antId;
     }
 
-    // Antenna ID
-    if (rawData.antId) {
-      displayData.AntId = rawData.antId;
-      console.log(`[PayloadFormatter] ✓ AntId: ${rawData.antId}`);
-    }
-
-    // Read Time - when the tag was read
+    // Read Time (optional)
     if (rawData.readTime) {
       displayData.ReadTime = rawData.readTime;
-      console.log(`[PayloadFormatter] ✓ ReadTime: ${rawData.readTime}`);
     }
 
-    console.log('[PayloadFormatter] Final cleaned output:', displayData);
     return { data: displayData, isJson: false };
   }
 
@@ -74,9 +73,7 @@ export class PayloadFormatter {
    * Format raw TagData into GUI display structure
    */
   static formatTagForDisplay(rawData: any): TagDataDisplay {
-    console.log('[PayloadFormatter] formatTagForDisplay input:', rawData);
     const { data } = this.parsePayload(rawData);
-    console.log('[PayloadFormatter] parsePayload result:', data);
     
     const result = {
       id: rawData.timestamp || Date.now(),
@@ -85,7 +82,6 @@ export class PayloadFormatter {
       data: data
     };
     
-    console.log('[PayloadFormatter] formatTagForDisplay output:', result);
     return result;
   }
 
@@ -95,19 +91,17 @@ export class PayloadFormatter {
   static formatTag(rawData: any): FormattedTag {
     const { data } = this.parsePayload(rawData);
     
-    // Extract EPC - try multiple sources
+    // Extract EPC from standardized format
     let epc = 'N/A';
-    if (rawData.epc) {
+    if (data.EPC) {
+      epc = String(data.EPC);
+    } else if (rawData.epc) {
       epc = String(rawData.epc);
     } else if (rawData.id) {
       epc = String(rawData.id);
-    } else if (data.EPC) {
-      epc = String(data.EPC);
-    } else if (data.EPC_ID) {
-      epc = String(data.EPC_ID);
     }
     
-    const rssi = rawData.rssi || 0;
+    const rssi = data.RSSI || rawData.rssi || 0;
     const id = rawData.id || epc || 'Unknown';
     
     return {

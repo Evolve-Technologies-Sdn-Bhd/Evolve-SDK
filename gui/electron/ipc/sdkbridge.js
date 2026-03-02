@@ -6,52 +6,57 @@ import { fileURLToPath, pathToFileURL } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Helper function to format the tag - convert Buffer to serializable format
- * For binary protocol data (like A0Protocol), convert to hex.
- * For text data, keep as-is.
+ * Helper function to standardize tag payload format
+ * Ensures all tags have: EPC, Frame_Hex, RSSI
+ * Handles multiple input formats and normalizes to standard output
  */
 const formatPayload = async (tag) => {
   try {
-    // Convert Buffer to hex string for binary frames (A0Protocol)
-    let rawData = tag.raw;
-    let rawHex = '';
+    // Extract EPC from multiple possible sources
+    const epc = tag.epc || tag.id || tag.EPC || 'UNKNOWN';
+    
+    // Convert raw data to Frame_Hex format
+    let frameHex = '';
+    let rawData = tag.raw || tag.Frame_Hex || tag.frame_hex || '';
     
     if (Buffer.isBuffer(rawData)) {
       // Convert binary frame to hex with spaces for readability
-      rawHex = rawData.toString('hex').toUpperCase();
-      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
+      frameHex = rawData.toString('hex').toUpperCase();
+      frameHex = frameHex.match(/.{1,2}/g)?.join(' ') || frameHex;
     } else if (Array.isArray(rawData)) {
-      rawHex = Buffer.from(rawData).toString('hex').toUpperCase();
-      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
+      frameHex = Buffer.from(rawData).toString('hex').toUpperCase();
+      frameHex = frameHex.match(/.{1,2}/g)?.join(' ') || frameHex;
     } else if (typeof rawData === 'string') {
-      rawHex = rawData;
+      // Already a string - clean up spacing
+      frameHex = rawData.replace(/\s+/g, ' ').trim().toUpperCase();
     }
-
-    // Return tag with formatted raw data and original id as epc
+    
+    // Extract RSSI
+    const rssi = tag.rssi !== undefined ? tag.rssi : (tag.RSSI !== undefined ? tag.RSSI : 0);
+    
+    // Return standardized format: EPC, Frame_Hex, RSSI
     return {
-      ...tag,
-      epc: tag.id,  // Store the EPC ID from serial reader
-      raw: rawHex,  // Store as hex for binary protocol frames
-      _frameHex: rawHex  // Also store separately for debugging
+      EPC: epc,
+      Frame_Hex: frameHex,
+      RSSI: rssi,
+      // Keep original timestamp if available
+      timestamp: tag.timestamp || Date.now(),
+      // Keep antenna info if available
+      antenna: tag.antenna || tag.antId || 0
     };
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
-    // Fallback
+    // Fallback with minimal data
     return {
-      ...tag,
-      epc: tag.id,
-      raw: Buffer.isBuffer(tag.raw) ? tag.raw.toString('hex').toUpperCase() : (tag.raw || ''),
-      _error: err.message
+      EPC: tag.id || tag.epc || 'ERROR',
+      Frame_Hex: '',
+      RSSI: tag.rssi || 0,
+      error: err.message
     };
   }
 };
 
 export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
-  console.log('[IPC] registerSdkBridge called');
-  console.log('[IPC] sdk available:', !!sdk);
-  console.log('[IPC] db available (initial):', !!initialDb);
-  console.log('[IPC] global.dbInstance available:', !!global.dbInstance);
-  console.log('[IPC] mainWindow available:', !!mainWindow);
   
   // Helper to get current database (prioritizes global.dbInstance)
   const getDb = () => {
@@ -87,10 +92,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         throw new Error('Port is required');
       }
       
-      console.log(`[IPC] Attempting TCP connection to ${resolvedHost}:${resolvedPort}`);
       await sdk.connectTcp(resolvedHost, resolvedPort);
       currentReaderType = 'TCP';
-      console.log(`[IPC] Connection Successful: TCP ${resolvedHost}:${resolvedPort}`);
+      console.log(`[IPC] TCP Connection Successful: ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
@@ -120,10 +124,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       const validProtocols = ['UF3-S', 'F5001', 'A0'];
       const selectedProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'A0';
       
-      console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
       await sdk.connectSerial(comPort, baudRate, selectedProtocol);
       currentReaderType = 'SERIAL';
-      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
+      console.log(`[IPC] Serial Connection Successful: ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
@@ -143,7 +146,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       // Stop scan if active
       if (scanActive) {
-        console.log('[IPC] Stopping active scan on disconnect');
         try {
           sdk.stop();
           if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
@@ -184,7 +186,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // MQTT connection handler
   ipcMain.handle('reader:connect-mqtt', async (_event, { brokerUrl, topic, options }) => {
-    console.log('[IPC] reader:connect-mqtt', brokerUrl, topic);
     if (!sdk) return { success: true, mock: true };
     try {
       await sdk.connectMqtt(brokerUrl, topic, options);
@@ -199,7 +200,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // MQTT publish handler
   ipcMain.handle('mqtt:publish', async (_event, { tag, topic }) => {
-    console.log('[IPC] mqtt:publish', topic);
     if (!sdk) return { success: false, error: 'SDK not initialized' };
     if (typeof sdk.publish !== 'function') return { success: false, error: 'Publish not supported by SDK' };
     try {
@@ -212,23 +212,32 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   });
 
   ipcMain.handle('reader:configure', async (_event, settings) => {
-    console.log('[IPC] reader:configure', settings);
     if (!sdk) return { success: true };
     await sdk.configure(settings);
     return { success: true };
   });
 
-  ipcMain.on('reader:start-scan', () => {
-    console.log('[IPC] reader:start-scan');
+  // Reset cumulative counters (totalCount and uniqueTags in SDK)
+  ipcMain.handle('reader:reset-counters', async () => {
+    if (!sdk) return { success: false, error: 'SDK not initialized' };
+    try {
+      sdk.resetCumulativeStats();
+      console.log('[IPC] Counters reset successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('[IPC] Error resetting counters:', err);
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
 
+  ipcMain.on('reader:start-scan', () => {
+    console.log('[IPC] Starting scan');
     // Prevent multiple simultaneous scans
     if (scanActive) {
-      console.log('[IPC] Scan already active, ignoring duplicate start request');
       return;
     }
 
     if (!sdk) {
-      console.log('[IPC] No SDK, entering mock mode');
       scanActive = true;
       const interval = setInterval(async () => {
         const mockTag = {
@@ -248,19 +257,16 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
     // Clean up any old listeners first
     if (currentTagListener && typeof currentTagListener === 'function') {
-      console.log('[IPC] Removing old tag listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('tag', currentTagListener);
       }
     }
     if (currentStatsListener && typeof currentStatsListener === 'function') {
-      console.log('[IPC] Removing old stats listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('stats', currentStatsListener);
       }
     }
     if (currentRawDataListener && typeof currentRawDataListener === 'function') {
-      console.log('[IPC] Removing old raw data listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('rawData', currentRawDataListener);
       }
@@ -269,18 +275,25 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     const tagListener = async (tag) => {
       try {
         const payload = await formatPayload(tag);
+        
+        // Filter out invalid tags - don't send or save UNKNOWN/ERROR
+        if (payload.EPC === 'UNKNOWN' || payload.EPC === 'ERROR') {
+          console.log('[IPC] ⊘ Skipping invalid tag with EPC:', payload.EPC);
+          return;
+        }
+        
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database
         const currentDb = global.dbInstance || initialDb;
         if (currentDb) {
           try {
-            const epc = (tag.id || tag.epc || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
+            const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
             // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
             const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
               INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at)
-              VALUES ('${epc}', '${currentReaderType}', ${tag.antenna || 0}, ${tag.rssi || 0}, '${readAt}')
+              VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}')
             `;
             currentDb.exec(query);
             
@@ -299,10 +312,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
     const statsListener = (stats) => {
       try {
-        console.log('[IPC] ✓ Received stats event from SDK:', stats);
-        console.log(`[IPC] Stats: total=${stats?.total}, unique=${stats?.unique}`);
         mainWindow.webContents.send('rfid:stats', stats);
-        console.log('[IPC] ✓ Sent rfid:stats to renderer');
       } catch (err) {
         console.error('[IPC] Error sending stats:', err);
       }
@@ -321,16 +331,14 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     currentStatsListener = statsListener;
     currentRawDataListener = rawDataListener;
 
-    console.log('[IPC] Registering tag, stats, and raw data listeners');
     sdk.on('tag', tagListener);
     sdk.on('stats', statsListener);
     sdk.on('rawData', rawDataListener);
     
     try {
-      console.log('[IPC] Starting SDK scan');
       sdk.start();
       scanActive = true;
-      console.log('[IPC] SDK started successfully');
+      console.log('[IPC] Scan started successfully');
     } catch (err) {
       console.error('[IPC] Error starting SDK:', err);
       scanActive = false;
@@ -348,10 +356,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // Stop scan handler
   ipcMain.on('reader:stop-scan', () => {
-    console.log('[IPC] reader:stop-scan');
-
+    console.log('[IPC] Stopping scan');
     if (!scanActive) {
-      console.log('[IPC] No active scan to stop');
       return;
     }
 
@@ -361,13 +367,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         clearInterval(currentTagListener.interval);
         currentTagListener = null;
         scanActive = false;
-        console.log('[IPC] Mock mode stopped');
         return;
       }
 
       // Handle SDK mode
       if (sdk) {
-        console.log('[IPC] Stopping SDK scan');
         sdk.stop();
         
         // Clean up listeners
@@ -418,11 +422,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // Export data from database by time period
   ipcMain.handle('data:export-database', async (event, days) => {
-    console.log('[IPC] data:export-database called with days:', days);
-    
     // Get database using the helper function
     const currentDb = getDb();
-    console.log('[IPC] Database available:', currentDb ? 'YES' : 'NO');
     
     if (!currentDb) {
       console.error('[IPC] ✗ Database not available for export');
@@ -430,8 +431,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     }
 
     try {
-      console.log('[IPC] Querying database for events from last', days, 'days...');
-      
       // First check if table exists
       const tableCheckQuery = `SELECT name FROM sqlite_master WHERE type='table' AND name='rfid_events'`;
       const tableCheck = currentDb.exec(tableCheckQuery);
@@ -441,8 +440,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         return { success: false, error: 'No data available yet - table not created', count: 0 };
       }
       
-      console.log('[IPC] ✓ Table rfid_events exists');
-      
       // Build and execute the query
       const query = `
         SELECT epc, reader_id, antenna, rssi, read_at
@@ -451,15 +448,12 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         ORDER BY read_at DESC
       `;
       
-      console.log('[IPC] Executing query:', query);
       const result = currentDb.exec(query);
-      console.log('[IPC] Query returned result array with', result.length, 'statement(s)');
       
       // sql.js returns an array of statement results
       let events = [];
       if (result.length > 0 && result[0].values && result[0].values.length > 0) {
         const columns = result[0].columns;
-        console.log('[IPC] Query returned columns:', columns);
         events = result[0].values.map(row => {
           const obj = {};
           columns.forEach((col, idx) => {
@@ -467,9 +461,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
           });
           return obj;
         });
-        console.log('[IPC] ✓ Parsed', events.length, 'events from query result');
       } else {
-        console.log('[IPC] Query returned 0 events - no data in time range');
       }
 
       if (events.length === 0) {
@@ -482,12 +474,33 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         // Safely escape CSV values
         const epc = (evt.epc || '').replace(/"/g, '""');
         const reader = (evt.reader_id || '').replace(/"/g, '""');
-        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${evt.read_at}"`;
+        
+        // Format timestamp from ISO UTC (2026-03-02T06:18:58.691Z) to local time (2026-03-02/14:23:10)
+        let readTime = evt.read_at || '';
+        if (readTime) {
+          try {
+            const date = new Date(readTime);
+            
+            // Get local date components
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            // Format as YYYY-MM-DD/HH:MM:SS
+            readTime = `${year}-${month}-${day}/${hours}:${minutes}:${seconds}`;
+          } catch (e) {
+            // If formatting fails, use raw value
+            readTime = evt.read_at;
+          }
+        }
+        
+        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
       }).join('\n');
       const csvContent = header + rows;
 
-      console.log('[IPC] ✓ Generated CSV with', events.length, 'rows');
-      console.log('[IPC] CSV content length:', csvContent.length, 'bytes');
       return { success: true, content: csvContent, count: events.length };
       
     } catch (err) {

@@ -28,8 +28,8 @@ export class AOProtocolReader extends ReaderManager {
     // Append to buffer
     this.buffer = Buffer.concat([this.buffer, data]);
 
-    // Emit raw data for debugging
-    this.emitRawData(data, 'RX');
+    // ⚠️ Do NOT emit raw data here - will be included in final tagRead event
+    // this.emitRawData(data, 'RX');
 
     // Process all complete frames
     while (this.buffer.length >= 3) {

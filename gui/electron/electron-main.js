@@ -161,7 +161,7 @@ async function initializeDatabase() {
         const data = db.export();
         const buffer = Buffer.from(data);
         fs.writeFileSync(dbPath, buffer);
-        console.log('[App] Database auto-saved, size:', buffer.length, 'bytes');
+        // Removed verbose database save logging
       } catch (err) {
         console.error('[App] Error saving database:', err?.message);
       }
@@ -397,9 +397,27 @@ function createApplicationMenu() {
       submenu: [
         {
           label: 'Documentation',
-          click: async () => {
-            await shell.openExternal('https://github.com/KhairulAnuar11/RFID-SDK.git');
-          }
+          submenu: [
+            {
+              label: 'User Guide',
+                click: () => {
+                  shell.openExternal('https://docs.evolve.rfid-sdk.com/user-guide');
+                }
+            },
+
+            {
+            label: 'Github Repository',
+                click: () => {
+                shell.openExternal('https://github.com/evolve-rfid-sdk/evolve-sdk');
+              }
+            },
+            {
+              label: 'Troubleshooting Guide',
+                click: () => {
+                  shell.openExternal('https://docs.evolve.rfid-sdk.com/troubleshooting');
+              }
+            }
+          ],
         },
         { type: 'separator' },
         {

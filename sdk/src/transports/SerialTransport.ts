@@ -75,17 +75,10 @@ export class SerialReader extends ReaderManager {
   }
 
   private handleIncomingData(data: Buffer): void {
-    const dataHex = data.toString('hex').toUpperCase();
-    const formatted = dataHex.match(/.{1,2}/g)?.join(' ') || '';
+    // ⚠️ Do NOT emit raw data here - let protocol reader handle all parsing
+    // This prevents duplicate entries in the data stream (3x → 1x)
+    // emitRawData(data, 'RX');
     
-    // Log the data to console
-    console.log(`[SerialReader] RX ${data.length} bytes: ${formatted}`);
-    
-    if (formatted.includes('BB 97')) {
-      console.log('[SerialReader] ✓ TAG DETECTED');
-    }
-
-    this.emitRawData(data, 'RX');
     if (this.protocolReader) this.protocolReader.injectData(data);
   }
 

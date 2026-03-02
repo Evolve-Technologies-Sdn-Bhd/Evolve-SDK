@@ -27,6 +27,12 @@ export default function Dashboard() {
 
   // Setup and teardown listeners
   const setupListeners = () => {
+    // Clean up any existing listeners first to prevent duplicates
+    // @ts-ignore
+    if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
+      window.electronAPI.clearAllDataListeners();
+    }
+    
     console.log('[Dashboard] Setting up tag listener - electronAPI exists:', !!window.electronAPI);
     
     const onTag = (tag: any) => {
@@ -197,24 +203,31 @@ export default function Dashboard() {
   };
 
   const removeListeners = () => {
-    console.log('[Dashboard] Removing listeners');
-    // Unsubscribe using the stored unsubscribe functions
+    console.log('[Dashboard] Removing all listeners');
+    // Try unsubscribe functions first
     if (unsubscribeRef.current.tagReadUnsub) {
-      console.log('[Dashboard] Calling tagReadUnsub');
       unsubscribeRef.current.tagReadUnsub();
       unsubscribeRef.current.tagReadUnsub = undefined;
     }
     if (unsubscribeRef.current.rawDataUnsub) {
-      console.log('[Dashboard] Calling rawDataUnsub');
       unsubscribeRef.current.rawDataUnsub();
       unsubscribeRef.current.rawDataUnsub = undefined;
     }
+    
+    // Also force remove all listeners to ensure complete cleanup
+    // @ts-ignore
+    if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
+      window.electronAPI.clearAllDataListeners();
+    }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     console.log('[Dashboard] Refresh button clicked');
     removeListeners();
     setLogs([]);
+    
+    // Small delay to ensure listeners are fully cleaned before re-registering
+    await new Promise(resolve => setTimeout(resolve, 100));
     setupListeners();
   };
 

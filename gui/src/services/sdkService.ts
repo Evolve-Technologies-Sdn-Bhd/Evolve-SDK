@@ -121,5 +121,14 @@ export const sdkService = {
   onDisconnected: (callback: (data: { type: string; error?: string }) => void) => {
     // @ts-ignore
     window.electronAPI.onDisconnected(callback);
+  },
+
+  /**
+   * Reset cumulative counters in the SDK (total count and unique tag set)
+   * This resets the in-memory session statistics without clearing historical data
+   */
+  resetCounters: async () => {
+    // @ts-ignore
+    return await window.electronAPI.resetCounters();
   }
 };
