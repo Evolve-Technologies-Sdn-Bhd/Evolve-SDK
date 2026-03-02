@@ -42,17 +42,6 @@ export class PayloadFormatter {
       displayData.EPC = rawData.id;
     }
 
-    // Extract Frame_Hex - try all possible field names
-    if (rawData.Frame_Hex) {
-      displayData.Frame_Hex = rawData.Frame_Hex;
-    } else if (rawData.frame_hex) {
-      displayData.Frame_Hex = rawData.frame_hex;
-    } else if (rawData.raw) {
-      displayData.Frame_Hex = rawData.raw;
-    } else if (rawData._frameHex) {
-      displayData.Frame_Hex = rawData._frameHex;
-    }
-
     // Extract RSSI
     if (rawData.RSSI !== null && rawData.RSSI !== undefined) {
       displayData.RSSI = rawData.RSSI;
