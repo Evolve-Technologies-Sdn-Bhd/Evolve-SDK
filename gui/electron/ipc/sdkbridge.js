@@ -275,18 +275,25 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     const tagListener = async (tag) => {
       try {
         const payload = await formatPayload(tag);
+        
+        // Filter out invalid tags - don't send or save UNKNOWN/ERROR
+        if (payload.EPC === 'UNKNOWN' || payload.EPC === 'ERROR') {
+          console.log('[IPC] ⊘ Skipping invalid tag with EPC:', payload.EPC);
+          return;
+        }
+        
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database
         const currentDb = global.dbInstance || initialDb;
         if (currentDb) {
           try {
-            const epc = (tag.id || tag.epc || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
+            const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
             // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
             const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
               INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at)
-              VALUES ('${epc}', '${currentReaderType}', ${tag.antenna || 0}, ${tag.rssi || 0}, '${readAt}')
+              VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}')
             `;
             currentDb.exec(query);
             

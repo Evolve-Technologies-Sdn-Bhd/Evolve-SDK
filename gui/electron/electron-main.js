@@ -161,7 +161,7 @@ async function initializeDatabase() {
         const data = db.export();
         const buffer = Buffer.from(data);
         fs.writeFileSync(dbPath, buffer);
-        console.log('[App] Database auto-saved, size:', buffer.length, 'bytes');
+        // Removed verbose database save logging
       } catch (err) {
         console.error('[App] Error saving database:', err?.message);
       }

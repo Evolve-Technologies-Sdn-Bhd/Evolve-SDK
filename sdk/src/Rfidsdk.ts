@@ -155,21 +155,23 @@ export class RfidSdk {
 
     // Create the new listener
     this.tagReadListener = (rawTagData: any) => {
-      // ✅ Update in-memory session counters
-      this.totalCount++;
-
       // 🔧 NORMALIZED UNIQUE IDENTIFICATION
       // Both A0 and BB protocols extract exactly ~7 bytes of EPC
       // This ensures same physical tag = same identifier across protocols
       const uniqueIdentifier = rawTagData?.epc || rawTagData?.id;
       
-      if (uniqueIdentifier) {
-        const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
-        this.uniqueTags.add(uniqueIdentifier);
-        
-      } else {
-        console.warn(`[RfidSdk] ⚠️ Tag received but no EPC/ID field - cannot add to unique set`, rawTagData);
+      // Filter out invalid/unknown EPCs - don't count them
+      if (!uniqueIdentifier || uniqueIdentifier === 'UNKNOWN' || uniqueIdentifier === 'ERROR') {
+        console.warn(`[RfidSdk] ⚠️ Skipping invalid tag - EPC: ${uniqueIdentifier}`, rawTagData);
+        return; // Don't count or emit invalid tags
       }
+
+      // ✅ Update in-memory session counters (only for valid tags)
+      this.totalCount++;
+      
+      // Add to unique set
+      const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
+      this.uniqueTags.add(uniqueIdentifier);
 
       // ✅ Emit raw data to consumers (no formatting)
       this.emit('tag', rawTagData);
