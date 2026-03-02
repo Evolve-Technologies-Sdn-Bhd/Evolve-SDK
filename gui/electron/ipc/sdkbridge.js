@@ -467,7 +467,30 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         // Safely escape CSV values
         const epc = (evt.epc || '').replace(/"/g, '""');
         const reader = (evt.reader_id || '').replace(/"/g, '""');
-        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${evt.read_at}"`;
+        
+        // Format timestamp from ISO UTC (2026-03-02T06:18:58.691Z) to local time (2026-03-02/14:23:10)
+        let readTime = evt.read_at || '';
+        if (readTime) {
+          try {
+            const date = new Date(readTime);
+            
+            // Get local date components
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            
+            // Format as YYYY-MM-DD/HH:MM:SS
+            readTime = `${year}-${month}-${day}/${hours}:${minutes}:${seconds}`;
+          } catch (e) {
+            // If formatting fails, use raw value
+            readTime = evt.read_at;
+          }
+        }
+        
+        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
       }).join('\n');
       const csvContent = header + rows;
 
