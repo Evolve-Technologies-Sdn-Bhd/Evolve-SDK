@@ -6,42 +6,52 @@ import { fileURLToPath, pathToFileURL } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Helper function to format the tag - convert Buffer to serializable format
- * For binary protocol data (like A0Protocol), convert to hex.
- * For text data, keep as-is.
+ * Helper function to standardize tag payload format
+ * Ensures all tags have: EPC, Frame_Hex, RSSI
+ * Handles multiple input formats and normalizes to standard output
  */
 const formatPayload = async (tag) => {
   try {
-    // Convert Buffer to hex string for binary frames (A0Protocol)
-    let rawData = tag.raw;
-    let rawHex = '';
+    // Extract EPC from multiple possible sources
+    const epc = tag.epc || tag.id || tag.EPC || 'UNKNOWN';
+    
+    // Convert raw data to Frame_Hex format
+    let frameHex = '';
+    let rawData = tag.raw || tag.Frame_Hex || tag.frame_hex || '';
     
     if (Buffer.isBuffer(rawData)) {
       // Convert binary frame to hex with spaces for readability
-      rawHex = rawData.toString('hex').toUpperCase();
-      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
+      frameHex = rawData.toString('hex').toUpperCase();
+      frameHex = frameHex.match(/.{1,2}/g)?.join(' ') || frameHex;
     } else if (Array.isArray(rawData)) {
-      rawHex = Buffer.from(rawData).toString('hex').toUpperCase();
-      rawHex = rawHex.match(/.{1,2}/g)?.join(' ') || rawHex;
+      frameHex = Buffer.from(rawData).toString('hex').toUpperCase();
+      frameHex = frameHex.match(/.{1,2}/g)?.join(' ') || frameHex;
     } else if (typeof rawData === 'string') {
-      rawHex = rawData;
+      // Already a string - clean up spacing
+      frameHex = rawData.replace(/\s+/g, ' ').trim().toUpperCase();
     }
-
-    // Return tag with formatted raw data and original id as epc
+    
+    // Extract RSSI
+    const rssi = tag.rssi !== undefined ? tag.rssi : (tag.RSSI !== undefined ? tag.RSSI : 0);
+    
+    // Return standardized format: EPC, Frame_Hex, RSSI
     return {
-      ...tag,
-      epc: tag.id,  // Store the EPC ID from serial reader
-      raw: rawHex,  // Store as hex for binary protocol frames
-      _frameHex: rawHex  // Also store separately for debugging
+      EPC: epc,
+      Frame_Hex: frameHex,
+      RSSI: rssi,
+      // Keep original timestamp if available
+      timestamp: tag.timestamp || Date.now(),
+      // Keep antenna info if available
+      antenna: tag.antenna || tag.antId || 0
     };
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
-    // Fallback
+    // Fallback with minimal data
     return {
-      ...tag,
-      epc: tag.id,
-      raw: Buffer.isBuffer(tag.raw) ? tag.raw.toString('hex').toUpperCase() : (tag.raw || ''),
-      _error: err.message
+      EPC: tag.id || tag.epc || 'ERROR',
+      Frame_Hex: '',
+      RSSI: tag.rssi || 0,
+      error: err.message
     };
   }
 };
