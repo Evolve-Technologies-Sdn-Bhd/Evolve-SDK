@@ -47,11 +47,6 @@ const formatPayload = async (tag) => {
 };
 
 export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
-  console.log('[IPC] registerSdkBridge called');
-  console.log('[IPC] sdk available:', !!sdk);
-  console.log('[IPC] db available (initial):', !!initialDb);
-  console.log('[IPC] global.dbInstance available:', !!global.dbInstance);
-  console.log('[IPC] mainWindow available:', !!mainWindow);
   
   // Helper to get current database (prioritizes global.dbInstance)
   const getDb = () => {
@@ -87,10 +82,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         throw new Error('Port is required');
       }
       
-      console.log(`[IPC] Attempting TCP connection to ${resolvedHost}:${resolvedPort}`);
       await sdk.connectTcp(resolvedHost, resolvedPort);
       currentReaderType = 'TCP';
-      console.log(`[IPC] Connection Successful: TCP ${resolvedHost}:${resolvedPort}`);
+      console.log(`[IPC] TCP Connection Successful: ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
@@ -120,10 +114,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       const validProtocols = ['UF3-S', 'F5001', 'A0'];
       const selectedProtocol = protocol && validProtocols.includes(protocol) ? protocol : 'A0';
       
-      console.log(`[IPC] Attempting serial connection to ${comPort} @ ${baudRate} baud (Protocol: ${selectedProtocol})`);
       await sdk.connectSerial(comPort, baudRate, selectedProtocol);
       currentReaderType = 'SERIAL';
-      console.log(`[IPC] Connection Successful: Serial ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
+      console.log(`[IPC] Serial Connection Successful: ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
@@ -143,7 +136,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       // Stop scan if active
       if (scanActive) {
-        console.log('[IPC] Stopping active scan on disconnect');
         try {
           sdk.stop();
           if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
@@ -184,7 +176,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // MQTT connection handler
   ipcMain.handle('reader:connect-mqtt', async (_event, { brokerUrl, topic, options }) => {
-    console.log('[IPC] reader:connect-mqtt', brokerUrl, topic);
     if (!sdk) return { success: true, mock: true };
     try {
       await sdk.connectMqtt(brokerUrl, topic, options);
@@ -199,7 +190,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // MQTT publish handler
   ipcMain.handle('mqtt:publish', async (_event, { tag, topic }) => {
-    console.log('[IPC] mqtt:publish', topic);
     if (!sdk) return { success: false, error: 'SDK not initialized' };
     if (typeof sdk.publish !== 'function') return { success: false, error: 'Publish not supported by SDK' };
     try {
@@ -212,23 +202,19 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   });
 
   ipcMain.handle('reader:configure', async (_event, settings) => {
-    console.log('[IPC] reader:configure', settings);
     if (!sdk) return { success: true };
     await sdk.configure(settings);
     return { success: true };
   });
 
   ipcMain.on('reader:start-scan', () => {
-    console.log('[IPC] reader:start-scan');
-
+    console.log('[IPC] Starting scan');
     // Prevent multiple simultaneous scans
     if (scanActive) {
-      console.log('[IPC] Scan already active, ignoring duplicate start request');
       return;
     }
 
     if (!sdk) {
-      console.log('[IPC] No SDK, entering mock mode');
       scanActive = true;
       const interval = setInterval(async () => {
         const mockTag = {
@@ -248,19 +234,16 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
     // Clean up any old listeners first
     if (currentTagListener && typeof currentTagListener === 'function') {
-      console.log('[IPC] Removing old tag listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('tag', currentTagListener);
       }
     }
     if (currentStatsListener && typeof currentStatsListener === 'function') {
-      console.log('[IPC] Removing old stats listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('stats', currentStatsListener);
       }
     }
     if (currentRawDataListener && typeof currentRawDataListener === 'function') {
-      console.log('[IPC] Removing old raw data listener');
       if (typeof sdk.removeListener === 'function') {
         sdk.removeListener('rawData', currentRawDataListener);
       }
@@ -299,10 +282,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
     const statsListener = (stats) => {
       try {
-        console.log('[IPC] ✓ Received stats event from SDK:', stats);
-        console.log(`[IPC] Stats: total=${stats?.total}, unique=${stats?.unique}`);
         mainWindow.webContents.send('rfid:stats', stats);
-        console.log('[IPC] ✓ Sent rfid:stats to renderer');
       } catch (err) {
         console.error('[IPC] Error sending stats:', err);
       }
@@ -321,16 +301,14 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     currentStatsListener = statsListener;
     currentRawDataListener = rawDataListener;
 
-    console.log('[IPC] Registering tag, stats, and raw data listeners');
     sdk.on('tag', tagListener);
     sdk.on('stats', statsListener);
     sdk.on('rawData', rawDataListener);
     
     try {
-      console.log('[IPC] Starting SDK scan');
       sdk.start();
       scanActive = true;
-      console.log('[IPC] SDK started successfully');
+      console.log('[IPC] Scan started successfully');
     } catch (err) {
       console.error('[IPC] Error starting SDK:', err);
       scanActive = false;
@@ -348,10 +326,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // Stop scan handler
   ipcMain.on('reader:stop-scan', () => {
-    console.log('[IPC] reader:stop-scan');
-
+    console.log('[IPC] Stopping scan');
     if (!scanActive) {
-      console.log('[IPC] No active scan to stop');
       return;
     }
 
@@ -361,13 +337,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         clearInterval(currentTagListener.interval);
         currentTagListener = null;
         scanActive = false;
-        console.log('[IPC] Mock mode stopped');
         return;
       }
 
       // Handle SDK mode
       if (sdk) {
-        console.log('[IPC] Stopping SDK scan');
         sdk.stop();
         
         // Clean up listeners
@@ -418,11 +392,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // Export data from database by time period
   ipcMain.handle('data:export-database', async (event, days) => {
-    console.log('[IPC] data:export-database called with days:', days);
-    
     // Get database using the helper function
     const currentDb = getDb();
-    console.log('[IPC] Database available:', currentDb ? 'YES' : 'NO');
     
     if (!currentDb) {
       console.error('[IPC] ✗ Database not available for export');
@@ -430,8 +401,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     }
 
     try {
-      console.log('[IPC] Querying database for events from last', days, 'days...');
-      
       // First check if table exists
       const tableCheckQuery = `SELECT name FROM sqlite_master WHERE type='table' AND name='rfid_events'`;
       const tableCheck = currentDb.exec(tableCheckQuery);
@@ -441,8 +410,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         return { success: false, error: 'No data available yet - table not created', count: 0 };
       }
       
-      console.log('[IPC] ✓ Table rfid_events exists');
-      
       // Build and execute the query
       const query = `
         SELECT epc, reader_id, antenna, rssi, read_at
@@ -451,15 +418,12 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         ORDER BY read_at DESC
       `;
       
-      console.log('[IPC] Executing query:', query);
       const result = currentDb.exec(query);
-      console.log('[IPC] Query returned result array with', result.length, 'statement(s)');
       
       // sql.js returns an array of statement results
       let events = [];
       if (result.length > 0 && result[0].values && result[0].values.length > 0) {
         const columns = result[0].columns;
-        console.log('[IPC] Query returned columns:', columns);
         events = result[0].values.map(row => {
           const obj = {};
           columns.forEach((col, idx) => {
@@ -467,9 +431,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
           });
           return obj;
         });
-        console.log('[IPC] ✓ Parsed', events.length, 'events from query result');
       } else {
-        console.log('[IPC] Query returned 0 events - no data in time range');
       }
 
       if (events.length === 0) {
@@ -486,8 +448,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       }).join('\n');
       const csvContent = header + rows;
 
-      console.log('[IPC] ✓ Generated CSV with', events.length, 'rows');
-      console.log('[IPC] CSV content length:', csvContent.length, 'bytes');
       return { success: true, content: csvContent, count: events.length };
       
     } catch (err) {

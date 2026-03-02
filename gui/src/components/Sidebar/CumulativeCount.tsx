@@ -19,7 +19,7 @@ export default function CumulativeCount() {
         {/* Total Count Box */}
         <div className="bg-blue-50 p-2 rounded border border-blue-100 flex flex-col items-center">
           <div className="flex items-center gap-1 text-[10px] text-blue-600 font-bold uppercase">
-            <Hash className="w-3 h-3" /> Total
+            <Hash className="w-3 h-3" /> Count
           </div>
           <span className="text-xl font-bold text-blue-700">
             {totalReads.toLocaleString()}
@@ -29,7 +29,7 @@ export default function CumulativeCount() {
         {/* Unique Count Box */}
         <div className="bg-purple-50 p-2 rounded border border-purple-100 flex flex-col items-center">
           <div className="flex items-center gap-1 text-[10px] text-purple-600 font-bold uppercase">
-            <Tags className="w-3 h-3" /> Unique
+            <Tags className="w-3 h-3" /> EPC
           </div>
           <span className="text-xl font-bold text-purple-700">
             {uniqueCount.toLocaleString()}
