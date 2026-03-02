@@ -120,7 +120,6 @@ export class RfidSdk {
     try {
       // Clean up listener before disconnect
       if (this.tagReadListener && this.reader) {
-        console.log('[RfidSdk] Cleaning up tag listener on disconnect');
         this.reader.removeListener('tagRead', this.tagReadListener);
         this.tagReadListener = undefined;
       }
@@ -149,11 +148,8 @@ export class RfidSdk {
       return;
     }
 
-    console.log('[RfidSdk] Starting scan');
-
     // Remove old listener if it exists to prevent duplicates
     if (this.tagReadListener) {
-      console.log('[RfidSdk] Removing previous tag listener');
       this.reader.removeListener('tagRead', this.tagReadListener);
     }
 
@@ -171,7 +167,6 @@ export class RfidSdk {
         const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
         this.uniqueTags.add(uniqueIdentifier);
         
-        console.log(`[RfidSdk] Tag read: ID=${uniqueIdentifier}, Protocol=${rawTagData._protocol || 'unknown'}, NEW=${isNewTag}, Total=${this.totalCount}, Unique=${this.uniqueTags.size}`);
       } else {
         console.warn(`[RfidSdk] ⚠️ Tag received but no EPC/ID field - cannot add to unique set`, rawTagData);
       }
@@ -181,7 +176,6 @@ export class RfidSdk {
 
       // ✅ Emit stats update event (optional but recommended)
       const stats = this.getCumulativeStats();
-      console.log('[RfidSdk] Emitting stats event:', stats);
       this.emit('stats', stats);
     };
 
@@ -199,7 +193,6 @@ export class RfidSdk {
     
     // Remove listener when stopping
     if (this.tagReadListener) {
-      console.log('[RfidSdk] Removing tag listener on stop');
       this.reader.removeListener('tagRead', this.tagReadListener);
       this.tagReadListener = undefined;
     }
