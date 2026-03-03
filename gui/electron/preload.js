@@ -66,8 +66,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExportData: (days) => ipcRenderer.invoke('data:export-database', days),
   saveExportedCSV: (content, days) => ipcRenderer.invoke('data:save-csv', { content, days }),
 
-  connectSerial: (comPort, baudRate, protocol) => 
-    ipcRenderer.invoke('reader:connect-serial', { comPort, baudRate, protocol }),
+  connectSerial: (config) => {
+    console.log('[Preload] connectSerial config:', config);
+    return ipcRenderer.invoke('reader:connect-serial', config);
+  },
 
   resetCounters: () => ipcRenderer.invoke('reader:reset-counters'),
 });
