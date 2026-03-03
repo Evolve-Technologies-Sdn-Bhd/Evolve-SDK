@@ -31,6 +31,10 @@ export class RfidSdk {
   // Store tag listener to prevent duplicates
   private tagReadListener?: (rawTagData: any) => void;
 
+  // Throttling configuration for tag emissions
+  private lastEmitTime = 0;
+  private throttleMs = 100; // Throttle tag emissions to 100ms intervals
+
   // --- EVENT HANDLING ---
   on(event: string, callback: (...args: any[]) => void) {
     this.emitter.on(event, callback);
@@ -155,6 +159,10 @@ export class RfidSdk {
 
     // Create the new listener
     this.tagReadListener = (rawTagData: any) => {
+      const now = Date.now();
+      if (now - this.lastEmitTime < this.throttleMs) return;
+      this.lastEmitTime = now;
+      
       // 🔧 NORMALIZED UNIQUE IDENTIFICATION
       // Both A0 and BB protocols extract exactly ~7 bytes of EPC
       // This ensures same physical tag = same identifier across protocols

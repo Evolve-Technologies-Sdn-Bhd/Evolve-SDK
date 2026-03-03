@@ -118,25 +118,69 @@ export class TcpReader extends ReaderManager {
 
   private handleIncomingData(data: Buffer) {
     this.emitRawData(data, 'RX');
-    this.buffer = Buffer.concat([this.buffer, data]);
-    // Minimum frame: A0 04 Addr Cmd CS (5 bytes)
-    while (this.buffer.length >= 5) {
-      if (this.buffer[0] !== A0Protocol.HEADER) {
-        this.buffer = this.buffer.subarray(1); // Seek for header
-        continue;
+
+    // Case A: JSON Mode (Starts with '{' or already contains JSON data)
+    if (data[0] === 0x7B || (this.buffer.length > 0 && this.buffer[0] === 0x7B)) {
+      this.buffer = Buffer.concat([this.buffer, data]);
+      let jsonStr = this.buffer.toString();
+      
+      // JSON messages are terminated by '$'
+      if (jsonStr.includes('$')) {
+        const parts = jsonStr.split('$');
+        // Keep the last part in buffer (might be an incomplete frame)
+        this.buffer = Buffer.from(parts.pop() || "");
+
+        for (const part of parts) {
+          if (part.trim()) {
+            try {
+              const msg = JSON.parse(part);
+              this.processJsonMessage(msg);
+            } catch (e) {
+              console.error("[TcpReader] JSON Parse Error:", e);
+            }
+          }
+        }
       }
-      const len = this.buffer[1];
-      if (len > 1024 || len < 3) {
-        console.warn(`[TcpReader] Invalid A0 length byte: 0x${len.toString(16)} (${len}), expected 3-1024`);
+      return;
+    }
+
+    // Case B: Hex/Binary Mode (Original A0 logic)
+    this.buffer = Buffer.concat([this.buffer, data]);
+    while (this.buffer.length >= 5) {
+      if (this.buffer[0] !== 0xA0) {
         this.buffer = this.buffer.subarray(1);
         continue;
       }
-      if (this.buffer.length < len + 2) break; // Frame incomplete
+      const len = this.buffer[1];
+      if (this.buffer.length < len + 2) break; 
 
       const frame = this.buffer.subarray(0, len + 2);
-      this.frameCount++;
-      this.processFrame(frame);
+      this.processFrame(frame); // Your existing binary parser
       this.buffer = this.buffer.subarray(len + 2);
+    }
+  }
+
+  // Logic to process the JSON format and count tags correctly
+  private processJsonMessage(msg: any) {
+    // code 1001 = Tag Inventory Result in UF3 JSON protocol
+    if (msg.code === 1001 && msg.data) {
+      const epc = msg.data.epc;
+      const rssi = msg.data.rssi || 0;
+
+      const tag = {
+        id: epc,
+        epc: epc,
+        id_full: epc,
+        rssi: rssi,
+        timestamp: Date.now(),
+        _protocol: 'UF3-S-JSON'
+      };
+
+      // THIS emits the tag to your GUI and increments count
+      this.emitTag(tag); 
+    } else {
+      // Other codes are just status/success (like code 1000), ignore for counting
+      console.log(`[TcpReader] Received Control Message: Code ${msg.code}`);
     }
   }
 
