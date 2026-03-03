@@ -42,7 +42,7 @@ export class MqttConnectionManager {
   private connectionListeners: ((status: MqttConnectionStatus) => void)[] = [];
   private messageListeners: ((topic: string, payload: Buffer) => void)[] = [];
   private retryCount = 0;
-  private maxRetries = 5;
+  private maxRetries = 3;
   private retryTimeout?: NodeJS.Timeout;
   private isManuallyDisconnected = false;
 
@@ -57,7 +57,7 @@ export class MqttConnectionManager {
       }
 
       this.config = config;
-      this.maxRetries = config.maxRetries ?? 5;
+      this.maxRetries = config.maxRetries ?? 3;
       this.isManuallyDisconnected = false;
       this.retryCount = 0;
 

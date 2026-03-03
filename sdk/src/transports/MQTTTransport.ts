@@ -8,7 +8,7 @@ export class MqttReader extends ReaderManager {
   private topic: string;
   private options?: mqtt.IClientOptions;
   private retryCount = 0;
-  private maxRetries = 5;
+  private maxRetries = 3;
   private retryTimeout?: NodeJS.Timeout;
   private isManuallyDisconnected = false;
 

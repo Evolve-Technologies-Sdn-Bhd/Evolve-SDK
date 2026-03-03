@@ -6,7 +6,7 @@ export class TcpReader extends ReaderManager {
   private client?: net.Socket;
   private buffer: Buffer = Buffer.alloc(0);
   private retryCount = 0;
-  private maxRetries = 5;
+  private maxRetries = 3;
   private retryTimeout?: NodeJS.Timeout;
   private isManuallyDisconnected = false;
   private connectTimeoutMs = 12000;

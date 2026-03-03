@@ -158,11 +158,10 @@ export default function HardwareConnection() {
       console.log('[GUI] Serial Connection Attempt:', serialConfig);
       
       const result = await withTimeout(
-        // @ts-ignore
-        window.electronAPI.connectSerial(
+        sdkService.connectSerial(
             serialConfig.comPort, 
             serialConfig.baudRate, 
-            serialConfig.protocol // Sending the correct 'BB' protocol here
+            serialConfig.protocol
         ),
         180000
       ) as ConnectionResult;
@@ -254,12 +253,24 @@ export default function HardwareConnection() {
               <div>
                 <label className="block text-[10px] text-gray-500">Baud Rate</label>
                 <select value={serialConfig.baudRate} onChange={(e) => setSerialConfig({...serialConfig, baudRate: parseInt(e.target.value) || 115200})} className="w-full border p-1 text-xs" disabled={connected}>
+                  <option value="75">75</option>
+                  <option value="110">110</option>
+                  <option value="134">134</option>
+                  <option value="150">150</option>
+                  <option value="300">300</option>
+                  <option value="600">600</option>
+                  <option value="1200">1200</option>
+                  <option value="1800">1800</option>
+                  <option value="2400">2400</option>
+                  <option value="4800">4800</option>
+                  <option value="7200">7200</option>
                   <option value="9600">9600</option>
+                  <option value="14400">14400</option>
                   <option value="19200">19200</option>
                   <option value="38400">38400</option>
                   <option value="57600">57600</option>
                   <option value="115200">115200</option>
-                  <option value="230400">230400</option>
+                  <option value="128000">128000</option>
                 </select>
               </div>
               {/* FIX 2: Updated Protocol Dropdown (Removed 'AUTO', Added explicit 'BB' option) */}
