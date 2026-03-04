@@ -37,18 +37,26 @@ const formatPayload = async (tag) => {
     // Extract Device info from multiple possible sources
     const device = tag.device || tag.Device || tag.deviceId || '-';
     
-    // Return standardized format: EPC, Frame_Hex, RSSI, Device
-    return {
+    // Extract Antenna info
+    const antenna = tag.antenna || tag.antId || 0;
+    
+    console.log('[IPC] formatPayload input:', { epc, device, antenna, rssi });
+    
+    // Return standardized format: EPC, Frame_Hex, RSSI, Antenna, Device
+    const result = {
       EPC: epc,
       Frame_Hex: frameHex,
       RSSI: rssi,
+      // Antenna with proper casing for data stream
+      Antenna: antenna,
+      // Device with proper casing for data stream
+      Device: device,
       // Keep original timestamp if available
-      timestamp: tag.timestamp || Date.now(),
-      // Keep antenna info if available
-      antenna: tag.antenna || tag.antId || 0,
-      // Keep device info if available
-      device: device
+      timestamp: tag.timestamp || Date.now()
     };
+    
+    console.log('[IPC] formatPayload result:', result);
+    return result;
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
     // Fallback with minimal data
@@ -56,7 +64,8 @@ const formatPayload = async (tag) => {
       EPC: tag.id || tag.epc || 'ERROR',
       Frame_Hex: '',
       RSSI: tag.rssi || 0,
-      device: tag.device || tag.Device || '-',
+      Antenna: tag.antenna || tag.antId || 0,
+      Device: tag.device || tag.Device || '-',
       error: err.message
     };
   }
@@ -282,6 +291,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       try {
         const payload = await formatPayload(tag);
         
+        // Log the formatted payload to see what we're getting
+        console.log('[IPC] Formatted Tag Payload:', JSON.stringify(payload, null, 2));
+        
         // Filter out invalid tags - don't send or save UNKNOWN/ERROR
         if (payload.EPC === 'UNKNOWN' || payload.EPC === 'ERROR') {
           console.log('[IPC] ⊘ Skipping invalid tag with EPC:', payload.EPC);
@@ -289,18 +301,19 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         }
         
         mainWindow.webContents.send('rfid:tag-read', payload);
+        console.log('[IPC] ✓ Tag sent to renderer with all fields:', { EPC: payload.EPC, RSSI: payload.RSSI, Antenna: payload.Antenna, Device: payload.Device });
         
         // Save tag to database
         const currentDb = global.dbInstance || initialDb;
         if (currentDb) {
           try {
             const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
-            const device = (payload.device || '-').replace(/'/g, "''"); // Escape single quotes
+            const device = (payload.Device || '-').replace(/'/g, "''"); // Escape single quotes - use capitalized Device
             // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
             const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
               INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at, device_id)
-              VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
+              VALUES ('${epc}', '${currentReaderType}', ${payload.Antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
             `;
             currentDb.exec(query);
             
@@ -321,11 +334,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
                 
                 // Retry the insert
                 const epc = payload.EPC.replace(/'/g, "''");
-                const device = (payload.device || '-').replace(/'/g, "''");
+                const device = (payload.Device || '-').replace(/'/g, "''");
                 const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
                 const retryQuery = `
                   INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at, device_id)
-                  VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
+                  VALUES ('${epc}', '${currentReaderType}', ${payload.Antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
                 `;
                 currentDb.exec(retryQuery);
                 
