@@ -31,6 +31,10 @@ export class RfidSdk {
   // Store tag listener to prevent duplicates
   private tagReadListener?: (rawTagData: any) => void;
 
+  // Throttling configuration for tag emissions (per unique tag)
+  private lastEmitTimePerTag = new Map<string, number>();
+  private throttleMs = 500; // Throttle same tag to 500ms intervals (but different tags can emit freely)
+
   // --- EVENT HANDLING ---
   on(event: string, callback: (...args: any[]) => void) {
     this.emitter.on(event, callback);
@@ -166,6 +170,14 @@ export class RfidSdk {
         return; // Don't count or emit invalid tags
       }
 
+      // Apply per-tag throttling (different tags can emit freely, but same tag is throttled)
+      const now = Date.now();
+      const lastEmitTime = this.lastEmitTimePerTag.get(uniqueIdentifier) ?? 0;
+      if (now - lastEmitTime < this.throttleMs) {
+        return; // Skip this emission if same tag within throttle window
+      }
+      this.lastEmitTimePerTag.set(uniqueIdentifier, now);
+
       // ✅ Update in-memory session counters (only for valid tags)
       this.totalCount++;
       
@@ -198,6 +210,9 @@ export class RfidSdk {
       this.reader.removeListener('tagRead', this.tagReadListener);
       this.tagReadListener = undefined;
     }
+    
+    // Clear throttle map for fresh start on next scan
+    this.lastEmitTimePerTag.clear();
     
     this.reader.stopScan();
   }

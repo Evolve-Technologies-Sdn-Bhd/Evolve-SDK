@@ -34,16 +34,26 @@ const formatPayload = async (tag) => {
     // Extract RSSI
     const rssi = tag.rssi !== undefined ? tag.rssi : (tag.RSSI !== undefined ? tag.RSSI : 0);
     
-    // Return standardized format: EPC, Frame_Hex, RSSI
-    return {
+    // Extract Device info from multiple possible sources
+    const device = tag.device || tag.Device || tag.deviceId || '-';
+    
+    // Extract Antenna info
+    const antenna = tag.antenna || tag.antId || 0;
+    
+    // Return standardized format: EPC, Frame_Hex, RSSI, Antenna, Device
+    const result = {
       EPC: epc,
       Frame_Hex: frameHex,
       RSSI: rssi,
+      // Antenna with proper casing for data stream
+      Antenna: antenna,
+      // Device with proper casing for data stream
+      Device: device,
       // Keep original timestamp if available
-      timestamp: tag.timestamp || Date.now(),
-      // Keep antenna info if available
-      antenna: tag.antenna || tag.antId || 0
+      timestamp: tag.timestamp || Date.now()
     };
+    
+    return result;
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
     // Fallback with minimal data
@@ -51,6 +61,8 @@ const formatPayload = async (tag) => {
       EPC: tag.id || tag.epc || 'ERROR',
       Frame_Hex: '',
       RSSI: tag.rssi || 0,
+      Antenna: tag.antenna || tag.antId || 0,
+      Device: tag.device || tag.Device || '-',
       error: err.message
     };
   }
@@ -289,11 +301,12 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         if (currentDb) {
           try {
             const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
+            const device = (payload.Device || '-').replace(/'/g, "''"); // Escape single quotes - use capitalized Device
             // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
             const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
-              INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at)
-              VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}')
+              INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at, device_id)
+              VALUES ('${epc}', '${currentReaderType}', ${payload.Antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
             `;
             currentDb.exec(query);
             
@@ -302,7 +315,38 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
               currentDb.saveToFile();
             }
           } catch (dbErr) {
-            console.error('[IPC] Error saving tag to database:', dbErr);
+            const errorMsg = dbErr.message || String(dbErr);
+            
+            // Handle missing device_id column migration
+            if (errorMsg.includes('no column named device_id') || errorMsg.includes('device_id')) {
+              console.warn('[IPC] ⚠ device_id column missing, attempting to add...');
+              try {
+                // Add the missing column
+                currentDb.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+                console.log('[IPC] ✓ device_id column added successfully');
+                
+                // Retry the insert
+                const epc = payload.EPC.replace(/'/g, "''");
+                const device = (payload.Device || '-').replace(/'/g, "''");
+                const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
+                const retryQuery = `
+                  INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at, device_id)
+                  VALUES ('${epc}', '${currentReaderType}', ${payload.Antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
+                `;
+                currentDb.exec(retryQuery);
+                
+                // Save database to file
+                if (currentDb.saveToFile) {
+                  currentDb.saveToFile();
+                }
+                console.log('[IPC] ✓ Tag saved after column migration');
+              } catch (migrationErr) {
+                console.error('[IPC] Failed to migrate column:', migrationErr.message || migrationErr);
+              }
+            } else {
+              console.error('[IPC] Error saving tag to database:', errorMsg);
+              console.error('[IPC] Query was:', query);
+            }
           }
         }
       } catch (err) {
@@ -442,7 +486,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       // Build and execute the query
       const query = `
-        SELECT epc, reader_id, antenna, rssi, read_at
+        SELECT epc, reader_id, antenna, rssi, read_at, device_id
         FROM rfid_events
         WHERE read_at >= datetime('now', '-${days} days')
         ORDER BY read_at DESC
@@ -469,10 +513,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       }
 
       // Generate CSV content
-      const header = 'EPC,Connection,Antenna,RSSI,Read Time\n';
+      const header = 'EPC,Device,Connection,Antenna,RSSI,Read Time\n';
       const rows = events.map(evt => {
         // Safely escape CSV values
         const epc = (evt.epc || '').replace(/"/g, '""');
+        const device = (evt.device_id || '').replace(/"/g, '""');
         const reader = (evt.reader_id || '').replace(/"/g, '""');
         
         // Format timestamp from ISO UTC (2026-03-02T06:18:58.691Z) to local time (2026-03-02/14:23:10)
@@ -497,7 +542,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
           }
         }
         
-        return `"${epc}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
+        return `"${epc}","${device}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
       }).join('\n');
       const csvContent = header + rows;
 

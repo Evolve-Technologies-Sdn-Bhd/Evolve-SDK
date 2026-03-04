@@ -4,11 +4,12 @@
         "module": "commonjs",
         "declaration": true,
         "outDir": "dist",
-        "rootDir": "src",
+        "rootDir": ".",
         "strict": true,
         "esModuleInterop": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "types": ["jest", "node"]
     },
 
-    "include": ["src", "src/test"],
+    "include": ["src", "test"],
 }

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { registerSdkBridge } from './ipc/sdkbridge.js';
+import { pathToFileURL as p2u } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -17,6 +18,8 @@ try {
 
 let sdk = null;
 let db = null;
+global.docsServer = null;
+global.docsPort = null;
 
 // Make database globally accessible to IPC handlers
 global.dbInstance = null;
@@ -107,10 +110,36 @@ async function initializeDatabase() {
           reader_id TEXT,
           antenna INTEGER,
           rssi REAL,
-          read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          device_id TEXT
         );
       `);
       console.log('[App] ✓ Tables created/verified');
+      
+      // Migrate: Add device_id column if it doesn't exist (for old databases)
+      try {
+        const checkColumnQuery = `PRAGMA table_info(rfid_events)`;
+        const tableInfo = db.exec(checkColumnQuery);
+        const columns = tableInfo[0]?.values || [];
+        const hasDeviceIdColumn = columns.some(col => col[1] === 'device_id');
+        
+        if (!hasDeviceIdColumn) {
+          console.log('[App] ⚠ device_id column missing, adding it...');
+          db.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+          console.log('[App] ✓ device_id column added successfully');
+        }
+      } catch (migrationErr) {
+        console.warn('[App] Migration check warning:', migrationErr.message);
+        // Attempt to add column anyway
+        try {
+          db.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+          console.log('[App] ✓ device_id column added via fallback');
+        } catch (altErr) {
+          if (!altErr.message.includes('duplicate column')) {
+            console.warn('[App] Could not add device_id column:', altErr.message);
+          }
+        }
+      }
     } catch (tableErr) {
       console.error('[App] Error creating tables:', tableErr.message);
       // Try to recover by creating a fresh database
@@ -133,7 +162,8 @@ async function initializeDatabase() {
             reader_id TEXT,
             antenna INTEGER,
             rssi REAL,
-            read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            device_id TEXT
           );
         `);
         console.log('[App] ✓ Tables created in fresh database');
@@ -302,7 +332,15 @@ function setupLogForwarding(mainWindow) {
   console.log = function(...args) {
     originalLog.apply(console, args);
     const message = formatArgs(args);
-    if (message.includes('[IPC]') || message.includes('[SerialReader]') || message.includes('[RfidSdk]')) {
+    if (
+      message.includes('[IPC]') ||
+      message.includes('[SerialReader]') ||
+      message.includes('[RfidSdk]') ||
+      message.includes('[Main]') ||
+      message.includes('[App]') ||
+      message.includes('[TcpReader]') ||
+      message.includes('[Menu]')
+    ) {
       safeSend(message, 'info');
     }
   };
@@ -321,47 +359,130 @@ function setupLogForwarding(mainWindow) {
 function createApplicationMenu() {
   const isMac = process.platform === 'darwin';
 
+  // Start a tiny HTTP server to serve local PDFs via http://127.0.0.1:<port>/docs/<file>
+  // so PDFs open in the user's default browser (not a local PDF app)
+  const ensureDocsServer = async (baseDir) => {
+    if (global.docsServer && global.docsPort) {
+      return global.docsPort;
+    }
+    const http = (await import('http')).default;
+    return new Promise((resolve) => {
+      const server = http.createServer((req, res) => {
+        try {
+          const url = new URL(req.url, 'http://127.0.0.1');
+          if (!url.pathname.startsWith('/docs/')) {
+            res.statusCode = 404;
+            return res.end('Not Found');
+          }
+          const fileName = decodeURIComponent(url.pathname.replace('/docs/', ''));
+          const filePath = path.join(baseDir, fileName);
+          if (!fs.existsSync(filePath)) {
+            res.statusCode = 404;
+            return res.end('File Not Found');
+          }
+          res.writeHead(200, {
+            'Content-Type': 'application/pdf',
+            'Cache-Control': 'no-cache'
+          });
+          fs.createReadStream(filePath).pipe(res);
+        } catch (err) {
+          res.statusCode = 500;
+          res.end('Server Error');
+        }
+      });
+      server.listen(0, '127.0.0.1', () => {
+        const address = server.address();
+        global.docsServer = server;
+        global.docsPort = address && address.port;
+        console.log(`[Menu] Docs HTTP server listening at 127.0.0.1:${global.docsPort}`);
+        resolve(global.docsPort);
+      });
+      server.on('error', (err) => {
+        console.error('[Menu] Docs HTTP server error:', err);
+      });
+    });
+  };
+
+  // Helper to open PDF with logging
+  const openResourcePdf = async (fileName, docName) => {
+    
+    try {
+      let pdfPath;
+      if (app.isPackaged) {
+        // Production path
+        pdfPath = path.join(process.resourcesPath, fileName);
+      } else {
+        // Development path (relative to src/electron-main.js)
+        pdfPath = path.join(__dirname, '../resources', fileName);
+      }
+
+      //console.log(`[Menu] Resolving PDF path for ${docName}: ${pdfPath}`);
+
+      if (!fs.existsSync(pdfPath)) {
+        console.warn(`[Menu] PDF file not found at: ${pdfPath}`);
+        dialog.showErrorBox('File Not Found', `Could not find documentation file:\n${fileName}`);
+        return;
+      }
+
+      // Serve over localhost and open in default browser
+      const baseDir = app.isPackaged ? process.resourcesPath : path.join(__dirname, '../resources');
+      const port = await ensureDocsServer(baseDir);
+      const httpUrl = `http://127.0.0.1:${port}/docs/${encodeURIComponent(fileName)}`;
+      console.log(`[Menu] Opening PDF in browser via: ${httpUrl}`);
+      await shell.openExternal(httpUrl);
+      console.log(`[Menu] Successfully requested browser to open: ${httpUrl}`);
+
+    } catch (err) {
+      console.error(`[Menu] Exception while trying to open ${docName}:`, err);
+      dialog.showErrorBox('Open PDF Error', String(err && (err.stack || err.message || err)));
+    }
+  };
+
   const template = [
     // FILE MENU
     {
       label: 'File',
       submenu: [
         {
-          label: 'Export', // 1. New Parent Item
+          label: 'Export',
           submenu: [
             {
-              label: 'Export Data', // 2. Nested Data Export
+              label: 'Export Data',
               submenu: [
                 {
                   label: 'Last 24 Hours',
                   click: () => {
+                    console.log('[Menu] Export requested: Last 24 Hours');
                     if (mainWindow) mainWindow.webContents.send('menu:export-data', '1');
                   }
                 },
                 {
                   label: 'Last 7 Days',
                   click: () => {
+                    console.log('[Menu] Export requested: Last 7 Days');
                     if (mainWindow) mainWindow.webContents.send('menu:export-data', '7');
                   }
                 },
                 {
                   label: 'Last 30 Days',
                   click: () => {
+                    console.log('[Menu] Export requested: Last 30 Days');
                     if (mainWindow) mainWindow.webContents.send('menu:export-data', '30');
                   }
                 },
               ]
             },
             {
-              label: 'Export Logs', // 3. Nested Log Export
+              label: 'Export Logs',
               click: async () => {
+                console.log('[Menu] Export requested: Logs');
                 if (mainWindow) mainWindow.webContents.send('menu:export-logs');
               }
             }
           ]
         },
         { type: 'separator' },
-        isMac ? { role: 'close' } : { role: 'quit' } // Exit/Quit
+        isMac ? { role: 'close' } : { role: 'quit' }
       ]
     },
     // EDIT MENU
@@ -388,6 +509,7 @@ function createApplicationMenu() {
     {
       label: 'Settings',
       click: () => {
+        console.log('[Menu] Opened Settings');
         if (mainWindow) mainWindow.webContents.send('menu:open-settings');
       }
     },
@@ -399,23 +521,12 @@ function createApplicationMenu() {
           label: 'Documentation',
           submenu: [
             {
-              label: 'User Guide',
-                click: () => {
-                  shell.openExternal('https://docs.evolve.rfid-sdk.com/user-guide');
-                }
-            },
-
-            {
-            label: 'Github Repository',
-                click: () => {
-                shell.openExternal('https://github.com/evolve-rfid-sdk/evolve-sdk');
-              }
+              label: 'User Manual',
+              click: () => openResourcePdf('PRA01260219001_Requirement Analysis RFID SDK JJ Wine.pdf', 'User Manual')
             },
             {
               label: 'Troubleshooting Guide',
-                click: () => {
-                  shell.openExternal('https://docs.evolve.rfid-sdk.com/troubleshooting');
-              }
+              click: () => openResourcePdf('SDD01260219001_Software Design Document RFID SDK JJ Wine.pdf', 'Troubleshooting Guide')
             }
           ],
         },
@@ -423,6 +534,7 @@ function createApplicationMenu() {
         {
           label: 'About',
           click: () => {
+            console.log('[Menu] Opened About Dialog');
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'About Evolve SDK',

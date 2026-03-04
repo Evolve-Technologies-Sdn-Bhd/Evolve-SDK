@@ -8,7 +8,7 @@ export class MqttReader extends ReaderManager {
   private topic: string;
   private options?: mqtt.IClientOptions;
   private retryCount = 0;
-  private maxRetries = 5;
+  private maxRetries = 3;
   private retryTimeout?: NodeJS.Timeout;
   private isManuallyDisconnected = false;
 
@@ -48,34 +48,49 @@ export class MqttReader extends ReaderManager {
           }
         }, 12000);
 
-        this.client.once('connect', () => {
-          if (connectResolved || hasSettled) return;
-          connectResolved = true;
-          clearTimeout(timeout);
-          
-          this.client?.subscribe(this.topic, (err) => {
-            if (connectResolved && hasSettled) return;
-            if (err) {
-              console.error('[MqttReader] Subscribe error:', err);
-              connectResolved = true;
-              this.handleConnectionFailure(err.message, () => {
-                if (!hasSettled) {
-                  hasSettled = true;
-                  reject(err);
-                }
-              }, attemptConnection);
-              return;
-            }
-            console.log('[MqttReader] Subscribed to topic:', this.topic);
-            console.log('[MqttReader] Connected to broker:', this.brokerUrl);
-            
-            if (!hasSettled) {
-              hasSettled = true;
-              this.retryCount = 0;
-              this.emit('connected');
-              resolve();
-            }
-          });
+        // track first connection separately so we only resolve once
+        let firstConnect = true;
+        this.client.on('connect', () => {
+          if (firstConnect) {
+            firstConnect = false;
+            if (connectResolved || hasSettled) return;
+            connectResolved = true;
+            clearTimeout(timeout);
+
+            this.client?.subscribe(this.topic, (err) => {
+              if (connectResolved && hasSettled) return;
+              if (err) {
+                console.error('[MqttReader] Subscribe error:', err);
+                connectResolved = true;
+                this.handleConnectionFailure(err.message, () => {
+                  if (!hasSettled) {
+                    hasSettled = true;
+                    reject(err);
+                  }
+                }, attemptConnection);
+                return;
+              }
+              console.log('[MqttReader] Subscribed to topic:', this.topic);
+              console.log('[MqttReader] Connected to broker:', this.brokerUrl);
+
+              if (!hasSettled) {
+                hasSettled = true;
+                this.retryCount = 0;
+                this.emit('connected');
+                resolve();
+              }
+            });
+          } else {
+            // subsequent reconnect: simply re-subscribe
+            console.log('[MqttReader] Reconnected to broker, re-subscribing to', this.topic);
+            this.client?.subscribe(this.topic, (err) => {
+              if (err) {
+                console.error('[MqttReader] Subscribe error on reconnect:', err);
+              } else {
+                console.log('[MqttReader] Re-subscribed to topic after reconnect');
+              }
+            });
+          }
         });
 
         this.client.on('message', (topic, payload) => {
@@ -96,69 +111,75 @@ export class MqttReader extends ReaderManager {
                   const jsonString = hexDecodedBuffer.toString('utf-8');
                   parsedData = JSON.parse(jsonString);
                 } catch {
-                  // Not valid JSON, wrap as plain text
-                  parsedData = { message: textDecoded.trim() };
+                  // Not valid JSON - treat the raw text as EPC value
+                  parsedData = { EPC: textDecoded.trim() };
                 }
               } else {
-                // Plain text, wrap as object
-                parsedData = { message: textDecoded.trim() };
+                // Plain text payload, treat as EPC
+                parsedData = { EPC: textDecoded.trim() };
               }
             }
 
-            // Handle EPCList array format - emit each EPC separately (one-by-one)
-            if (parsedData && parsedData.data && Array.isArray(parsedData.data.EpcList)) {
-              console.log(`[MqttReader] Processing EPCList with ${parsedData.data.EpcList.length} entries`);
-              
-              // Emit each EPC individually
-              parsedData.data.EpcList.forEach((epcItem: any, index: number) => {
-                const tag: TagData & any = {
-                  id: epcItem.EPC || 'UNKNOWN',
-                  epc: epcItem.EPC || 'UNKNOWN',
-                  tid: epcItem.TID || '',
-                  rssi: epcItem.RSSI ?? -54,
-                  antId: epcItem.AntId || '1',
-                  readTime: epcItem.ReadTime || new Date().toISOString(),
-                  timestamp: Date.now(),
-                  raw: buffer,
-                };
-                
-                console.log(`[MqttReader] Emitting EPC ${index + 1}/${parsedData.data.EpcList.length}: ${tag.epc}`);
-                this.emitTag(tag);
+            // Helper function to emit tag objects (used by several branches)
+            const emitTagObject = (epcItem: any, timestampOverride?: number, deviceId?: string) => {
+              const tag: TagData & any = {
+                id: epcItem.EPC || 'UNKNOWN',
+                epc: epcItem.EPC || 'UNKNOWN',
+                tid: epcItem.TID || '',
+                rssi: epcItem.RSSI ?? -54,
+                antId: epcItem.AntId || '1',
+                readTime: epcItem.ReadTime || new Date().toISOString(),
+                timestamp: timestampOverride ?? Date.now(),
+                raw: buffer,
+                device: deviceId, // Attach device ID from parent data
+              };
+              this.emitTag(tag);
+            };
+
+            // 1. Top-level EPCList array
+            if (parsedData && Array.isArray(parsedData.EPCList)) {
+              console.log(`[MqttReader] Processing top-level EPCList with ${parsedData.EPCList.length} entries`);
+              parsedData.EPCList.forEach((item: any, idx: number) => {
+                emitTagObject(item);
               });
             }
-            // Handle nested EPC field that contains stringified JSON with EPCList
+            // 2. Device-specific format under data.EpcList
+            else if (parsedData && parsedData.data && Array.isArray(parsedData.data.EpcList)) {
+              console.log(`[MqttReader] Processing EPCList with ${parsedData.data.EpcList.length} entries`);
+              const deviceId = parsedData.data.Device; // Extract Device ID from top level
+              parsedData.data.EpcList.forEach((item: any, idx: number) => {
+                emitTagObject(item, undefined, deviceId);
+              });
+            }
+            // 3. EPC field may contain nested JSON or simple value
             else if (parsedData && typeof parsedData.EPC === 'string') {
+              let epcContent: any;
               try {
-                const epcData = JSON.parse(parsedData.EPC);
-                if (epcData.data && Array.isArray(epcData.data.EpcList)) {
-                  console.log(`[MqttReader] Processing nested EPCList with ${epcData.data.EpcList.length} entries`);
-                  
-                  // Emit each EPC individually
-                  epcData.data.EpcList.forEach((epcItem: any, index: number) => {
-                    const tag: TagData & any = {
-                      id: epcItem.EPC || 'UNKNOWN',
-                      epc: epcItem.EPC || 'UNKNOWN',
-                      tid: epcItem.TID || '',
-                      rssi: epcItem.RSSI ?? -54,
-                      antId: epcItem.AntId || '1',
-                      readTime: epcItem.ReadTime || new Date().toISOString(),
-                      timestamp: parsedData.Timestamp ? new Date(parsedData.Timestamp).getTime() : Date.now(),
-                      raw: buffer,
-                    };
-                    
-                    console.log(`[MqttReader] Emitting EPC ${index + 1}/${epcData.data.EpcList.length}: ${tag.epc}`);
-                    this.emitTag(tag);
-                  });
+                epcContent = JSON.parse(parsedData.EPC);
+              } catch {
+                epcContent = parsedData.EPC;
+              }
+
+              // if nested object with its own EPC or list
+              if (epcContent && typeof epcContent === 'object') {
+                if (Array.isArray(epcContent.EPCList)) {
+                  const deviceId = epcContent.Device;
+                  epcContent.EPCList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
+                } else if (epcContent.data && Array.isArray(epcContent.data.EpcList)) {
+                  const deviceId = epcContent.data.Device;
+                  epcContent.data.EpcList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
+                } else if (epcContent.EPC) {
+                  emitTagObject(epcContent);
                 } else {
-                  // Fallback: emit as single tag
+                  // fallback to original parsedData
                   this.emitSingleTag(parsedData, buffer);
                 }
-              } catch (e) {
-                console.warn('[MqttReader] Could not parse nested EPC field:', e);
-                this.emitSingleTag(parsedData, buffer);
+              } else {
+                // epcContent is primitive/string - use as EPC
+                emitTagObject({ EPC: String(epcContent) });
               }
             }
-            // Handle single EPC format
+            // 4. Everything else (possibly object with EPC/TID etc)
             else {
               this.emitSingleTag(parsedData, buffer);
             }
@@ -348,6 +369,11 @@ export class MqttReader extends ReaderManager {
       id = parsedData.EPC;
     } else if (parsedData.id) {
       id = parsedData.id;
+    }
+
+    if (id === 'UNKNOWN') {
+      // no readable EPC value, skip emission
+      return;
     }
 
     const tag: TagData & any = {

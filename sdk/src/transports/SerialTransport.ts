@@ -1,10 +1,12 @@
 import { SerialPort } from 'serialport';
 import { ReaderManager } from '../readers/ReaderManager';
 import { UF3SReader }  from '../readers/UF3-SProtocolReader';
+import { UF3SProtocol } from '../utils/UF3SProtocol';
 import { F5001ProtocolReader } from '../readers/F5001ProtocolReader';
 import { AOProtocolReader } from '../readers/AOProtocolReader';
 import { A0Protocol } from '../utils/A0Protocol';
 import { F5001Protocol } from '../utils/F5001Protocol';
+import { TagData } from '../events/EventBus';
 
 export type ProtocolType = 'UF3-S' | 'F5001' | 'A0';
 
@@ -68,7 +70,7 @@ export class SerialReader extends ReaderManager {
     // ✅ RELAY tagRead events from protocolReader to SerialReader
     // This ensures cumulative stats are updated for serial transport
     if (this.protocolReader) {
-      this.protocolReader.on('tagRead', (tag) => {
+      this.protocolReader.on('tagRead', (tag: TagData) => {
         this.emit('tagRead', tag);
       });
     }
@@ -96,16 +98,39 @@ export class SerialReader extends ReaderManager {
       this.port.write(p0);
       this.emitRawData(p0, 'TX');
       await new Promise(resolve => setTimeout(resolve, 100));
+
       const p1 = F5001Protocol.setInventoryParam1();
       this.port.write(p1);
       this.emitRawData(p1, 'TX');
       await new Promise(resolve => setTimeout(resolve, 100));
+
       const startCmd = F5001Protocol.startMultiEPC();
       console.log(`[SerialReader] TX START INVENTORY: ${startCmd.toString('hex').toUpperCase()}`);
       this.port.write(startCmd);
       this.emitRawData(startCmd, 'TX');
       console.log(`[SerialReader] Waiting for tag responses...`);
-    } else {
+      
+    } else if (this.selectedProtocol === 'UF3-S') {
+      console.log('[SerialReader] Initiating UF3-S Start Sequence...');
+      
+      const antCmd = UF3SProtocol.encode(0x01, UF3SProtocol.COMMANDS.SET_ANTENNA, [0xFF]);
+      this.port.write(antCmd);
+      await new Promise(r => setTimeout(r, 100));
+
+      const startCmd = UF3SProtocol.encode(0x01, UF3SProtocol.COMMANDS.REALTIME_INVENTORY, [0xFF]);
+      this.port.write(startCmd);
+      this.emitRawData(startCmd, 'TX');
+    }
+    else if (this.selectedProtocol === 'A0') {
+      console.log('[SerialReader] Initiating A0 Start Sequence...');
+      // Typical A0 start sequence: REALTIME_INVENTORY enable
+      const rt1 = A0Protocol.encode(0xFF, A0Protocol.COMMANDS.REALTIME_INVENTORY, [0x01]);
+      const rt1Hex = rt1.toString('hex').toUpperCase();
+      console.log(`[SerialReader] TX REALTIME_INVENTORY: ${rt1Hex}`);
+      this.port.write(rt1);
+      this.emitRawData(rt1, 'TX');
+    }
+    else {
       console.log('[SerialReader] Initiating UF3-S/A0 Start Sequence...');
       // Typical A0 start sequence: REALTIME_INVENTORY enable
       const rt1 = A0Protocol.encode(0xFF, A0Protocol.COMMANDS.REALTIME_INVENTORY, [0x01]);

@@ -55,10 +55,21 @@ export class PayloadFormatter {
     }
 
     // Antenna ID (optional)
-    if (rawData.antenna) {
+    if (rawData.Antenna !== null && rawData.Antenna !== undefined) {
+      displayData.Antenna = rawData.Antenna;
+    } else if (rawData.antenna) {
       displayData.Antenna = rawData.antenna;
     } else if (rawData.antId) {
       displayData.Antenna = rawData.antId;
+    }
+
+    // Device ID (optional) - from MQTT data  
+    if (rawData.Device) {
+      displayData.Device = rawData.Device;
+    } else if (rawData.device) {
+      displayData.Device = rawData.device;
+    } else if (rawData.deviceId) {
+      displayData.Device = rawData.deviceId;
     }
 
     // Read Time (optional)
