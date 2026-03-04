@@ -6,14 +6,17 @@ import './index.css' // Ensure Tailwind CSS is imported
 import { LogsProvider } from './contexts/LogsContext'
 import { Tag } from 'lucide-react'
 import { TagProvider } from './contexts/TagContext'
+import { FilterProvider } from './contexts/FilterContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LogsProvider>
       <TagProvider>
-        <MainLayout>
-          <Dashboard />
-        </MainLayout>
+        <FilterProvider>
+          <MainLayout>
+            <Dashboard />
+          </MainLayout>
+        </FilterProvider>
       </TagProvider>
     </LogsProvider>
   </React.StrictMode>,

@@ -49,11 +49,21 @@ jest.mock('../src/components/Dashboard/raw/RawDataConsole', () => {
 
 // NOW import Dashboard after mocks are defined
 import Dashboard from '../src/components/Dashboard/Dashboard';
+import { FilterProvider } from '../src/contexts/FilterContext';
 
 describe('Dashboard Component', () => {
   let mockTagReadListener: jest.Mock<any>;
   let mockRawDataListener: jest.Mock<any>;
   let mockClearAllListeners: jest.Mock<any>;
+
+  // Helper function to render Dashboard with FilterProvider
+  const renderDashboard = () => {
+    return render(
+      <FilterProvider>
+        <Dashboard />
+      </FilterProvider>
+    );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -89,44 +99,44 @@ describe('Dashboard Component', () => {
 
   describe('Rendering', () => {
     it('should render Dashboard component', () => {
-      render(<Dashboard />);
+      renderDashboard();
       expect(screen.getByTestId('raw-data-console')).toBe(screen.getByTestId('raw-data-console'));
     });
 
     it('should render with correct initial view type', () => {
-      render(<Dashboard />);
+      renderDashboard();
       const viewDisplay = screen.getByTestId('view-type-display');
       expect(viewDisplay.textContent).toBe('raw');
     });
 
     it('should render empty logs initially', () => {
-      render(<Dashboard />);
+      renderDashboard();
       expect(screen.queryByTestId('log-0')).toBeNull();
     });
   });
 
   describe('Listeners', () => {
     it('should register onTagRead listener on mount', () => {
-      render(<Dashboard />);
+      renderDashboard();
       expect(mockTagReadListener).toHaveBeenCalled();
       expect((window as any).__dashboardTagReadCallback).toBeDefined();
     });
 
     it('should register onRawData listener on mount', () => {
-      render(<Dashboard />);
+      renderDashboard();
       expect(mockRawDataListener).toHaveBeenCalled();
       expect((window as any).__dashboardRawDataCallback).toBeDefined();
     });
 
     it('should call clearAllDataListeners on mount', () => {
-      render(<Dashboard />);
+      renderDashboard();
       expect(mockClearAllListeners).toHaveBeenCalled();
     });
   });
 
   describe('View Type Switching', () => {
     it('should change view type when selector changes', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       // Find the select element by looking for the one with value 'raw'
       const select = screen.getByRole('combobox') as HTMLSelectElement;
@@ -141,7 +151,7 @@ describe('Dashboard Component', () => {
 
   describe('Tag Read Events', () => {
     it('should add tag read events to logs', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardTagReadCallback;
@@ -156,7 +166,7 @@ describe('Dashboard Component', () => {
 
   describe('Raw Data Events', () => {
     it('should add raw data events to logs', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardRawDataCallback;
@@ -172,7 +182,7 @@ describe('Dashboard Component', () => {
     });
 
     it('should filter out TX packets', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardRawDataCallback;
@@ -185,13 +195,13 @@ describe('Dashboard Component', () => {
 
   describe('Refresh Button', () => {
     it('should have a refresh button', () => {
-      render(<Dashboard />);
+      renderDashboard();
       const button = screen.getByRole('button', { name: /refresh/i });
       expect(button).toBeDefined();
     });
 
     it('should clear logs when refresh is clicked', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardTagReadCallback;
@@ -213,7 +223,7 @@ describe('Dashboard Component', () => {
 
   describe('Max Logs Limit', () => {
     it('should maintain reasonable log size', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardTagReadCallback;
@@ -231,7 +241,7 @@ describe('Dashboard Component', () => {
 
   describe('Error Handling', () => {
     it('should handle null data gracefully', async () => {
-      render(<Dashboard />);
+      renderDashboard();
 
       await act(async () => {
         const callback = (window as any).__dashboardRawDataCallback;
@@ -243,7 +253,7 @@ describe('Dashboard Component', () => {
 
     it('should handle missing electronAPI', () => {
       delete (window as any).electronAPI;
-      render(<Dashboard />);
+      renderDashboard();
       expect(screen.getByTestId('raw-data-console')).toBeDefined();
     });
   });

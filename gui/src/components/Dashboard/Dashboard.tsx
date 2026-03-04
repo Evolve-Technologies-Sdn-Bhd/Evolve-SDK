@@ -5,6 +5,7 @@ import RawDataConsole, {
 } from '../Dashboard/raw/RawDataConsole';
 import { PayloadFormatter } from '../../utils/PayloadFormatter';
 import { PayloadDecryptor } from '../../utils/PayloadDecryptor';
+import { useFilter } from '../../contexts/FilterContext';
 
 declare global {
   interface Window {
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [viewType, setViewType] = useState<DataViewType>('raw');
   const scrollRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef< { tagReadUnsub?: () => void; rawDataUnsub?: () => void } >({});
+  const { epcFilter } = useFilter();
 
   // Auto-scroll
   useEffect(() => {
@@ -231,6 +233,30 @@ export default function Dashboard() {
     setupListeners();
   };
 
+  // Filter logs based on EPC filter
+  const filteredLogs = logs.filter((log) => {
+    if (!epcFilter.trim()) {
+      return true; // No filter, show all logs
+    }
+    
+    const filterLower = epcFilter.toLowerCase();
+    
+    // Check if log.data is an object (not a string)
+    if (typeof log.data === 'object' && log.data !== null) {
+      // Check if EPC field matches the filter (case-insensitive, partial match)
+      if ((log.data as Record<string, any>).EPC && String((log.data as Record<string, any>).EPC).toLowerCase().includes(filterLower)) {
+        return true;
+      }
+    }
+    
+    // Also check the raw data if it's a string
+    if (typeof log.data === 'string' && log.data.toLowerCase().includes(filterLower)) {
+      return true;
+    }
+    
+    return false;
+  });
+
   // Subscribe to real tag stream via IPC on mount
   useEffect(() => {
     setupListeners();
@@ -273,7 +299,7 @@ export default function Dashboard() {
 
       {/* Raw Data Console */}
       <RawDataConsole
-        logs={logs}
+        logs={filteredLogs}
         scrollRef={scrollRef}
         viewType={viewType}
       />
