@@ -23,7 +23,17 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "resources/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": [
+          "*.pdf"
+        ]
+      }
     ],
     "win": {
       "target": "nsis",
