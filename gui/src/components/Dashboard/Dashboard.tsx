@@ -38,11 +38,11 @@ export default function Dashboard() {
     console.log('[Dashboard] Setting up tag listener - electronAPI exists:', !!window.electronAPI);
     
     const onTag = (tag: any) => {
-      console.log('[Dashboard] ✓ Received tag event:', tag);
+      console.log('[Dashboard] ✓ Received tag event:', JSON.stringify(tag, null, 2));
       
       // Use PayloadFormatter to format the tag data
       const formattedTag = PayloadFormatter.formatTagForDisplay(tag);
-      console.log('[Dashboard] ✓ Formatted tag:', formattedTag);
+      console.log('[Dashboard] ✓ Formatted tag:', JSON.stringify(formattedTag, null, 2));
 
       const newLog: RawPacket = {
         id: formattedTag.id,
@@ -51,8 +51,13 @@ export default function Dashboard() {
         data: formattedTag.data,
       };
 
-      console.log('[Dashboard] ✓ Adding to logs:', newLog);
-      setLogs((prev) => [...prev.slice(-100), newLog]);
+      console.log('[Dashboard] ✓ New log object:', JSON.stringify(newLog, null, 2));
+      console.log('[Dashboard] ✓ Log data type:', typeof newLog.data, 'Content:', newLog.data);
+      setLogs((prev) => {
+        const updated = [...prev.slice(-100), newLog];
+        console.log('[Dashboard] ✓ Updated logs count:', updated.length);
+        return updated;
+      });
     };
 
     const onRawData = (packet: RawPacket) => {
@@ -177,8 +182,16 @@ export default function Dashboard() {
         data: processedData
       };
       
-      console.log('[Dashboard] ✓ Adding to logs:', newLog);
-      setLogs((prev) => [...prev.slice(-100), newLog]);
+      console.log('[Dashboard] ✓ Adding raw data log:', { 
+        dataType: typeof newLog.data,
+        data: newLog.data,
+        fullLog: JSON.stringify(newLog, null, 2)
+      });
+      setLogs((prev) => {
+        const updated = [...prev.slice(-100), newLog];
+        console.log('[Dashboard] ✓ Updated logs count after raw data:', updated.length);
+        return updated;
+      });
     };
 
     // subscribe to tag reads
@@ -234,36 +247,58 @@ export default function Dashboard() {
   };
 
   // Filter logs based on EPC filter
-  const filteredLogs = logs.filter((log) => {
-    if (!epcFilter.trim()) {
-      return true; // No filter, show all logs
-    }
-    
-    const filterLower = epcFilter.toLowerCase();
-    
-    // Check if log.data is an object (not a string)
-    if (typeof log.data === 'object' && log.data !== null) {
-      const dataObj = log.data as Record<string, any>;
-      
-      // Check all fields in the data object for matching
-      for (const [key, value] of Object.entries(dataObj)) {
-        if (value != null) {
-          const valueStr = String(value).toLowerCase();
-          if (valueStr.includes(filterLower)) {
-            console.log('[Dashboard] Filter match:', { key, value, filter: epcFilter });
-            return true;
+  const filteredLogs = epcFilter.trim() === '' 
+    ? logs  // If no filter, return all logs
+    : logs.filter((log, idx) => {
+        const filterLower = epcFilter.toLowerCase();
+        
+        // Check if log.data is an object (not a string)
+        if (typeof log.data === 'object' && log.data !== null) {
+          const dataObj = log.data as Record<string, any>;
+          
+          // Check all fields in the data object for matching
+          for (const [key, value] of Object.entries(dataObj)) {
+            if (value != null) {
+              const valueStr = String(value).toLowerCase();
+              if (valueStr.includes(filterLower)) {
+                console.log(`[Dashboard] ✓ Filter HIT on log[${idx}]`, { 
+                  field: key, 
+                  value: value,
+                  filter: epcFilter 
+                });
+                return true;
+              }
+            }
           }
+          console.log(`[Dashboard] ✗ Filter MISS on log[${idx}]`, {
+            dataObj,
+            filter: epcFilter,
+            allValues: Object.entries(dataObj).map(([k, v]) => `${k}: ${v}`)
+          });
         }
-      }
-    }
-    
-    // Also check the raw data if it's a string
-    if (typeof log.data === 'string' && log.data.toLowerCase().includes(filterLower)) {
-      return true;
-    }
-    
-    return false;
-  });
+        
+        // Also check the raw data if it's a string
+        if (typeof log.data === 'string' && log.data.toLowerCase().includes(filterLower)) {
+          console.log(`[Dashboard] ✓ Filter HIT (string) on log[${idx}]`, { 
+            data: log.data,
+            filter: epcFilter 
+          });
+          return true;
+        }
+        
+        return false;
+      });
+
+  // Log filter status for debugging
+  useEffect(() => {
+    console.log(`[Dashboard] Filter Status:`, {
+      totalLogs: logs.length,
+      filterText: epcFilter,
+      filteredCount: filteredLogs.length,
+      filterActive: epcFilter.trim() !== '',
+      sampleLogs: logs.slice(0, 3).map(l => ({ type: typeof l.data, data: l.data }))
+    });
+  }, [logs, filteredLogs, epcFilter]);
 
   // Subscribe to real tag stream via IPC on mount
   useEffect(() => {
@@ -279,9 +314,19 @@ export default function Dashboard() {
 
       {/* Header */}
       <div className="bg-gray-100 px-3 py-2 flex justify-between items-center border-b border-gray-200 rounded-t-lg">
-        <span className="text-gray-700 font-mono text-sm font-bold">
-          Data Stream
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-gray-700 font-mono text-sm font-bold">
+            Data Stream
+          </span>
+          
+          {/* Status indicator */}
+          <span className="text-xs text-gray-600 px-2 py-1 bg-white rounded border border-gray-300">
+            {epcFilter.trim() ? 
+              `${filteredLogs.length}/${logs.length} logs (filtered)` 
+              : `${logs.length} logs`
+            }
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
           {/* Data Type Selector */}
