@@ -243,9 +243,17 @@ export default function Dashboard() {
     
     // Check if log.data is an object (not a string)
     if (typeof log.data === 'object' && log.data !== null) {
-      // Check if EPC field matches the filter (case-insensitive, partial match)
-      if ((log.data as Record<string, any>).EPC && String((log.data as Record<string, any>).EPC).toLowerCase().includes(filterLower)) {
-        return true;
+      const dataObj = log.data as Record<string, any>;
+      
+      // Check all fields in the data object for matching
+      for (const [key, value] of Object.entries(dataObj)) {
+        if (value != null) {
+          const valueStr = String(value).toLowerCase();
+          if (valueStr.includes(filterLower)) {
+            console.log('[Dashboard] Filter match:', { key, value, filter: epcFilter });
+            return true;
+          }
+        }
       }
     }
     
