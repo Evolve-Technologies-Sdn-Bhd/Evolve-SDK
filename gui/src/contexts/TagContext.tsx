@@ -31,7 +31,9 @@ export const TagProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, []);
 

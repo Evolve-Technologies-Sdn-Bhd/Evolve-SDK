@@ -273,7 +273,7 @@ export default function HardwareConnection() {
                   <option value="128000">128000</option>
                 </select>
               </div>
-              {/* FIX 2: Updated Protocol Dropdown (Removed 'AUTO', Added explicit 'BB' option) */}
+              {/* FIX 2: Updated Protocol Dropdown*/}
               <div className="col-span-2">
                 <label className="block text-[10px] text-gray-500">Reader Protocol</label>
                 <select 
@@ -282,10 +282,9 @@ export default function HardwareConnection() {
                   className="w-full border p-1 text-xs bg-blue-50" 
                   disabled={connected}
                 >
-                  <option value="F5001">F5001 (BB over RS232)</option>
-                  <option value="BB">BB Protocol (legacy)</option>
-                  <option value="A0">A0 Protocol (Seuic)</option>
-                  <option value="UF3-S">UF3-S</option>
+                  <option value="F5001">F5001 Protocol</option>
+                  <option value="A0">A0 Protocol (General)</option>
+                  <option value="UF3-S">UF3-S (SEUIC)</option>
                 </select>
               </div>
             </div>

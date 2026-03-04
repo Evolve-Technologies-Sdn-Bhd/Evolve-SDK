@@ -100,7 +100,7 @@ export const sdkService = {
    */
   onStats: (callback: (stats: { total: number; unique: number }) => void) => {
     // @ts-ignore
-    window.electronAPI.onStats(callback);
+    return window.electronAPI.onStats(callback) || (() => {});
   },
 
   /**
