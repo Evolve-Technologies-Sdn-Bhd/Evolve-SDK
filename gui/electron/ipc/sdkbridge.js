@@ -40,8 +40,6 @@ const formatPayload = async (tag) => {
     // Extract Antenna info
     const antenna = tag.antenna || tag.antId || 0;
     
-    console.log('[IPC] formatPayload input:', { epc, device, antenna, rssi });
-    
     // Return standardized format: EPC, Frame_Hex, RSSI, Antenna, Device
     const result = {
       EPC: epc,
@@ -55,7 +53,6 @@ const formatPayload = async (tag) => {
       timestamp: tag.timestamp || Date.now()
     };
     
-    console.log('[IPC] formatPayload result:', result);
     return result;
   } catch (err) {
     console.error('[IPC] Error serializing tag payload:', err);
@@ -291,9 +288,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       try {
         const payload = await formatPayload(tag);
         
-        // Log the formatted payload to see what we're getting
-        console.log('[IPC] Formatted Tag Payload:', JSON.stringify(payload, null, 2));
-        
         // Filter out invalid tags - don't send or save UNKNOWN/ERROR
         if (payload.EPC === 'UNKNOWN' || payload.EPC === 'ERROR') {
           console.log('[IPC] ⊘ Skipping invalid tag with EPC:', payload.EPC);
@@ -301,7 +295,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         }
         
         mainWindow.webContents.send('rfid:tag-read', payload);
-        console.log('[IPC] ✓ Tag sent to renderer with all fields:', { EPC: payload.EPC, RSSI: payload.RSSI, Antenna: payload.Antenna, Device: payload.Device });
         
         // Save tag to database
         const currentDb = global.dbInstance || initialDb;
