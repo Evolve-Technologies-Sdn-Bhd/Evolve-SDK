@@ -405,7 +405,6 @@ function createApplicationMenu() {
 
   // Helper to open PDF with logging
   const openResourcePdf = async (fileName, docName) => {
-    console.log(`[Menu] User clicked documentation: "${docName}"`);
     
     try {
       let pdfPath;
@@ -417,7 +416,7 @@ function createApplicationMenu() {
         pdfPath = path.join(__dirname, '../resources', fileName);
       }
 
-      console.log(`[Menu] Resolving PDF path for ${docName}: ${pdfPath}`);
+      //console.log(`[Menu] Resolving PDF path for ${docName}: ${pdfPath}`);
 
       if (!fs.existsSync(pdfPath)) {
         console.warn(`[Menu] PDF file not found at: ${pdfPath}`);
