@@ -4,5 +4,6 @@ CREATE TABLE rfid_events (
   reader_id TEXT NOT NULL,
   antenna INTEGER,
   rssi REAL,
-  read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  device_id TEXT
 );

@@ -121,7 +121,7 @@ export class MqttReader extends ReaderManager {
             }
 
             // Helper function to emit tag objects (used by several branches)
-            const emitTagObject = (epcItem: any, timestampOverride?: number) => {
+            const emitTagObject = (epcItem: any, timestampOverride?: number, deviceId?: string) => {
               const tag: TagData & any = {
                 id: epcItem.EPC || 'UNKNOWN',
                 epc: epcItem.EPC || 'UNKNOWN',
@@ -131,6 +131,7 @@ export class MqttReader extends ReaderManager {
                 readTime: epcItem.ReadTime || new Date().toISOString(),
                 timestamp: timestampOverride ?? Date.now(),
                 raw: buffer,
+                device: deviceId, // Attach device ID from parent data
               };
               this.emitTag(tag);
             };
@@ -145,8 +146,9 @@ export class MqttReader extends ReaderManager {
             // 2. Device-specific format under data.EpcList
             else if (parsedData && parsedData.data && Array.isArray(parsedData.data.EpcList)) {
               console.log(`[MqttReader] Processing EPCList with ${parsedData.data.EpcList.length} entries`);
+              const deviceId = parsedData.data.Device; // Extract Device ID from top level
               parsedData.data.EpcList.forEach((item: any, idx: number) => {
-                emitTagObject(item);
+                emitTagObject(item, undefined, deviceId);
               });
             }
             // 3. EPC field may contain nested JSON or simple value
@@ -161,9 +163,11 @@ export class MqttReader extends ReaderManager {
               // if nested object with its own EPC or list
               if (epcContent && typeof epcContent === 'object') {
                 if (Array.isArray(epcContent.EPCList)) {
-                  epcContent.EPCList.forEach((item: any) => emitTagObject(item));
+                  const deviceId = epcContent.Device;
+                  epcContent.EPCList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
                 } else if (epcContent.data && Array.isArray(epcContent.data.EpcList)) {
-                  epcContent.data.EpcList.forEach((item: any) => emitTagObject(item));
+                  const deviceId = epcContent.data.Device;
+                  epcContent.data.EpcList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
                 } else if (epcContent.EPC) {
                   emitTagObject(epcContent);
                 } else {

@@ -35,7 +35,7 @@ const formatPayload = async (tag) => {
     const rssi = tag.rssi !== undefined ? tag.rssi : (tag.RSSI !== undefined ? tag.RSSI : 0);
     
     // Extract Device info from multiple possible sources
-    const device = tag.device || tag.Device || tag.deviceId || 'UNKNOWN';
+    const device = tag.device || tag.Device || tag.deviceId || '-';
     
     // Return standardized format: EPC, Frame_Hex, RSSI, Device
     return {
@@ -56,7 +56,7 @@ const formatPayload = async (tag) => {
       EPC: tag.id || tag.epc || 'ERROR',
       Frame_Hex: '',
       RSSI: tag.rssi || 0,
-      device: tag.device || tag.Device || 'UNKNOWN',
+      device: tag.device || tag.Device || '-',
       error: err.message
     };
   }
@@ -295,7 +295,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         if (currentDb) {
           try {
             const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
-            const device = (payload.device || 'UNKNOWN').replace(/'/g, "''"); // Escape single quotes
+            const device = (payload.device || '-').replace(/'/g, "''"); // Escape single quotes
             // Convert timestamp to ISO string for SQLite (tag.timestamp is in milliseconds)
             const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
             const query = `
@@ -309,7 +309,38 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
               currentDb.saveToFile();
             }
           } catch (dbErr) {
-            console.error('[IPC] Error saving tag to database:', dbErr);
+            const errorMsg = dbErr.message || String(dbErr);
+            
+            // Handle missing device_id column migration
+            if (errorMsg.includes('no column named device_id') || errorMsg.includes('device_id')) {
+              console.warn('[IPC] ⚠ device_id column missing, attempting to add...');
+              try {
+                // Add the missing column
+                currentDb.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+                console.log('[IPC] ✓ device_id column added successfully');
+                
+                // Retry the insert
+                const epc = payload.EPC.replace(/'/g, "''");
+                const device = (payload.device || '-').replace(/'/g, "''");
+                const readAt = tag.timestamp ? new Date(tag.timestamp).toISOString() : new Date().toISOString();
+                const retryQuery = `
+                  INSERT INTO rfid_events (epc, reader_id, antenna, rssi, read_at, device_id)
+                  VALUES ('${epc}', '${currentReaderType}', ${payload.antenna || 0}, ${payload.RSSI || 0}, '${readAt}', '${device}')
+                `;
+                currentDb.exec(retryQuery);
+                
+                // Save database to file
+                if (currentDb.saveToFile) {
+                  currentDb.saveToFile();
+                }
+                console.log('[IPC] ✓ Tag saved after column migration');
+              } catch (migrationErr) {
+                console.error('[IPC] Failed to migrate column:', migrationErr.message || migrationErr);
+              }
+            } else {
+              console.error('[IPC] Error saving tag to database:', errorMsg);
+              console.error('[IPC] Query was:', query);
+            }
           }
         }
       } catch (err) {

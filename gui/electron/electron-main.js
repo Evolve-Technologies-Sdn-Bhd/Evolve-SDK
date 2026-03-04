@@ -107,10 +107,36 @@ async function initializeDatabase() {
           reader_id TEXT,
           antenna INTEGER,
           rssi REAL,
-          read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          device_id TEXT
         );
       `);
       console.log('[App] ✓ Tables created/verified');
+      
+      // Migrate: Add device_id column if it doesn't exist (for old databases)
+      try {
+        const checkColumnQuery = `PRAGMA table_info(rfid_events)`;
+        const tableInfo = db.exec(checkColumnQuery);
+        const columns = tableInfo[0]?.values || [];
+        const hasDeviceIdColumn = columns.some(col => col[1] === 'device_id');
+        
+        if (!hasDeviceIdColumn) {
+          console.log('[App] ⚠ device_id column missing, adding it...');
+          db.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+          console.log('[App] ✓ device_id column added successfully');
+        }
+      } catch (migrationErr) {
+        console.warn('[App] Migration check warning:', migrationErr.message);
+        // Attempt to add column anyway
+        try {
+          db.exec(`ALTER TABLE rfid_events ADD COLUMN device_id TEXT`);
+          console.log('[App] ✓ device_id column added via fallback');
+        } catch (altErr) {
+          if (!altErr.message.includes('duplicate column')) {
+            console.warn('[App] Could not add device_id column:', altErr.message);
+          }
+        }
+      }
     } catch (tableErr) {
       console.error('[App] Error creating tables:', tableErr.message);
       // Try to recover by creating a fresh database
@@ -133,7 +159,8 @@ async function initializeDatabase() {
             reader_id TEXT,
             antenna INTEGER,
             rssi REAL,
-            read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            device_id TEXT
           );
         `);
         console.log('[App] ✓ Tables created in fresh database');

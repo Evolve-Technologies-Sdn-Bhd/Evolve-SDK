@@ -5,6 +5,7 @@ interface RFIDEvent {
   readerId: string;
   antenna: number;
   rssi: number;
+  deviceId: string;
 }
 
 class SqliteDatabase {
@@ -23,7 +24,8 @@ class SqliteDatabase {
         reader_id TEXT,
         antenna INTEGER,
         rssi REAL,
-        read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        device_id TEXT
       );
     `);
 
@@ -32,8 +34,8 @@ class SqliteDatabase {
 
   saveEvent(event: RFIDEvent) {
     const stmt = this.db.prepare(`
-      INSERT INTO rfid_events (epc, reader_id, antenna, rssi)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO rfid_events (epc, reader_id, antenna, rssi, device_id)
+      VALUES (?, ?, ?, ?, ?)
     `);
     stmt.run(event.epc, event.readerId, event.antenna, event.rssi);
   }

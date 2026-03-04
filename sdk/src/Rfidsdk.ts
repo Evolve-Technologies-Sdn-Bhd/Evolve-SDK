@@ -31,9 +31,9 @@ export class RfidSdk {
   // Store tag listener to prevent duplicates
   private tagReadListener?: (rawTagData: any) => void;
 
-  // Throttling configuration for tag emissions
-  private lastEmitTime = 0;
-  private throttleMs = 100; // Throttle tag emissions to 100ms intervals
+  // Throttling configuration for tag emissions (per unique tag)
+  private lastEmitTimePerTag = new Map<string, number>();
+  private throttleMs = 500; // Throttle same tag to 500ms intervals (but different tags can emit freely)
 
   // --- EVENT HANDLING ---
   on(event: string, callback: (...args: any[]) => void) {
@@ -159,10 +159,6 @@ export class RfidSdk {
 
     // Create the new listener
     this.tagReadListener = (rawTagData: any) => {
-      const now = Date.now();
-      if (now - this.lastEmitTime < this.throttleMs) return;
-      this.lastEmitTime = now;
-      
       // 🔧 NORMALIZED UNIQUE IDENTIFICATION
       // Both A0 and BB protocols extract exactly ~7 bytes of EPC
       // This ensures same physical tag = same identifier across protocols
@@ -173,6 +169,14 @@ export class RfidSdk {
         console.warn(`[RfidSdk] ⚠️ Skipping invalid tag - EPC: ${uniqueIdentifier}`, rawTagData);
         return; // Don't count or emit invalid tags
       }
+
+      // Apply per-tag throttling (different tags can emit freely, but same tag is throttled)
+      const now = Date.now();
+      const lastEmitTime = this.lastEmitTimePerTag.get(uniqueIdentifier) ?? 0;
+      if (now - lastEmitTime < this.throttleMs) {
+        return; // Skip this emission if same tag within throttle window
+      }
+      this.lastEmitTimePerTag.set(uniqueIdentifier, now);
 
       // ✅ Update in-memory session counters (only for valid tags)
       this.totalCount++;
@@ -206,6 +210,9 @@ export class RfidSdk {
       this.reader.removeListener('tagRead', this.tagReadListener);
       this.tagReadListener = undefined;
     }
+    
+    // Clear throttle map for fresh start on next scan
+    this.lastEmitTimePerTag.clear();
     
     this.reader.stopScan();
   }
