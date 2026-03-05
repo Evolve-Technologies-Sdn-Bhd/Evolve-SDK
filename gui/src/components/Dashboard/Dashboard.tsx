@@ -250,40 +250,42 @@ export default function Dashboard() {
   const filteredLogs = epcFilter.trim() === '' 
     ? logs  // If no filter, return all logs
     : logs.filter((log, idx) => {
-        const filterLower = epcFilter.toLowerCase();
+        // Case-sensitive filtering - must match exactly
         
         // Check if log.data is an object (not a string)
         if (typeof log.data === 'object' && log.data !== null) {
           const dataObj = log.data as Record<string, any>;
           
-          // Check all fields in the data object for matching
-          for (const [key, value] of Object.entries(dataObj)) {
-            if (value != null) {
-              const valueStr = String(value).toLowerCase();
-              if (valueStr.includes(filterLower)) {
-                console.log(`[Dashboard] ✓ Filter HIT on log[${idx}]`, { 
-                  field: key, 
-                  value: value,
-                  filter: epcFilter 
-                });
-                return true;
-              }
+          // Check EPC field specifically (case-sensitive)
+          if (dataObj.EPC) {
+            const epcStr = String(dataObj.EPC);
+            if (epcStr.includes(epcFilter)) {
+              console.log(`[Dashboard] ✓ Filter HIT on EPC field on log[${idx}]`, { 
+                EPC: dataObj.EPC,
+                filter: epcFilter 
+              });
+              return true;
             }
           }
+          
           console.log(`[Dashboard] ✗ Filter MISS on log[${idx}]`, {
             dataObj,
             filter: epcFilter,
-            allValues: Object.entries(dataObj).map(([k, v]) => `${k}: ${v}`)
+            EPC: dataObj.EPC
           });
+          return false;
         }
         
         // Also check the raw data if it's a string
-        if (typeof log.data === 'string' && log.data.toLowerCase().includes(filterLower)) {
-          console.log(`[Dashboard] ✓ Filter HIT (string) on log[${idx}]`, { 
-            data: log.data,
-            filter: epcFilter 
-          });
-          return true;
+        if (typeof log.data === 'string') {
+          const dataStr = log.data;
+          if (dataStr.includes(epcFilter)) {
+            console.log(`[Dashboard] ✓ Filter HIT (string) on log[${idx}]`, { 
+              data: log.data,
+              filter: epcFilter 
+            });
+            return true;
+          }
         }
         
         return false;
