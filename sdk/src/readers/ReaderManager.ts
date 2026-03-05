@@ -24,11 +24,14 @@ export abstract class ReaderManager extends EventEmitter {
 
   protected emitTag(tag: TagData) {
     console.log('[ReaderManager] Tag Emitted:', tag?.epc || tag?.id);
-    // safely forward to external emitter if available
-    if (this.rfidEmitter && typeof (this.rfidEmitter as any).emitTag === 'function') {
-      (this.rfidEmitter as any).emitTag(tag);
-    }
-    this.emit('tagRead', tag); // now BaseReader emits too
+    // 🚀 OPTIMIZATION: Use setImmediate for non-blocking event emission
+    setImmediate(() => {
+      // safely forward to external emitter if available
+      if (this.rfidEmitter && typeof (this.rfidEmitter as any).emitTag === 'function') {
+        (this.rfidEmitter as any).emitTag(tag);
+      }
+      this.emit('tagRead', tag); // now BaseReader emits too
+    });
   }
 
   /**

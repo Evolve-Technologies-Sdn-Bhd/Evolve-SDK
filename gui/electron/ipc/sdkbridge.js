@@ -288,17 +288,12 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       try {
         const payload = await formatPayload(tag);
         
-        // Filter out invalid tags - don't send or save UNKNOWN/ERROR
-        if (payload.EPC === 'UNKNOWN' || payload.EPC === 'ERROR') {
-          console.log('[IPC] ⊘ Skipping invalid tag with EPC:', payload.EPC);
-          return;
-        }
-        
+        // Always forward to renderer for visibility; skip DB for invalid EPC
         mainWindow.webContents.send('rfid:tag-read', payload);
         
         // Save tag to database
         const currentDb = global.dbInstance || initialDb;
-        if (currentDb) {
+        if (currentDb && payload.EPC !== 'UNKNOWN' && payload.EPC !== 'ERROR') {
           try {
             const epc = payload.EPC.replace(/'/g, "''"); // Escape single quotes
             const device = (payload.Device || '-').replace(/'/g, "''"); // Escape single quotes - use capitalized Device

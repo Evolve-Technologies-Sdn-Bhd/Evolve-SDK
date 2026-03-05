@@ -164,10 +164,11 @@ export class RfidSdk {
       // This ensures same physical tag = same identifier across protocols
       const uniqueIdentifier = rawTagData?.epc || rawTagData?.id;
       
-      // Filter out invalid/unknown EPCs - don't count them
-      if (!uniqueIdentifier || uniqueIdentifier === 'UNKNOWN' || uniqueIdentifier === 'ERROR') {
-        console.warn(`[RfidSdk] ⚠️ Skipping invalid tag - EPC: ${uniqueIdentifier}`, rawTagData);
-        return; // Don't count or emit invalid tags
+      // If EPC/ID is invalid, emit the tag for debugging/visibility but skip stats
+      const isInvalid = !uniqueIdentifier || uniqueIdentifier === 'UNKNOWN' || uniqueIdentifier === 'ERROR';
+      if (isInvalid) {
+        this.emit('tag', rawTagData);
+        return;
       }
 
       // Apply per-tag throttling (different tags can emit freely, but same tag is throttled)
@@ -178,17 +179,17 @@ export class RfidSdk {
       }
       this.lastEmitTimePerTag.set(uniqueIdentifier, now);
 
-      // ✅ Update in-memory session counters (only for valid tags)
+      // Update in-memory session counters (only for valid tags)
       this.totalCount++;
       
       // Add to unique set
       const isNewTag = !this.uniqueTags.has(uniqueIdentifier);
       this.uniqueTags.add(uniqueIdentifier);
 
-      // ✅ Emit raw data to consumers (no formatting)
+      // Emit raw data to consumers (no formatting)
       this.emit('tag', rawTagData);
 
-      // ✅ Emit stats update event (optional but recommended)
+      // Emit stats update event
       const stats = this.getCumulativeStats();
       this.emit('stats', stats);
     };
