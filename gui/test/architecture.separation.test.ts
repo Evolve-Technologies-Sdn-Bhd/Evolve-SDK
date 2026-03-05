@@ -112,8 +112,12 @@ describe('Architectural Separation: GUI vs SDK Layer', () => {
       if (fs.existsSync(sdkServicePath)) {
         const content = fs.readFileSync(sdkServicePath, 'utf-8');
 
-        // Should use window.electronAPI (the IPC bridge)
-        expect(content).toMatch(/window\.electronAPI/);
+        // Should use window.electronAPI (the IPC bridge) - now with dependency injection
+        expect(content).toMatch(/window.*electronAPI/);
+
+        // Should use dependency injection pattern
+        expect(content).toMatch(/createSdkService/);
+        expect(content).toMatch(/ReaderTransport/);
       }
     });
 
@@ -311,8 +315,12 @@ describe('Layer Abstraction Boundaries', () => {
     if (fs.existsSync(sdkServicePath)) {
       const content = fs.readFileSync(sdkServicePath, 'utf-8');
 
-      // Should reference window.electronAPI (IPC bridge to Electron)
-      expect(content).toMatch(/window\.electronAPI/);
+      // Should reference window.electronAPI (IPC bridge to Electron) - now with dependency injection
+      expect(content).toMatch(/window.*electronAPI/);
+
+      // Should use dependency injection pattern
+      expect(content).toMatch(/createSdkService/);
+      expect(content).toMatch(/ReaderTransport/);
 
       // Should NOT directly instantiate transport classes
       expect(content).not.toMatch(
