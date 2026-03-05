@@ -54,7 +54,7 @@ export default function Dashboard() {
       console.log('[Dashboard] ✓ New log object:', JSON.stringify(newLog, null, 2));
       console.log('[Dashboard] ✓ Log data type:', typeof newLog.data, 'Content:', newLog.data);
       setLogs((prev) => {
-        const updated = [...prev.slice(-100), newLog];
+        const updated = [...prev, newLog].slice(-100);
         console.log('[Dashboard] ✓ Updated logs count:', updated.length);
         return updated;
       });
@@ -188,7 +188,7 @@ export default function Dashboard() {
         fullLog: JSON.stringify(newLog, null, 2)
       });
       setLogs((prev) => {
-        const updated = [...prev.slice(-100), newLog];
+        const updated = [...prev, newLog].slice(-100);
         console.log('[Dashboard] ✓ Updated logs count after raw data:', updated.length);
         return updated;
       });
@@ -249,7 +249,7 @@ export default function Dashboard() {
   // Filter logs based on EPC filter
   const filteredLogs = epcFilter.trim() === '' 
     ? logs  // If no filter, return all logs
-    : logs.filter((log, idx) => {
+    : logs.filter((log) => {
         // Case-sensitive filtering - must match exactly
         
         // Check if log.data is an object (not a string)
@@ -259,32 +259,31 @@ export default function Dashboard() {
           // Check EPC field specifically (case-sensitive)
           if (dataObj.EPC) {
             const epcStr = String(dataObj.EPC);
-            if (epcStr.includes(epcFilter)) {
-              console.log(`[Dashboard] ✓ Filter HIT on EPC field on log[${idx}]`, { 
-                EPC: dataObj.EPC,
-                filter: epcFilter 
-              });
-              return true;
-            }
+            return epcStr.includes(epcFilter);
           }
-          
-          console.log(`[Dashboard] ✗ Filter MISS on log[${idx}]`, {
-            dataObj,
-            filter: epcFilter,
-            EPC: dataObj.EPC
-          });
           return false;
         }
         
-        // Also check the raw data if it's a string
+        // Also check the raw data if it's a string (hex encoded)
         if (typeof log.data === 'string') {
           const dataStr = log.data;
+          
+          // First check if the filter string appears directly in the hex
           if (dataStr.includes(epcFilter)) {
-            console.log(`[Dashboard] ✓ Filter HIT (string) on log[${idx}]`, { 
-              data: log.data,
-              filter: epcFilter 
-            });
             return true;
+          }
+          
+          // If data is hex, try to extract EPC and compare
+          if (/^[0-9A-Fa-f\s]+$/.test(dataStr)) {
+            try {
+              const decrypted = PayloadDecryptor.parseEpcFromHex(dataStr);
+              if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
+                const extractedEpc = String(decrypted.EPC);
+                return extractedEpc.includes(epcFilter);
+              }
+            } catch (error) {
+              // Silently fail if EPC extraction doesn't work
+            }
           }
         }
         
