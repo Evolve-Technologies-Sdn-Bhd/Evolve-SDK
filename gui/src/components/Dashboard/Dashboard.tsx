@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import RawDataConsole, {
   RawPacket,
   DataViewType,
@@ -25,7 +25,7 @@ export default function Dashboard() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs]); // Auto-scroll when logs change
 
   // Create memoized tag handler that doesn't have stale closures
   const handleTagReceived = useCallback((tag: any) => {
@@ -278,60 +278,106 @@ export default function Dashboard() {
     console.log('[Dashboard] ✓ Refresh complete - new data stream active');
   }, [removeListeners, setupListeners]);
 
-  // Filter logs based on EPC filter
-  const filteredLogs = epcFilter.trim() === '' 
-    ? logs  // If no filter, return all logs
-    : logs.filter((log) => {
-        // Case-sensitive filtering - must match exactly
-        
-        // Check if log.data is an object (not a string)
-        if (typeof log.data === 'object' && log.data !== null) {
-          const dataObj = log.data as Record<string, any>;
-          
-          // Check EPC field specifically (case-sensitive)
-          if (dataObj.EPC) {
-            const epcStr = String(dataObj.EPC);
-            return epcStr.includes(epcFilter);
-          }
-          return false;
-        }
-        
-        // Also check the raw data if it's a string (hex encoded)
-        if (typeof log.data === 'string') {
-          const dataStr = log.data;
-          
-          // First check if the filter string appears directly in the hex
-          if (dataStr.includes(epcFilter)) {
-            return true;
-          }
-          
-          // If data is hex, try to extract EPC and compare
-          if (/^[0-9A-Fa-f\s]+$/.test(dataStr)) {
-            try {
-              const decrypted = PayloadDecryptor.parseEpcFromHex(dataStr);
-              if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
-                const extractedEpc = String(decrypted.EPC);
-                return extractedEpc.includes(epcFilter);
-              }
-            } catch (error) {
-              // Silently fail if EPC extraction doesn't work
-            }
-          }
-        }
-        
-        return false;
-      });
+  // Filter logs based on EPC filter (memoized to prevent unnecessary recalculations)
+  // Only applies when viewType is 'json'
+  const filteredLogs = useMemo(() => {
+    console.log(`[Dashboard] Computing filteredLogs: viewType=${viewType}, filter="${epcFilter}", totalLogs=${logs.length}`);
+    
+    // If not in JSON view, show all logs without filtering
+    if (viewType !== 'json') {
+      console.log(`[Dashboard] View is ${viewType}, returning all ${logs.length} logs (no filter)`);
+      return logs;
+    }
 
-  // Log filter status for debugging
-  useEffect(() => {
-    console.log(`[Dashboard] Filter Status:`, {
-      totalLogs: logs.length,
-      filterText: epcFilter,
-      filteredCount: filteredLogs.length,
-      filterActive: epcFilter.trim() !== '',
-      sampleLogs: logs.slice(0, 3).map(l => ({ type: typeof l.data, data: l.data }))
+    // In JSON view, apply EPC filter
+    if (epcFilter.trim() === '') {
+      // No filter - return all logs
+      console.log(`[Dashboard] No filter text, returning all ${logs.length} logs`);
+      return logs;
+    }
+
+    // Apply strict EPC filter in JSON view
+    console.log(`[Dashboard] Applying filter "${epcFilter}" to ${logs.length} logs`);
+    const filtered = logs.filter((log) => {
+      // Only process logs with valid data
+      if (!log || !log.data) {
+        return false;
+      }
+
+      // Check if log.data is an object (already parsed with EPC field)
+      if (typeof log.data === 'object' && log.data !== null) {
+        const dataObj = log.data as Record<string, any>;
+        
+        // Only check EPC field - must match exactly (case-sensitive)
+        if (dataObj.EPC && typeof dataObj.EPC === 'string') {
+          const epcStr = dataObj.EPC.trim();
+          // Case-sensitive substring match on EPC field only
+          const matches = epcStr.includes(epcFilter);
+          console.log(`[Dashboard] EPC "${epcStr}" vs filter "${epcFilter}": ${matches ? 'MATCH ✓' : 'no match'}`);
+          return matches;
+        }
+        // Object without EPC field - doesn't match
+        console.log(`[Dashboard] Log data object has no EPC field`);
+        return false;
+      }
+      
+      // Also check the raw data if it's a string (hex encoded)
+      // But we must extract/parse the EPC first - don't match random hex parts
+      if (typeof log.data === 'string') {
+        const dataStr = log.data;
+        
+        // Only process if it looks like hex format
+        if (/^[0-9A-Fa-f\s]+$/.test(dataStr)) {
+          try {
+            // Extract EPC from hex
+            const decrypted = PayloadDecryptor.parseEpcFromHex(dataStr);
+            
+            // Verify EPC is valid (case-sensitive)
+            if (decrypted.EPC && typeof decrypted.EPC === 'string' && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
+              const extractedEpc = decrypted.EPC.trim();
+              // Only match against extracted EPC, not the entire hex string
+              // Case-sensitive match
+              const matches = extractedEpc.includes(epcFilter);
+              console.log(`[Dashboard] Hex EPC "${extractedEpc}" vs filter "${epcFilter}": ${matches ? 'MATCH ✓' : 'no match'}`);
+              return matches;
+            }
+          } catch (error) {
+            // Silently fail if EPC extraction doesn't work
+            console.log(`[Dashboard] Error parsing hex: ${error}`);
+          }
+        }
+      }
+      
+      // No match
+      return false;
     });
-  }, [logs, filteredLogs, epcFilter]);
+    
+    console.log(`[Dashboard] Filter result: ${filtered.length} matches found out of ${logs.length} logs`);
+    return filtered;
+  }, [logs, epcFilter, viewType]);
+
+  // Log filter status for debugging (only when in JSON view and when filter or log count changes)
+  useEffect(() => {
+    if (viewType === 'json') {
+      const matchedEpcs = filteredLogs.slice(0, 5).map((log) => {
+        if (typeof log.data === 'object' && log.data?.EPC) {
+          return log.data.EPC;
+        }
+        return 'N/A';
+      });
+      console.log(`[Dashboard] === FILTER STATUS ===`, {
+        filterText: epcFilter || '(empty)',
+        totalLogs: logs.length,
+        filteredLogsCount: filteredLogs.length,
+        filterActive: epcFilter.trim() !== '',
+        matchedEpcs: matchedEpcs,
+        caseSensitive: true,
+        matchType: 'EPC field only (substring, case-sensitive)'
+      });
+    } else {
+      console.log(`[Dashboard] View Type: ${viewType} - Filter disabled (showing all ${logs.length} logs)`);
+    }
+  }, [logs.length, filteredLogs.length, epcFilter, viewType]);
 
   // Subscribe to real tag stream via IPC on mount
   useEffect(() => {
@@ -354,9 +400,9 @@ export default function Dashboard() {
           
           {/* Status indicator */}
           <span className="text-xs text-gray-600 px-2 py-1 bg-white rounded border border-gray-300">
-            {epcFilter.trim() ? 
-              `${filteredLogs.length}/${logs.length} logs (filtered)` 
-              : `${logs.length} logs`
+            {viewType === 'json' && epcFilter.trim() ? 
+              `${filteredLogs.length}/${logs.length} logs (${filteredLogs.length === 0 ? 'no matches' : 'filtered'})` 
+              : `${logs.length} ${logs.length === 1 ? 'log' : 'logs'}`
             }
           </span>
         </div>
@@ -384,10 +430,24 @@ export default function Dashboard() {
       </div>
 
       {/* Raw Data Console */}
+      {/* Verify filtered logs are being passed correctly */}
+      {viewType === 'json' && epcFilter.trim() && (
+        <div className={`border-l-4 p-2 text-xs font-semibold ${
+          filteredLogs.length === 0 
+            ? 'bg-red-50 border-red-400 text-red-700' 
+            : 'bg-green-50 border-green-400 text-green-700'
+        }`}>
+          {filteredLogs.length === 0 
+            ? `⚠ Filter "${epcFilter}" - No matching logs found in ${logs.length} total`
+            : `✓ Filter "${epcFilter}" - Showing ${filteredLogs.length} matching log(s) out of ${logs.length} total`
+          }
+        </div>
+      )}
       <RawDataConsole
         logs={filteredLogs}
         scrollRef={scrollRef}
         viewType={viewType}
+        key={`${viewType}-${epcFilter}`}
       />
     </div>
   );
