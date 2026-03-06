@@ -32,7 +32,7 @@ export default function HardwareConnection() {
   const [mqttConfig, setMqttConfig] = useState({
     name: 'RFID_Reader_01',
     protocol: 'mqtt://',
-    host: 'broker.emqx.io',
+    host: '172.19.1.37',
     port: 1883,
     topic: 'rfid/tags',
     clientId: 'mqttx_' + Math.random().toString(16).substring(2, 8),
