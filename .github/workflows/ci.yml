@@ -7,10 +7,9 @@ on:
     branches: [ main, dev ]
 
 jobs:
-  test:
+  sdk-test:
     runs-on: ubuntu-latest
-    
-    # This tells GitHub to run all commands inside the 'sdk' folder
+    # run all commands inside the 'sdk' folder
     defaults:
       run: { working-directory: ./sdk }  # Focus on the SDK package
 
@@ -34,6 +33,35 @@ jobs:
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
+          name: sdk-coverage-report
           # Points to the coverage folder inside 'sdk'
-          path: sdk/coverage/ 
+          path: sdk/coverage/
+
+  gui-test:
+    runs-on: ubuntu-latest
+    # run commands inside the 'gui' folder
+    defaults:
+      run: { working-directory: ./gui }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: gui/package-lock.json # if exists
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run GUI tests
+        run: npm test
+
+      - name: Upload GUI coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-coverage-report
+          path: gui/coverage/ 
