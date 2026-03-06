@@ -2,6 +2,7 @@ import { ipcMain, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs'; 
 import { fileURLToPath, pathToFileURL } from 'url';
+import ExcelJS from 'exceljs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -437,8 +438,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   });
 
   // Save CSV Data handler
-  ipcMain.handle('data:save-csv', async (event, { content, days }) => {
-    console.log('[IPC] ✓ Save CSV handler called');
+  ipcMain.handle('data:save-csv', async (event, { content, days, isExcel }) => {
+    console.log('[IPC] ✓ Save handler called');
     console.log('[IPC] Received content size:', content ? content.length : 0, 'bytes');
     
     if (!content || content.length === 0) {
@@ -446,14 +447,20 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: false, error: 'No content to save' };
     }
     
+    // Determine file extension and filters
+    const filters = isExcel 
+      ? [{ name: 'Excel Files', extensions: ['xlsx'] }, { name: 'All Files', extensions: ['*'] }]
+      : [{ name: 'CSV Files', extensions: ['csv'] }, { name: 'All Files', extensions: ['*'] }];
+    
+    const defaultFilename = isExcel
+      ? `EvolveSDK_RFID_Data_Last_${days}_Days_${Date.now()}.xlsx`
+      : `EvolveSDK_RFID_Data_Last_${days}_Days_${Date.now()}.csv`;
+    
     // Requires 'dialog' to be imported at top
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: `Export RFID Data (Last ${days} Days)`,
-      defaultPath: `EvolveSDK_RFID_Data_Last_${days}_Days_${Date.now()}.csv`,
-      filters: [
-        { name: 'CSV Files', extensions: ['csv'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
+      defaultPath: defaultFilename,
+      filters
     });
 
     if (canceled || !filePath) {
@@ -461,21 +468,30 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: false };
     }
 
-    console.log('[IPC] Saving CSV to:', filePath);
+    console.log('[IPC] Saving file to:', filePath);
 
     try {
-      fs.writeFileSync(filePath, content, 'utf-8');
+      // If Excel, convert from base64; if CSV, write directly
+      if (isExcel) {
+        const buffer = Buffer.from(content, 'base64');
+        fs.writeFileSync(filePath, buffer);
+      } else {
+        fs.writeFileSync(filePath, content, 'utf-8');
+      }
+      
       console.log('[IPC] ✓ File saved successfully to:', filePath);
       console.log('[IPC] File size written:', fs.statSync(filePath).size, 'bytes');
       return { success: true };
     } catch (err) {
-      console.error('[IPC] ✗ Failed to save CSV file:', err.message);
+      console.error('[IPC] ✗ Failed to save file:', err.message);
       console.error('[IPC] Error stack:', err.stack);
       return { success: false, error: err.message };
     }
   });
 
-  // Export data from database by time period
+  // Export data from database by time period (Excel format)
+  // - 1 day: Summary + Detailed Records sheets
+  // - 7+ days: One sheet per day with EPC count
   ipcMain.handle('data:export-database', async (event, days) => {
     console.log('[IPC] ✓ Export handler called with days:', days);
     
@@ -509,7 +525,6 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         ORDER BY read_at DESC
       `;
       
-      console.log('[IPC] Executing query for last', days, 'day(s)');
       const result = currentDb.exec(query);
       
       // sql.js returns an array of statement results
@@ -531,84 +546,162 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         return { success: false, error: `No tag data found for the last ${days} days.`, count: 0 };
       }
 
-      // Generate CSV content with TWO TABLES
-
-      // ===== TABLE 1: DETAILED RECORDS =====
-      const header = 'EPC,Device,Connection,Antenna,RSSI,Read Time\n';
-      console.log('[IPC] Creating detailed table with', events.length, 'records...');
+      // Create Excel workbook
+      const workbook = new ExcelJS.Workbook();
       
-      const rows = events.map(evt => {
-        // Safely escape CSV values
-        const epc = (evt.epc || '').replace(/"/g, '""');
-        const device = (evt.device_id || '').replace(/"/g, '""');
-        const reader = (evt.reader_id || '').replace(/"/g, '""');
+      if (days === 1) {
+        // ===== FOR 1 DAY: SUMMARY + DETAILED RECORDS =====
+        console.log('[IPC] Creating 1-day export with Summary and Detailed Records sheets');
         
-        // Format timestamp from ISO UTC (2026-03-02T06:18:58.691Z) to local time (2026-03-02/14:23:10)
-        let readTime = evt.read_at || '';
-        if (readTime) {
-          try {
-            const date = new Date(readTime);
-            
-            // Get local date components
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            
-            // Format as YYYY-MM-DD/HH:MM:SS
-            readTime = `${year}-${month}-${day}/${hours}:${minutes}:${seconds}`;
-          } catch (e) {
-            // If formatting fails, use raw value
-            readTime = evt.read_at;
+        // SHEET 1: SUMMARY TABLE
+        const summarySheet = workbook.addWorksheet('Summary');
+        
+        // Create a map of EPC counts
+        const epcCountMap = new Map();
+        events.forEach(evt => {
+          const epc = evt.epc || '';
+          epcCountMap.set(epc, (epcCountMap.get(epc) || 0) + 1);
+        });
+
+        // Sort EPCs alphabetically
+        const uniqueEpcs = Array.from(epcCountMap.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]));
+
+        // Add header row
+        summarySheet.columns = [
+          { header: 'EPC', key: 'epc', width: 30 },
+          { header: 'Tag Count', key: 'count', width: 12 }
+        ];
+
+        // Style header row
+        summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+        // Add data rows
+        uniqueEpcs.forEach(([epc, count]) => {
+          summarySheet.addRow({ epc, count });
+        });
+
+        console.log('[IPC] ✓ Summary sheet created with', uniqueEpcs.length, 'unique EPCs');
+
+        // SHEET 2: DETAILED RECORDS
+        const detailSheet = workbook.addWorksheet('Detailed Records');
+        
+        // Add header row
+        detailSheet.columns = [
+          { header: 'EPC', key: 'epc', width: 30 },
+          { header: 'Device', key: 'device_id', width: 20 },
+          { header: 'Connection', key: 'reader_id', width: 20 },
+          { header: 'Antenna', key: 'antenna', width: 10 },
+          { header: 'RSSI', key: 'rssi', width: 10 },
+          { header: 'Read Time', key: 'read_at', width: 25 }
+        ];
+
+        // Style header row
+        detailSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        detailSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+        // Add data rows with formatted timestamps
+        events.forEach(evt => {
+          let readTimeFormatted = evt.read_at || '';
+          if (readTimeFormatted) {
+            try {
+              const date = new Date(readTimeFormatted);
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const hours = String(date.getHours()).padStart(2, '0');
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              const seconds = String(date.getSeconds()).padStart(2, '0');
+              readTimeFormatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            } catch (e) {
+              // Keep original format if conversion fails
+            }
           }
-        }
+          
+          detailSheet.addRow({
+            epc: evt.epc || '',
+            device_id: evt.device_id || '',
+            reader_id: evt.reader_id || '',
+            antenna: evt.antenna || '',
+            rssi: evt.rssi || 0,
+            read_at: readTimeFormatted
+          });
+        });
+
+        console.log('[IPC] ✓ Detailed Records sheet created with', events.length, 'records');
+
+      } else {
+        // ===== FOR 7+ DAYS: ONE SHEET PER DAY WITH EPC COUNT =====
+        console.log('[IPC] Creating', days, '-day export with one sheet per day');
         
-        return `"${epc}","${device}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
-      }).join('\n');
+        // Group events by day
+        const eventsByDay = {};
+        
+        events.forEach(evt => {
+          try {
+            const date = new Date(evt.read_at);
+            const dateKey = date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+            if (!eventsByDay[dateKey]) {
+              eventsByDay[dateKey] = [];
+            }
+            eventsByDay[dateKey].push(evt);
+          } catch (e) {
+            console.warn('[IPC] ⊘ Failed to parse date for event:', evt.read_at);
+          }
+        });
+
+        console.log('[IPC] ✓ Events grouped by day, total days:', Object.keys(eventsByDay).length);
+
+        // Sort dates in reverse order (most recent first)
+        const sortedDates = Object.keys(eventsByDay).sort().reverse();
+        
+        // Create a sheet for each day
+        sortedDates.forEach(dateKey => {
+          const dayEvents = eventsByDay[dateKey];
+          
+          // Create EPC count map for this day
+          const epcCountMap = new Map();
+          dayEvents.forEach(evt => {
+            const epc = evt.epc || '';
+            epcCountMap.set(epc, (epcCountMap.get(epc) || 0) + 1);
+          });
+
+          // Sort EPCs alphabetically
+          const uniqueEpcs = Array.from(epcCountMap.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]));
+
+          // Create sheet with date as name (max 31 chars for Excel sheet names)
+          const sheetName = dateKey.substring(0, 31);
+          const daySheet = workbook.addWorksheet(sheetName);
+
+          // Add header row
+          daySheet.columns = [
+            { header: 'EPC', key: 'epc', width: 30 },
+            { header: 'Tag Count', key: 'count', width: 12 }
+          ];
+
+          // Style header row
+          daySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          daySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+          // Add data rows
+          uniqueEpcs.forEach(([epc, count]) => {
+            daySheet.addRow({ epc, count });
+          });
+
+          console.log('[IPC] ✓ Sheet created for', dateKey, 'with', uniqueEpcs.length, 'unique EPCs');
+        });
+
+        console.log('[IPC] ✓ All', sortedDates.length, 'daily sheets created');
+      }
+
+      // Generate Excel buffer
+      const buffer = await workbook.xlsx.writeBuffer();
       
-      const detailedTable = header + rows;
+      console.log('[IPC] ✓ Excel workbook generated, size:', buffer.length, 'bytes');
 
-      // ===== TABLE 2: UNIQUE EPC COUNT SUMMARY =====
-      console.log('[IPC] Creating unique EPC summary...');
-      
-      // Create a map of EPC counts
-      const epcCountMap = new Map();
-      events.forEach(evt => {
-        const epc = evt.epc || '';
-        epcCountMap.set(epc, (epcCountMap.get(epc) || 0) + 1);
-      });
-
-      console.log('[IPC] ✓ Found', epcCountMap.size, 'unique EPCs');
-
-      // Convert map to sorted array by EPC name
-      const uniqueEpcs = Array.from(epcCountMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0])); // Sort alphabetically by EPC
-
-      // Generate summary table
-      const summaryHeader = 'EPC,Tag Count';
-      const summaryRows = uniqueEpcs.map(([epc, count]) => {
-        const escapedEpc = epc.replace(/"/g, '""');
-        return `"${escapedEpc}",${count}`;
-      }).join('\n');
-
-      console.log('[IPC] ✓ Summary table created with', uniqueEpcs.length, 'rows');
-
-      // Build CSV with summary table on top, detailed table below
-      let csvContent = '';
-      
-      // Add summary table on top
-      csvContent += 'EPC,Tag Count\n';
-      csvContent += summaryRows + '\n';
-      csvContent += '\n'; // Blank line separator
-      
-      // Add detailed table below
-      csvContent += detailedTable;
-      
-      console.log('[IPC] ✓ CSV content combined (summary on top), total size:', csvContent.length, 'bytes');
-
-      return { success: true, content: csvContent, count: events.length };
+      return { success: true, content: buffer.toString('base64'), count: events.length, isExcel: true };
       
     } catch (err) {
       console.error('[IPC] ✗ Database export error:', err.message);

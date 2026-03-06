@@ -52,6 +52,7 @@
     "@serialport/parser-readline": "^13.0.0",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.5",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
