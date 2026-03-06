@@ -7,6 +7,8 @@ module.exports = {
         jsx: 'react-jsx',
         types: ['jest', '@testing-library/jest-dom', 'node'],
       },
+      diagnostics: false,
+      isolatedModules: true,
     }],
   },
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],

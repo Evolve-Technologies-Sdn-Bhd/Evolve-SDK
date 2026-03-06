@@ -381,6 +381,18 @@ export default function Dashboard() {
 
   // Subscribe to real tag stream via IPC on mount
   useEffect(() => {
+    // ensure any old listeners are cleared before registering
+    // @ts-ignore
+    if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
+      try {
+        // clear old IPC listeners immediately on mount
+        window.electronAPI.clearAllDataListeners();
+        console.log('[Dashboard] ✓ Cleared IPC listeners on mount');
+      } catch (err) {
+        console.error('[Dashboard] Error clearing IPC listeners on mount:', err);
+      }
+    }
+
     setupListeners();
 
     return () => {

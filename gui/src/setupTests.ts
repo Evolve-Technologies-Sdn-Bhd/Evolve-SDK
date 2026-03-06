@@ -24,3 +24,9 @@ declare global {
     }
   }
 }
+
+// jsdom does not implement scrollIntoView
+// Provide a harmless stub so components calling it do not throw
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+// @ts-ignore
+Element.prototype.scrollIntoView = function () {};
