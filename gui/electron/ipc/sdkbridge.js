@@ -438,6 +438,14 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
 
   // Save CSV Data handler
   ipcMain.handle('data:save-csv', async (event, { content, days }) => {
+    console.log('[IPC] ✓ Save CSV handler called');
+    console.log('[IPC] Received content size:', content ? content.length : 0, 'bytes');
+    
+    if (!content || content.length === 0) {
+      console.error('[IPC] ✗ No content provided to save');
+      return { success: false, error: 'No content to save' };
+    }
+    
     // Requires 'dialog' to be imported at top
     const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
       title: `Export RFID Data (Last ${days} Days)`,
@@ -448,19 +456,29 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       ]
     });
 
-    if (canceled || !filePath) return { success: false };
+    if (canceled || !filePath) {
+      console.log('[IPC] ⊘ Save dialog canceled or no file path');
+      return { success: false };
+    }
+
+    console.log('[IPC] Saving CSV to:', filePath);
 
     try {
       fs.writeFileSync(filePath, content, 'utf-8');
+      console.log('[IPC] ✓ File saved successfully to:', filePath);
+      console.log('[IPC] File size written:', fs.statSync(filePath).size, 'bytes');
       return { success: true };
     } catch (err) {
-      console.error('Failed to save CSV file:', err);
+      console.error('[IPC] ✗ Failed to save CSV file:', err.message);
+      console.error('[IPC] Error stack:', err.stack);
       return { success: false, error: err.message };
     }
   });
 
   // Export data from database by time period
   ipcMain.handle('data:export-database', async (event, days) => {
+    console.log('[IPC] ✓ Export handler called with days:', days);
+    
     // Get database using the helper function
     const currentDb = getDb();
     
@@ -470,6 +488,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     }
 
     try {
+      console.log('[IPC] ✓ Database available, querying events...');
+      
       // First check if table exists
       const tableCheckQuery = `SELECT name FROM sqlite_master WHERE type='table' AND name='rfid_events'`;
       const tableCheck = currentDb.exec(tableCheckQuery);
@@ -479,6 +499,8 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         return { success: false, error: 'No data available yet - table not created', count: 0 };
       }
       
+      console.log('[IPC] ✓ Table rfid_events found');
+      
       // Build and execute the query
       const query = `
         SELECT epc, reader_id, antenna, rssi, read_at, device_id
@@ -487,6 +509,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         ORDER BY read_at DESC
       `;
       
+      console.log('[IPC] Executing query for last', days, 'day(s)');
       const result = currentDb.exec(query);
       
       // sql.js returns an array of statement results
@@ -500,15 +523,20 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
           });
           return obj;
         });
-      } else {
       }
+
+      console.log('[IPC] ✓ Retrieved', events.length, 'events from database');
 
       if (events.length === 0) {
         return { success: false, error: `No tag data found for the last ${days} days.`, count: 0 };
       }
 
-      // Generate CSV content
+      // Generate CSV content with TWO TABLES
+
+      // ===== TABLE 1: DETAILED RECORDS =====
       const header = 'EPC,Device,Connection,Antenna,RSSI,Read Time\n';
+      console.log('[IPC] Creating detailed table with', events.length, 'records...');
+      
       const rows = events.map(evt => {
         // Safely escape CSV values
         const epc = (evt.epc || '').replace(/"/g, '""');
@@ -539,7 +567,46 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         
         return `"${epc}","${device}","${reader}",${evt.antenna},${evt.rssi},"${readTime}"`;
       }).join('\n');
-      const csvContent = header + rows;
+      
+      const detailedTable = header + rows;
+
+      // ===== TABLE 2: UNIQUE EPC COUNT SUMMARY =====
+      console.log('[IPC] Creating unique EPC summary...');
+      
+      // Create a map of EPC counts
+      const epcCountMap = new Map();
+      events.forEach(evt => {
+        const epc = evt.epc || '';
+        epcCountMap.set(epc, (epcCountMap.get(epc) || 0) + 1);
+      });
+
+      console.log('[IPC] ✓ Found', epcCountMap.size, 'unique EPCs');
+
+      // Convert map to sorted array by EPC name
+      const uniqueEpcs = Array.from(epcCountMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0])); // Sort alphabetically by EPC
+
+      // Generate summary table
+      const summaryHeader = 'EPC,Tag Count';
+      const summaryRows = uniqueEpcs.map(([epc, count]) => {
+        const escapedEpc = epc.replace(/"/g, '""');
+        return `"${escapedEpc}",${count}`;
+      }).join('\n');
+
+      console.log('[IPC] ✓ Summary table created with', uniqueEpcs.length, 'rows');
+
+      // Build CSV with summary table on top, detailed table below
+      let csvContent = '';
+      
+      // Add summary table on top
+      csvContent += 'EPC,Tag Count\n';
+      csvContent += summaryRows + '\n';
+      csvContent += '\n'; // Blank line separator
+      
+      // Add detailed table below
+      csvContent += detailedTable;
+      
+      console.log('[IPC] ✓ CSV content combined (summary on top), total size:', csvContent.length, 'bytes');
 
       return { success: true, content: csvContent, count: events.length };
       
