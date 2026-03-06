@@ -58,11 +58,11 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return;
       }
 
-      // Save the CSV file
+      // Save the Excel file
       // @ts-ignore
-      const saveResult = await window.electronAPI.saveExportedCSV(dbResult.content, days);
+      const saveResult = await window.electronAPI.saveExportedCSV(dbResult.content, days, dbResult.isExcel);
       if (saveResult.success) {
-        addLog(`Successfully exported ${dbResult.count} tag records.`, "SUCCESS");
+        addLog(`Successfully exported ${dbResult.count} tag records to Excel.`, "SUCCESS");
       } else {
         addLog(`Export failed: ${saveResult.error}`, "ERROR");
       }
