@@ -217,42 +217,67 @@ export class TcpReader extends ReaderManager {
   }
 
   private handleIncomingData(data: Buffer) {
+    // 🚀 OPTIMIZATION: Process data asynchronously to avoid blocking event loop
+    setImmediate(() => this.processIncomingDataAsync(data));
+  }
+
+  /**
+   * 🚀 OPTIMIZATION: Asynchronous data processing for reduced latency
+   */
+  private async processIncomingDataAsync(data: Buffer): Promise<void> {
     this.emitRawData(data, 'RX');
 
     // Case A: JSON Mode ($-delimited frames)
     const text = data.toString('utf-8');
     if (text.includes('{') || this.bufJson.includes('{')) {
       this.bufJson += text;
+      const messages: string[] = [];
+
+      // Extract all complete messages
       while (this.bufJson.includes('$')) {
         const idx = this.bufJson.indexOf('$');
         const message = this.bufJson.slice(0, idx);
         this.bufJson = this.bufJson.slice(idx + 1);
         const trimmed = message.trim();
-        if (!trimmed) continue;
-        this.log(`[TcpReader] ← ${trimmed}`);
-        try {
-          const parsed = JSON.parse(trimmed);
-          this.processJsonMessage(parsed);
-        } catch (e) {
-          this.log(`[TcpReader] Invalid JSON frame: ${trimmed}`, 'error');
-        }
+        if (trimmed) messages.push(trimmed);
+      }
+
+      // 🚀 Process messages asynchronously
+      for (const message of messages) {
+        setImmediate(() => {
+          this.log(`[TcpReader] ← ${message}`);
+          try {
+            const parsed = JSON.parse(message);
+            this.processJsonMessage(parsed);
+          } catch (e) {
+            this.log(`[TcpReader] Invalid JSON frame: ${message}`, 'error');
+          }
+        });
       }
       return;
     }
 
     // Case B: Hex/Binary Mode (Original A0 logic)
     this.bufA0 = Buffer.concat([this.bufA0, data]);
+    const frames: Buffer[] = [];
+
+    // Extract all complete frames
     while (this.bufA0.length >= 5) {
       if (this.bufA0[0] !== 0xA0) {
         this.bufA0 = this.bufA0.subarray(1);
         continue;
       }
       const len = this.bufA0[1];
-      if (this.bufA0.length < len + 2) break; 
+      if (this.bufA0.length < len + 2) break;
 
       const frame = this.bufA0.subarray(0, len + 2);
-      this.processFrame(frame); // Your existing binary parser
+      frames.push(frame);
       this.bufA0 = this.bufA0.subarray(len + 2);
+    }
+
+    // 🚀 Process frames asynchronously
+    for (const frame of frames) {
+      setImmediate(() => this.processFrame(frame));
     }
   }
 

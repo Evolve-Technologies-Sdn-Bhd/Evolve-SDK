@@ -12,7 +12,8 @@
     "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build": "vite build && electron-builder",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "jest --coverage",
+    "test:watch": "jest --watch"
   },
   "build": {
     "appId": "com.evolve.rfidsdk",

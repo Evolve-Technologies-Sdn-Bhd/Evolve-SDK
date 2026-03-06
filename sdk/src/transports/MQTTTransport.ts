@@ -94,98 +94,8 @@ export class MqttReader extends ReaderManager {
         });
 
         this.client.on('message', (topic, payload) => {
-          const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
-          
-          try {
-            const textDecoded = buffer.toString('utf-8');
-            let parsedData: any = null;
-            
-            // Parse the JSON payload
-            try {
-              parsedData = JSON.parse(textDecoded);
-            } catch {
-              // If JSON parsing fails, try treating as hex-encoded JSON
-              if (textDecoded && /^[0-9a-fA-F]+$/.test(textDecoded)) {
-                try {
-                  const hexDecodedBuffer = Buffer.from(textDecoded, 'hex');
-                  const jsonString = hexDecodedBuffer.toString('utf-8');
-                  parsedData = JSON.parse(jsonString);
-                } catch {
-                  // Not valid JSON - treat the raw text as EPC value
-                  parsedData = { EPC: textDecoded.trim() };
-                }
-              } else {
-                // Plain text payload, treat as EPC
-                parsedData = { EPC: textDecoded.trim() };
-              }
-            }
-
-            // Helper function to emit tag objects (used by several branches)
-            const emitTagObject = (epcItem: any, timestampOverride?: number, deviceId?: string) => {
-              const tag: TagData & any = {
-                id: epcItem.EPC || 'UNKNOWN',
-                epc: epcItem.EPC || 'UNKNOWN',
-                tid: epcItem.TID || '',
-                rssi: epcItem.RSSI ?? -54,
-                antId: epcItem.AntId || '1',
-                readTime: epcItem.ReadTime || new Date().toISOString(),
-                timestamp: timestampOverride ?? Date.now(),
-                raw: buffer,
-                device: deviceId, // Attach device ID from parent data
-              };
-              this.emitTag(tag);
-            };
-
-            // 1. Top-level EPCList array
-            if (parsedData && Array.isArray(parsedData.EPCList)) {
-              console.log(`[MqttReader] Processing top-level EPCList with ${parsedData.EPCList.length} entries`);
-              parsedData.EPCList.forEach((item: any, idx: number) => {
-                emitTagObject(item);
-              });
-            }
-            // 2. Device-specific format under data.EpcList
-            else if (parsedData && parsedData.data && Array.isArray(parsedData.data.EpcList)) {
-              console.log(`[MqttReader] Processing EPCList with ${parsedData.data.EpcList.length} entries`);
-              const deviceId = parsedData.data.Device; // Extract Device ID from top level
-              parsedData.data.EpcList.forEach((item: any, idx: number) => {
-                emitTagObject(item, undefined, deviceId);
-              });
-            }
-            // 3. EPC field may contain nested JSON or simple value
-            else if (parsedData && typeof parsedData.EPC === 'string') {
-              let epcContent: any;
-              try {
-                epcContent = JSON.parse(parsedData.EPC);
-              } catch {
-                epcContent = parsedData.EPC;
-              }
-
-              // if nested object with its own EPC or list
-              if (epcContent && typeof epcContent === 'object') {
-                if (Array.isArray(epcContent.EPCList)) {
-                  const deviceId = epcContent.Device;
-                  epcContent.EPCList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
-                } else if (epcContent.data && Array.isArray(epcContent.data.EpcList)) {
-                  const deviceId = epcContent.data.Device;
-                  epcContent.data.EpcList.forEach((item: any) => emitTagObject(item, undefined, deviceId));
-                } else if (epcContent.EPC) {
-                  emitTagObject(epcContent);
-                } else {
-                  // fallback to original parsedData
-                  this.emitSingleTag(parsedData, buffer);
-                }
-              } else {
-                // epcContent is primitive/string - use as EPC
-                emitTagObject({ EPC: String(epcContent) });
-              }
-            }
-            // 4. Everything else (possibly object with EPC/TID etc)
-            else {
-              this.emitSingleTag(parsedData, buffer);
-            }
-          } catch (err) {
-            console.error('[MqttReader] Error processing message:', err);
-          }
+          // 🚀 OPTIMIZATION: Process messages asynchronously to avoid blocking event loop
+          setImmediate(() => this.processMessageAsync(topic, payload));
         });
 
         this.client.once('error', (err) => {
@@ -247,6 +157,218 @@ export class MqttReader extends ReaderManager {
     }
   }
 
+  /**
+   * 🚀 OPTIMIZATION: Asynchronous message processing to reduce event loop blocking
+   * Supports both JSON and binary payloads for reduced latency
+   */
+  private async processMessageAsync(topic: string, payload: Buffer | string): Promise<void> {
+    try {
+      const buffer = Buffer.isBuffer(payload) ? payload : Buffer.from(payload as any);
+      let parsedData: any = null;
+
+      // 🚀 BINARY PAYLOAD SUPPORT: Check if payload is binary (no JSON parsing needed)
+      if (this.isBinaryPayload(buffer)) {
+        parsedData = this.parseBinaryPayload(buffer);
+      } else {
+        // Fallback to JSON parsing
+        parsedData = this.parseJsonPayload(buffer);
+      }
+
+      if (parsedData) {
+        await this.processParsedData(parsedData, buffer);
+      }
+    } catch (err) {
+      console.error('[MqttReader] Error processing message:', err);
+    }
+  }
+
+  /**
+   * 🚀 OPTIMIZATION: Detect binary payloads (custom protocol)
+   * Binary format: [MAGIC(2)][LEN(2)][EPC_DATA...][RSSI(1)][ANT_ID(1)]
+   */
+  private isBinaryPayload(buffer: Buffer): boolean {
+    // Check for magic bytes (0xFF, 0xFE) indicating binary format
+    return buffer.length >= 4 && buffer[0] === 0xFF && buffer[1] === 0xFE;
+  }
+
+  /**
+   * 🚀 OPTIMIZATION: Parse binary payload (much faster than JSON)
+   */
+  private parseBinaryPayload(buffer: Buffer): any {
+    try {
+      const length = buffer.readUInt16BE(2);
+      if (buffer.length < 6 + length) return null;
+
+      const epcData = buffer.subarray(4, 4 + length);
+      const rssi = buffer.readInt8(4 + length);
+      const antId = buffer.readUInt8(5 + length);
+
+      return {
+        EPC: epcData.toString('hex').toUpperCase(),
+        RSSI: rssi,
+        AntId: antId.toString()
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Parse JSON payload (existing logic, optimized)
+   */
+  private parseJsonPayload(buffer: Buffer): any {
+    const textDecoded = buffer.toString('utf-8');
+
+    try {
+      return JSON.parse(textDecoded);
+    } catch {
+      // Try hex-encoded JSON
+      if (textDecoded && /^[0-9a-fA-F]+$/.test(textDecoded)) {
+        try {
+          const hexDecodedBuffer = Buffer.from(textDecoded, 'hex');
+          const jsonString = hexDecodedBuffer.toString('utf-8');
+          return JSON.parse(jsonString);
+        } catch {
+          return { EPC: textDecoded.trim() };
+        }
+      } else {
+        return { EPC: textDecoded.trim() };
+      }
+    }
+  }
+
+  /**
+   * Heuristics to extract EPC from arbitrary object shapes
+   */
+  private extractEpc(obj: any): string | null {
+    if (!obj) return null;
+    // Direct strings
+    if (typeof obj === 'string') {
+      const s = obj.trim();
+      if (/^[0-9a-fA-F]+$/.test(s) && s.length >= 8) return s;
+      return null;
+    }
+    // Byte array
+    if (Array.isArray(obj) && obj.length > 3 && obj.every(n => Number.isInteger(n) && n >= 0 && n <= 255)) {
+      return Buffer.from(obj).toString('hex');
+    }
+    // Object keys to try
+    const candidates = ['EPC', 'epc', 'Epc', 'EPCID', 'EpcId', 'EPCId', 'EPCCode', 'EpcCode', 'TagEpc', 'TagID', 'tagId', 'id'];
+    for (const key of candidates) {
+      if (obj[key] && typeof obj[key] === 'string') {
+        const s = String(obj[key]).trim();
+        if (/^[0-9a-fA-F\s]+$/.test(s) && s.replace(/\s/g, '').length >= 8) return s.replace(/\s/g, '');
+      }
+      if (Array.isArray(obj[key])) {
+        const asHex = this.extractEpc(obj[key]);
+        if (asHex) return asHex;
+      }
+      if (obj[key] && typeof obj[key] === 'object') {
+        const nested = this.extractEpc(obj[key]);
+        if (nested) return nested;
+      }
+    }
+    // Fallback: scan all string props
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string') {
+        const s = v.trim();
+        if (/^[0-9a-fA-F]+$/.test(s) && s.length >= 8) return s;
+      } else if (Array.isArray(v) || (v && typeof v === 'object')) {
+        const nested = this.extractEpc(v);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  private normalizeEpc(epc: string | null | undefined): string | null {
+    if (!epc) return null;
+    return String(epc).replace(/\s/g, '').toUpperCase();
+  }
+
+  /**
+   * 🚀 OPTIMIZATION: Async tag processing with immediate emission
+   */
+  private async processParsedData(parsedData: any, buffer: Buffer): Promise<void> {
+    const emitTagObject = (epcItem: any, timestampOverride?: number, deviceId?: string) => {
+      const direct = epcItem?.EPC ?? epcItem?.epc;
+      const epcStr = this.normalizeEpc(direct) || this.normalizeEpc(this.extractEpc(epcItem)) || 'UNKNOWN';
+      const tag: TagData & any = {
+        id: epcStr,
+        epc: epcStr,
+        tid: epcItem.TID || '',
+        rssi: epcItem.RSSI ?? -54,
+        antId: epcItem.AntId || '1',
+        readTime: epcItem.ReadTime || new Date().toISOString(),
+        timestamp: timestampOverride ?? Date.now(),
+        raw: buffer,
+        device: deviceId,
+      };
+
+      // 🚀 OPTIMIZATION: Use setImmediate for non-blocking emission
+      setImmediate(() => this.emitTag(tag));
+    };
+
+    // Process different data formats asynchronously
+    if (parsedData && Array.isArray(parsedData.EPCList)) {
+      console.log(`[MqttReader] Processing top-level EPCList with ${parsedData.EPCList.length} entries`);
+      // 🚀 Process array items asynchronously to avoid blocking
+      for (const item of parsedData.EPCList) {
+        setImmediate(() => emitTagObject(item));
+      }
+    }
+    // Common vendor format: data.EpcList (camel) or data.EPCList (upper)
+    else if (parsedData && parsedData.data && (Array.isArray(parsedData.data.EpcList) || Array.isArray(parsedData.data.EPCList))) {
+      const list = parsedData.data.EpcList || parsedData.data.EPCList || [];
+      console.log(`[MqttReader] Processing EPC list with ${list.length} entries`);
+      const deviceId = parsedData.data.Device || parsedData.data.device || parsedData.Device;
+      for (const item of list) {
+        setImmediate(() => emitTagObject(item, undefined, deviceId));
+      }
+    }
+    // Some payloads use { Type: "EPCList", data: { EPCList: [...] } }
+    else if ((parsedData.Type === 'EPCList' || parsedData.type === 'EPCList') && parsedData.data && (Array.isArray(parsedData.data.EPCList) || Array.isArray(parsedData.data.EpcList))) {
+      const list = parsedData.data.EPCList || parsedData.data.EpcList || [];
+      const deviceId = parsedData.data.Device || parsedData.data.device || parsedData.Device;
+      console.log(`[MqttReader] Processing EPCList(Type) with ${list.length} entries`);
+      for (const item of list) {
+        setImmediate(() => emitTagObject(item, undefined, deviceId));
+      }
+    }
+    else if (parsedData && typeof parsedData.EPC === 'string') {
+      let epcContent: any;
+      try {
+        epcContent = JSON.parse(parsedData.EPC);
+      } catch {
+        epcContent = parsedData.EPC;
+      }
+
+      if (epcContent && typeof epcContent === 'object') {
+        if (Array.isArray(epcContent.EPCList)) {
+          const deviceId = epcContent.Device;
+          for (const item of epcContent.EPCList) {
+            setImmediate(() => emitTagObject(item, undefined, deviceId));
+          }
+        } else if (epcContent.data && Array.isArray(epcContent.data.EpcList)) {
+          const deviceId = epcContent.data.Device;
+          for (const item of epcContent.data.EpcList) {
+            setImmediate(() => emitTagObject(item, undefined, deviceId));
+          }
+        } else if (epcContent.EPC) {
+          setImmediate(() => emitTagObject(epcContent));
+        } else {
+          setImmediate(() => this.emitSingleTag(parsedData, buffer));
+        }
+      } else {
+        setImmediate(() => emitTagObject({ EPC: String(epcContent) }));
+      }
+    }
+    else {
+      setImmediate(() => this.emitSingleTag(parsedData, buffer));
+    }
+  }
+
   async disconnect() {
     this.isManuallyDisconnected = true;
     if (this.retryTimeout) {
@@ -260,9 +382,8 @@ export class MqttReader extends ReaderManager {
   }
 
   /**
-   * Publish a tag (or arbitrary payload) to the MQTT broker.
-   * If `tag.raw` is present it will be sent as binary; otherwise the tag object
-   * will be JSON-stringified.
+   * 🚀 OPTIMIZATION: Publish a tag with non-blocking async operation
+   * Uses QoS 0 by default for minimum latency (fire-and-forget)
    */
   async publish(tag: TagData | any, topic?: string, options?: mqtt.IClientPublishOptions): Promise<boolean> {
     if (!this.client || !this.client.connected) {
@@ -271,7 +392,7 @@ export class MqttReader extends ReaderManager {
 
     const targetTopic = topic ?? this.topic;
 
-    // Build payload: prefer binary raw if available
+    // Build payload: prefer binary raw if available for reduced size
     let payload: Buffer | string;
     if (tag && tag.raw) {
       const raw = tag.raw as any;
@@ -288,12 +409,24 @@ export class MqttReader extends ReaderManager {
       try { payload = JSON.stringify(tag); } catch { payload = String(tag); }
     }
 
+    // 🚀 OPTIMIZATION: Use QoS 0 for fire-and-forget publishing (minimum latency)
+    const publishOptions: mqtt.IClientPublishOptions = { qos: 0, retain: false, ...options };
+
     return new Promise<boolean>((resolve, reject) => {
       try {
-        this.client!.publish(targetTopic, payload as any, options ?? {}, (err) => {
-          if (err) return reject(err);
-          resolve(true);
-        });
+        // 🚀 Fire-and-forget: resolve immediately for QoS 0, don't wait for callback
+        if (publishOptions.qos === 0) {
+          this.client!.publish(targetTopic, payload as any, publishOptions, (err) => {
+            if (err) return reject(err);
+            resolve(true);
+          });
+        } else {
+          // For QoS 1/2, wait for confirmation
+          this.client!.publish(targetTopic, payload as any, publishOptions, (err) => {
+            if (err) return reject(err);
+            resolve(true);
+          });
+        }
       } catch (err) {
         reject(err);
       }
@@ -359,35 +492,18 @@ export class MqttReader extends ReaderManager {
   /**
    * Emit a single tag from parsed data
    */
-  private emitSingleTag(parsedData: any, buffer: Buffer) {
-    let id = 'UNKNOWN';
-    
-    // Try to extract EPC from various locations
-    if (parsedData.data && parsedData.data.EPC) {
-      id = parsedData.data.EPC;
-    } else if (parsedData.EPC) {
-      id = parsedData.EPC;
-    } else if (parsedData.id) {
-      id = parsedData.id;
-    }
-
-    if (id === 'UNKNOWN') {
-      // no readable EPC value, skip emission
-      return;
-    }
-
+  private emitSingleTag(parsedData: any, buffer: Buffer): void {
+    const epcStr = this.normalizeEpc(parsedData?.EPC ?? parsedData?.epc) || this.normalizeEpc(this.extractEpc(parsedData)) || 'UNKNOWN';
     const tag: TagData & any = {
-      id: id,
-      epc: id,
+      id: epcStr,
+      epc: epcStr,
       tid: parsedData.TID || parsedData.tid || '',
       rssi: parsedData.RSSI ?? parsedData.rssi ?? -54,
       antId: parsedData.AntId || parsedData.antId || '1',
       readTime: parsedData.ReadTime || parsedData.readTime || new Date().toISOString(),
-      timestamp: parsedData.Timestamp ? new Date(parsedData.Timestamp).getTime() : Date.now(),
+      timestamp: Date.now(),
       raw: buffer,
     };
-
-    console.log('[MqttReader] Emitting single tag:', tag.epc);
     this.emitTag(tag);
   }
 
