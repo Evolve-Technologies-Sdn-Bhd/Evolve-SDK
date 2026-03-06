@@ -214,8 +214,25 @@ describe('MainLayout Component', () => {
     await exportCallback('7');
 
     expect(mockElectronAPI.getExportData).toHaveBeenCalledWith(7);
-    expect(mockElectronAPI.saveExportedCSV).toHaveBeenCalledWith('csv,data', 7);
-    expect(mockAddLog).toHaveBeenCalledWith("Successfully exported 10 tag records.", "SUCCESS");
+    expect(mockElectronAPI.saveExportedCSV).toHaveBeenCalledWith('csv,data', 7, undefined);
+    expect(mockAddLog).toHaveBeenCalledWith(expect.stringMatching(/^Successfully exported 10 tag records/), "SUCCESS");
+  });
+
+  it('handles export data trigger with Excel content', async () => {
+    mockElectronAPI.getExportData.mockResolvedValue({
+      success: true,
+      content: 'YmFzZTY0X2V4Y2VsX2J1ZmZlcg==', // base64 string
+      count: 5,
+      isExcel: true,
+    });
+    render(<MainLayout><div>Test</div></MainLayout>);
+
+    const exportCallback = mockElectronAPI.onExportDataTrigger.mock.calls[0][0];
+    await exportCallback('3');
+
+    expect(mockElectronAPI.getExportData).toHaveBeenCalledWith(3);
+    expect(mockElectronAPI.saveExportedCSV).toHaveBeenCalledWith('YmFzZTY0X2V4Y2VsX2J1ZmZlcg==', 3, true);
+    expect(mockAddLog).toHaveBeenCalledWith(expect.stringMatching(/^Successfully exported 5 tag records/), "SUCCESS");
   });
 
   it('handles export data trigger with failure', async () => {
@@ -227,6 +244,20 @@ describe('MainLayout Component', () => {
     await exportCallback('7');
 
     expect(mockAddLog).toHaveBeenCalledWith("No data", "WARNING");
+  });
+
+  it('handles save failure after successful data fetch', async () => {
+    mockElectronAPI.getExportData.mockResolvedValue({ success: true, content: 'csv,data', count: 2 });
+    mockElectronAPI.saveExportedCSV.mockResolvedValue({ success: false, error: 'No content to save' });
+
+    render(<MainLayout><div>Test</div></MainLayout>);
+
+    const exportCallback = mockElectronAPI.onExportDataTrigger.mock.calls[0][0];
+    await exportCallback('1');
+
+    expect(mockElectronAPI.getExportData).toHaveBeenCalledWith(1);
+    expect(mockElectronAPI.saveExportedCSV).toHaveBeenCalledWith('csv,data', 1, undefined);
+    expect(mockAddLog).toHaveBeenCalledWith("Export failed: No content to save", "ERROR");
   });
 
   it('handles system messages', () => {
