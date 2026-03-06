@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sdk  # Focus on the SDK package
 
     steps:
       - name: Checkout code
