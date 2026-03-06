@@ -1,0 +1,39 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # This tells GitHub to run all commands inside the 'sdk' folder
+    defaults:
+      run: { working-directory: ./sdk }  # Focus on the SDK package
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: sdk/package-lock.json # Crucial for caching to work
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests & coverage
+        run: npm test -- --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          # Points to the coverage folder inside 'sdk'
+          path: sdk/coverage/ 
