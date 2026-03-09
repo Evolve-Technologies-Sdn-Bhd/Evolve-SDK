@@ -1,8 +1,35 @@
 # Evolve RFID SDK - Complete API Reference
 
 **Version:** 1.0.0  
+**Last Updated:** March 9, 2026  
 **Target Audience:** External developers integrating the SDK into applications  
-**Language:** JavaScript/TypeScript (Node.js)  
+**Language:** JavaScript/TypeScript (Node.js 14+)  
+**Status:** Production Ready
+
+---
+
+## Quick Start
+
+```javascript
+const { RfidSdk } = require('@evolve/sdk');
+
+const sdk = new RfidSdk();
+
+// Connect
+await sdk.connectSerial('COM3', 115200, 'A0');
+
+// Listen for tags
+sdk.on('tag', (tag) => {
+  console.log(`Tag: ${tag.epc} | RSSI: ${tag.rssi}dBm`);
+});
+
+// Start scanning
+sdk.start();
+
+// Stop and disconnect
+sdk.stop();
+await sdk.disconnect();
+```
 
 ---
 
@@ -16,6 +43,8 @@
 6. [Data Handling APIs](#data-handling-apis)
 7. [Error Handling](#error-handling)
 8. [Advanced Features](#advanced-features)
+9. [TypeScript Definitions](#typescript-definitions)
+10. [Additional Resources](#additional-resources)
 
 ---
 
@@ -27,8 +56,10 @@ The Evolve RFID SDK provides a unified interface for connecting to RFID readers 
 
 - **Transport Abstraction:** Single API works with Serial, TCP/IP, and MQTT readers
 - **Raw Data Emission:** SDK provides unformatted data; consumers handle presentation
-- **Stateless Architecture:** SDK maintains only session-level statistics in memory
-- **Event-Driven:** All operations use Node.js EventEmitter pattern
+- **In-Memory Session Stats:** SDK maintains only session-level statistics (total reads, unique tags)
+- **Event-Driven Architecture:** All operations use Node.js EventEmitter pattern
+- **Automatic Throttling:** Duplicate tags are automatically suppressed within 500ms windows
+- **Structured Error Handling:** All errors follow format `[HH:MM:SS][ERROR][CODE] - Message`
 
 ### Event-Driven Architecture
 
@@ -80,21 +111,26 @@ const sdk = new RfidSdk();
 **Returns:** RfidSdk instance
 
 **Description:**  
-Creates a new SDK instance. The SDK maintains an internal event emitter and reader state. Only one reader can be connected at a time; connecting to a new reader automatically disconnects the previous one.
+Creates a new SDK instance. The SDK maintains an internal event emitter and session statistics. Only one reader can be connected at a time; connecting to a new reader automatically disconnects the previous one. Session statistics (total reads and unique tags) are maintained in memory only and reset when the SDK is reinitialized.
 
 #### Example: Basic Initialization
 
 ```javascript
-const { RfidSdk } = require('@evolve/sdk');
+const { RfidSdk, RfidSdkError, ERROR_CODES } = require('@evolve/sdk');
 
 // Create SDK instance
 const sdk = new RfidSdk();
 
 // Listen for tag events
 sdk.on('tag', (rawTagData) => {
-  console.log('Tag found:', rawTagData.epc);
-  console.log('RSSI:', rawTagData.rssi);
-  console.log('Timestamp:', rawTagData.timestamp);
+  console.log('Tag found:', rawTagData.epc);  // e.g., "DEADBEEF12345678"
+  console.log('RSSI:', rawTagData.rssi);       // e.g., -65 dBm
+  console.log('Timestamp:', rawTagData.timestamp); // Unix milliseconds
+});
+
+// Listen for statistics updates
+sdk.on('stats', (stats) => {
+  console.log(`Total reads: ${stats.total}, Unique tags: ${stats.unique}`);
 });
 
 // Listen for connection events
@@ -106,9 +142,15 @@ sdk.on('disconnected', () => {
   console.log('Reader disconnected');
 });
 
-sdk.on('error', (error) => {
-  console.error('SDK Error:', error.message);
+// Listen for structured error events
+sdk.on('error', (errorObj) => {
+  // errorObj = { code, message, timestamp, recoverable, formatted, details }
+  console.error(`[ERROR] ${errorObj.formatted}`);
+  if (errorObj.recoverable) {
+    console.log('Error is recoverable - system may auto-retry');
+  }
 });
+```
 ```
 
 ---
@@ -136,42 +178,49 @@ async connectTcp(host: string, port: number): Promise<boolean>
 
 **Returns:** Promise resolving to `true` on success
 
-**Errors Thrown:**
-- `Error`: Connection refused (port not open/reader unreachable)
-- `Error`: DNS resolution failed (invalid hostname)
-- `Error`: Connection timeout (reader not responding)
-- `Error`: Reader already connected (disconnect first)
+**Throws:** RfidSdkError with code EVRFID-CONN-* or EVRFID-TCP-*
+
+**Connection Timeout:** 12 seconds (with automatic retry logic)
 
 **Description:**  
-Establishes a TCP socket connection to a reader device. The SDK supports command-response protocol over TCP where readers send JSON or binary tag data frames. This method automatically handles frame parsing and tag extraction.
+Establishes a TCP socket connection to a reader device. The SDK supports command-response protocol over TCP where readers send JSON or binary tag data frames. This method automatically handles frame parsing and tag extraction. Automatically disconnects any existing reader before connecting.
 
 #### TCP Connection Example
 
 ```javascript
 const { RfidSdk } = require('@evolve/sdk');
-
 const sdk = new RfidSdk();
 
-// Connect to reader at 192.168.1.100:10001
+// Listen for connection before connecting
 sdk.on('connected', () => {
   console.log('TCP Reader connected');
   sdk.start(); // Begin scanning
 });
 
 sdk.on('error', (err) => {
-  console.error('Connection error:', err.message);
+  if (err.recoverable) {
+    console.error('Temporary error (will retry):', err.message);
+  } else {
+    console.error('Permanent error:', err.message);
+  }
 });
 
 sdk.on('tag', (tag) => {
   console.log(`Tag: ${tag.epc} | RSSI: ${tag.rssi}dBm`);
 });
 
-try {
-  await sdk.connectTcp('192.168.1.100', 10001);
-} catch (error) {
-  console.error('Failed to connect:', error.message);
-  // Retry logic here
+async function connect() {
+  try {
+    const result = await sdk.connectTcp('192.168.1.100', 10001);
+    console.log('Connection result:', result);
+  } catch (error) {
+    console.error('Failed to connect:', error.message);
+    // The SDK will emit error events for recoverable errors
+    // and throw only for fatal errors (invalid config, no port, etc.)
+  }
 }
+
+connect();
 ```
 
 ---
@@ -186,7 +235,7 @@ Connect to an RFID reader via serial port (RS-232/USB).
 async connectSerial(
   path: string,
   baudRate: number,
-  protocol: 'UF3-S' | 'F5001' | 'A0' = 'A0'
+  protocol?: 'UF3-S' | 'F5001' | 'A0'
 ): Promise<void>
 ```
 
@@ -196,18 +245,14 @@ async connectSerial(
 |-----------|------|----------|---------|-------------|
 | `path` | string | Yes | - | Serial port path (e.g., "COM3" on Windows, "/dev/ttyUSB0" on Linux) |
 | `baudRate` | number | Yes | - | Serial baud rate (typically 115200 or 9600) |
-| `protocol` | string | No | 'A0' | Protocol dialect: 'A0' (standard), 'F5001' (Feig), 'UF3-S' (Kinexus) |
+| `protocol` | string | No | 'A0' | Protocol dialect: 'A0' (standard), 'F5001' (Sunray), 'UF3-S' (SEUIC) |
 
 **Returns:** Promise that resolves when connection is established
 
-**Errors Thrown:**
-- `Error`: Port not found (invalid path)
-- `Error`: Port already open (address in use)
-- `Error`: Permission denied (user lacks serial port access)
-- `Error`: Invalid baud rate
+**Throws:** RfidSdkError with code EVRFID-SERIAL-*
 
 **Description:**  
-Opens a serial port connection to an RFID reader. The SDK automatically initializes the selected protocol parser and configures serial parameters (8 data bits, 1 stop bit, no parity). Different readers use different command protocols; specify the correct one for your hardware.
+Opens a serial port connection to an RFID reader. The SDK automatically initializes the selected protocol parser and configures serial parameters (8 data bits, 1 stop bit, no parity). Different readers use different command protocols; specify the correct one for your hardware. Automatically disconnects any existing reader before connecting.
 
 **Protocol Selection Guide:**
 
@@ -221,7 +266,6 @@ Opens a serial port connection to an RFID reader. The SDK automatically initiali
 
 ```javascript
 const { RfidSdk } = require('@evolve/sdk');
-
 const sdk = new RfidSdk();
 
 sdk.on('connected', () => {
@@ -236,21 +280,19 @@ sdk.on('tag', (tag) => {
 });
 
 sdk.on('error', (err) => {
-  console.error('Serial error:', err.message);
-  // May attempt auto-reconnect or user intervention
+  console.error(`[${err.code}] ${err.message}`);
 });
 
 async function connect() {
   try {
     // Connect to reader using standard A0 protocol at 115200 baud
     await sdk.connectSerial('COM3', 115200, 'A0');
+    // On Linux/macOS, use /dev/ttyUSB0 or similar
+    // await sdk.connectSerial('/dev/ttyUSB0', 115200, 'A0');
   } catch (error) {
     console.error('Connection failed:', error.message);
   }
 }
-
-// On Linux/macOS, use /dev/ttyUSB0 or similar
-// await sdk.connectSerial('/dev/ttyUSB0', 115200, 'A0');
 
 connect();
 ```
@@ -281,15 +323,10 @@ async connectMqtt(
 
 **Returns:** Promise resolving to `true` on success
 
-**Errors Thrown:**
-- `Error`: Invalid broker URL format
-- `Error`: Connection refused (broker unreachable)
-- `Error`: MQTT authentication failed (invalid credentials)
-- `Error`: Topic subscription failed
-- `Error`: Network timeout
+**Throws:** RfidSdkError with code EVRFID-MQTT-*
 
 **Description:**  
-Connects to an MQTT broker and subscribes to a topic that receives RFID tag data. This enables distributed architectures where readers publish data to a central broker, and multiple consumers subscribe to tag events.
+Connects to an MQTT broker and subscribes to a topic that receives RFID tag data. This enables distributed architectures where readers publish data to a central broker, and multiple consumers subscribe to tag events. Implements exponential backoff retry with max 3 attempts.
 
 **MqttConnectionConfig Interface:**
 
@@ -297,23 +334,29 @@ Connects to an MQTT broker and subscribes to a topic that receives RFID tag data
 interface MqttConnectionConfig {
   brokerUrl: string;        // Required: mqtt://host or mqtts://host
   topic: string;            // Required: MQTT topic to subscribe
-  username?: string;        // Optional: MQTT username
-  password?: string;        // Optional: MQTT password
-  clientId?: string;        // Optional: Custom client ID (auto-generated)
-  keepalive?: number;       // Optional: Keep-alive in seconds (default: 30)
+  username?: string;        // Optional: MQTT username for authentication
+  password?: string;        // Optional: MQTT password for authentication
+  clientId?: string;        // Optional: Custom client ID (auto-generated if omitted)
+  keepalive?: number;       // Optional: Keep-alive interval in seconds (default: 30)
   reconnectPeriod?: number; // Optional: Reconnect interval in ms (default: 5000)
-  connectTimeout?: number;  // Optional: Connection timeout in ms (default: 30000)
+  connectTimeout?: number;  // Optional: Connection timeout in ms (default: 10000)
   rejectUnauthorized?: boolean; // Optional: Verify TLS cert (default: true)
   protocol?: 'mqtt' | 'mqtts' | 'tcp' | 'tls' | 'ws' | 'wss'; // Optional: Force protocol
   maxRetries?: number;      // Optional: Max retry attempts (default: 3)
+  [key: string]: any;       // Additional mqtt.js IClientOptions
 }
 ```
+
+**Retry Behavior:**
+- Implements exponential backoff retry logic (not continuous reconnection)
+- Default max retries: 3
+- Connection timeout: 10-12 seconds
+- After max retries exceeded, emits error and rejects promise
 
 #### MQTT Connection Example
 
 ```javascript
 const { RfidSdk } = require('@evolve/sdk');
-
 const sdk = new RfidSdk();
 
 sdk.on('connected', () => {
@@ -326,11 +369,12 @@ sdk.on('tag', (tag) => {
 });
 
 sdk.on('error', (err) => {
-  console.error('MQTT error:', err.message);
+  console.error(`[${err.code}] ${err.message}`);
+  // Recoverable errors may trigger automatic retry
 });
 
 // Basic MQTT connection
-async function connectViaHttp() {
+async function connectBasic() {
   try {
     await sdk.connectMqtt(
       'mqtt://broker.example.com',
@@ -341,7 +385,7 @@ async function connectViaHttp() {
   }
 }
 
-// Secure MQTT with authentication
+// Secure MQTT with authentication and TLS
 async function connectSecure() {
   try {
     await sdk.connectMqtt(
@@ -353,6 +397,7 @@ async function connectSecure() {
         clientId: 'evolve-reader-1',
         keepalive: 30,
         rejectUnauthorized: true,
+        connectTimeout: 15000,
         maxRetries: 5
       }
     );
@@ -381,7 +426,7 @@ async disconnect(): Promise<void>
 **Returns:** Promise that resolves when disconnection is complete
 
 **Description:**  
-Closes the connection to the reader and cleans up event listeners. This should be called before switching to a different reader or shutting down the application.
+Closes the connection to the reader, stops any active scans, removes event listeners, and cleans up resources. This method should be called before switching readers or shutting down the application. Safe to call even if no reader is currently connected.
 
 #### Disconnect Example
 
@@ -389,17 +434,17 @@ Closes the connection to the reader and cleans up event listeners. This should b
 async function shutdown() {
   console.log('Shutting down RFID reader...');
   
-  sdk.stop(); // Stop scanning (optional)
+  sdk.stop(); // Stop scanning first (optional but recommended)
   
-  await sdk.disconnect(); // Disconnect reader
+  await sdk.disconnect(); // Gracefully disconnect
   
   console.log('Reader disconnected, exiting');
   process.exit(0);
 }
 
-// Call on process termination
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+// Graceful shutdown on process termination
+process.on('SIGINT', shutdown);   // Ctrl+C
+process.on('SIGTERM', shutdown);  // Termination signal
 ```
 
 ---
@@ -421,12 +466,18 @@ startScan(): void // Alias for start()
 
 **Parameters:** None
 
-**Returns:** void
+**Returns:** void (synchronous)
 
-**Errors:** Logs warning if no reader connected
+**Behavior:**
+- Logs warning if no reader is connected
+- Removes previous tag listener and registers a new one
+- Applies automatic throttling: same tag within 500ms window is suppressed
+- Emits 'tag' event for each unique tag after throttle window
+- Emits 'stats' event after each tag update
+- Session statistics are updated in real-time
 
 **Description:**  
-Initiates tag scanning from the reader. Both `start()` and `startScan()` are functional aliases for readability. The SDK will emit 'tag' events for each unique tag detected. Duplicate tags within a throttle window (500ms by default) are suppressed to reduce event flooding.
+Initiates tag scanning from the connected reader. Both `start()` and `startScan()` are functional aliases for readability. The SDK automatically applies per-tag throttling to prevent flooding with duplicate tag events from rapid successive detections.
 
 ---
 
@@ -441,10 +492,16 @@ stopScan(): void // Alias for stop()
 
 **Parameters:** None
 
-**Returns:** void
+**Returns:** void (synchronous)
+
+**Behavior:**
+- Removes the active tag listener
+- Clears throttle state for fresh start on next `start()` call
+- No 'tag' events are emitted after this call
+- Session statistics are preserved
 
 **Description:**  
-Stops the scanning process. No 'tag' events will be emitted after calling this method. Internal throttling state is cleared for a fresh start on the next `start()` call.
+Stops the scanning process. Clearing the throttle state ensures that when `start()` is called again, all tags will be treated as "fresh" (not throttled) on first detection.
 
 ---
 
@@ -452,7 +509,7 @@ Stops the scanning process. No 'tag' events will be emitted after calling this m
 
 #### Event: `'tag'`
 
-Emitted when a tag is read and passes validation.
+Emitted when a tag is read, passes validation, and is not throttled.
 
 **Event Handler Signature:**
 
@@ -460,11 +517,11 @@ Emitted when a tag is read and passes validation.
 sdk.on('tag', (rawTagData) => {
   // rawTagData structure:
   // {
-  //   epc: string,        // Electronic Product Code (6-7 bytes, hex)
-  //   rssi?: number,      // Signal strength in dBm (typically -50 to -90)
+  //   epc?: string,       // Electronic Product Code (primary identifier)
+  //   id?: string,        // Alternative ID (protocol-specific)
   //   timestamp: number,  // Milliseconds since epoch
+  //   rssi?: number,      // Signal strength in dBm
   //   raw: Buffer,        // Full raw data buffer
-  //   id?: string,        // Alternative ID field
   //   id_full?: string    // Full payload data for debugging
   // }
 });
@@ -474,12 +531,17 @@ sdk.on('tag', (rawTagData) => {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `epc` | string | Primary tag identifier (7 bytes = 14 hex characters). Unique per physical tag. |
-| `rssi` | number | Received Signal Strength Indicator in dBm. Range: -50 (strong) to -90 (weak). |
+| `epc` | string \| undefined | Primary tag identifier (typically 14 hex chars = 7 bytes). Extracted cleanly from protocol data. |
+| `id` | string \| undefined | Alternative ID field used by some protocols. Fallback if `epc` unavailable. |
 | `timestamp` | number | Unix timestamp in milliseconds when tag was detected. |
-| `raw` | Buffer | Complete raw binary data from reader. For protocol analysis. |
-| `id` | string | Alternative identifier (used by some protocols). |
-| `id_full` | string | Full payload including protocol headers. For debugging. |
+| `rssi` | number \| undefined | Received Signal Strength Indicator in dBm. Range: -50 (strong) to -90 (weak). May be undefined if reader doesn't support RSSI. |
+| `raw` | Buffer | Complete raw binary data from reader. For protocol analysis and debugging. |
+| `id_full` | string \| undefined | Full payload string including protocol headers. Used for debugging protocol issues. |
+
+**Throttling:**
+- Same EPC within 500ms is automatically suppressed
+- Different EPCs emit freely (no rate limiting)
+- Throttle state is cleared when `stop()` is called
 
 #### Tag Read Event Examples
 
@@ -510,37 +572,37 @@ sdk.on('tag', (tag) => {
 const tagHistory = new Map();
 
 sdk.on('tag', (tag) => {
-  const now = new Date(tag.timestamp);
+  // Guard against undefined EPC
+  const identifier = tag.epc || tag.id;
+  if (!identifier || identifier === 'UNKNOWN') return;
   
-  if (tagHistory.has(tag.epc)) {
-    const lastSeen = tagHistory.get(tag.epc);
+  if (tagHistory.has(identifier)) {
+    const lastSeen = tagHistory.get(identifier);
     const timeSinceLastSeen = tag.timestamp - lastSeen;
-    console.log(`Tag ${tag.epc} seen again after ${timeSinceLastSeen}ms`);
+    console.log(`Tag ${identifier} seen again after ${timeSinceLastSeen}ms`);
   } else {
-    console.log(`New tag detected: ${tag.epc}`);
+    console.log(`New tag detected: ${identifier}`);
   }
   
-  tagHistory.set(tag.epc, tag.timestamp);
+  tagHistory.set(identifier, tag.timestamp);
 });
 
-// Extract and process tag data
+// Validate and process tag data
 sdk.on('tag', async (tag) => {
-  // Validate EPC format
-  if (!tag.epc || tag.epc === 'UNKNOWN') {
-    console.warn('Invalid tag EPC:', tag);
+  const identifier = tag.epc || tag.id;
+  
+  // Validate format
+  if (!identifier || identifier === 'UNKNOWN' || identifier === 'ERROR') {
+    console.warn('Invalid tag identifier:', tag);
     return;
   }
   
-  // Insert into database
+  // Process valid tag
   try {
-    await database.insertTag({
-      epc: tag.epc,
-      rssi: tag.rssi,
-      timestamp: tag.timestamp,
-      raw_data: tag.raw.toString('hex')
-    });
+    console.log(`Processing tag: ${identifier}`);
+    // Insert into database, forward to API, etc.
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Tag processing error:', error);
   }
 });
 ```
@@ -549,7 +611,7 @@ sdk.on('tag', async (tag) => {
 
 ### Session Statistics API
 
-The SDK maintains in-memory session statistics (total tag reads and unique tag count).
+The SDK maintains in-memory session statistics (total tag reads and unique tag count) for current session. Statistics are NOT persistent and reset when the SDK is reinitialized.
 
 #### Method: `getCumulativeStats()`
 
@@ -560,11 +622,11 @@ getCumulativeStats(): { total: number; unique: number }
 ```
 
 **Returns:** Object with:
-- `total`: Total number of tags read in current session
-- `unique`: Count of unique EPC identifiers
+- `total`: Total number of valid tags read in current session
+- `unique`: Count of unique EPC identifiers encountered
 
 **Description:**  
-Returns cumulative counters for the current session. These statistics start at zero when the SDK is initialized and reset only when `resetCumulativeStats()` is called. Statistics do NOT persist between application restarts; for persistent tracking, store data in a database.
+Returns cumulative counters for the current session. These statistics start at zero when the SDK is initialized and are updated in real-time as tags are detected. Only valid tags (with non-empty, non-UNKNOWN EPC) are counted. Statistics do NOT persist between application restarts.
 
 ---
 
@@ -578,10 +640,16 @@ resetCumulativeStats(): void
 
 **Parameters:** None
 
-**Returns:** void
+**Returns:** void (synchronous)
+
+**Behavior:**
+- Clears total count to 0
+- Clears unique tags set
+- Emits 'stats' event with reset values
+- Does NOT affect historical data in database or persistent storage
 
 **Description:**  
-Clears the total count and unique tags set. Emits a 'stats' event to notify listeners of the reset.
+Resets the session counters to zero. This is useful for starting a fresh counting session while keeping the reader connected and scanning. Emits a 'stats' event to notify all listeners of the reset.
 
 ---
 
@@ -598,6 +666,12 @@ sdk.on('stats', (stats) => {
 });
 ```
 
+**Emission Triggers:**
+- After each valid tag is detected and processed
+- When `resetCumulativeStats()` is called
+
+---
+
 #### Session Statistics Example
 
 ```javascript
@@ -608,6 +682,7 @@ let scanStartTime = null;
 
 sdk.on('connected', () => {
   scanStartTime = Date.now();
+  sdk.start();
 });
 
 sdk.on('stats', (stats) => {
@@ -615,22 +690,38 @@ sdk.on('stats', (stats) => {
   const readsPerSecond = (stats.total / elapsedSeconds).toFixed(2);
   
   console.log(`
+    ═══════════════════════════════════
     Session Statistics:
     - Total reads: ${stats.total}
     - Unique tags: ${stats.unique}
     - Elapsed time: ${elapsedSeconds.toFixed(1)}s
     - Rate: ${readsPerSecond} tags/sec
+    ═══════════════════════════════════
   `);
 });
 
-// Manual reset functionality
-function resetStatistics() {
-  console.log('Resetting session statistics...');
+// Manual reset every 60 seconds for per-minute statistics
+setInterval(() => {
+  console.log('\n[Hourly statistics reset]');
   sdk.resetCumulativeStats();
+  scanStartTime = Date.now();
+}, 60000);
+
+// Query at any time
+function getReport() {
+  const stats = sdk.getCumulativeStats();
+  return {
+    totalReads: stats.total,
+    uniqueTags: stats.unique,
+    reportTime: new Date().toISOString()
+  };
 }
 
-// Example: Reset every 60 seconds
-setInterval(resetStatistics, 60000);
+// Export stats every 5 seconds
+setInterval(() => {
+  const report = getReport();
+  console.log('[Report]', JSON.stringify(report));
+}, 5000);
 ```
 
 ---
@@ -655,34 +746,43 @@ async configure(settings: Record<string, any>): Promise<void>
 
 **Common Settings:**
 
-| Setting | Type | Applicable To | Description |
-|---------|------|---------------|----|
-| `protocol` | 'UF3-S' \| 'F5001' \| 'A0' | Serial | Switch protocol dialect |
-| `power` | number | Reader-specific | Set transmit power (check reader manual) |
-| `antenna` | number | UF3-S, F5001 | Antenna port to activate (1-4 typically) |
-| `timeout` | number | TCP, MQTT | Command response timeout in ms |
+| Setting | Type | Applicable To | Default | Description |
+|---------|------|---------------|---------|----- -------|\n| `protocol` | 'UF3-S' \| 'F5001' \| 'A0' | Serial | 'A0' | Switch protocol dialect (Serial only, applied before connect) |
+| `antenna` | number | UF3-S, F5001 | 1 | Antenna port to activate (1-4 typically) |
+| `power` | number | Reader-specific | - | Set transmit power (check reader manual for valid range) |
+| `timeout` | number | TCP, MQTT | 10000 | Command response timeout in ms |
+
+**Returns:** Promise that resolves when configuration is applied
+
+**Throws:** RfidSdkError if reader not connected or configuration fails
 
 **Description:**  
-Applies protocol-specific or reader-specific configuration. Available settings depend on the reader type and protocol. Consult your reader's documentation for supported parameters.
+Applies protocol-specific or reader-specific configuration. The base ReaderManager provides a default no-op implementation; subclasses (SerialReader, TcpReader, MqttReader) override this to apply transport-specific settings. Available settings depend on reader type and protocol.
 
 #### Configure Example
 
 ```javascript
 async function configureReader() {
   try {
-    // Reselect protocol mid-session (Serial only)
+    // Reselect protocol BEFORE connecting
+    // (once connected, protocol is fixed for SerialReader)
     await sdk.configure({ protocol: 'F5001' });
-    console.log('Switched to F5001 protocol');
+    console.log('Configured to F5001 protocol');
     
-    // Set antenna (if supported)
+    // Apply other settings after connection
+    await sdk.connectSerial('COM3', 115200, 'F5001');
+    
+    // Set antenna (if supported by reader)
     await sdk.configure({ antenna: 1 });
     console.log('Antenna 1 enabled');
     
     // Set scan timeout
     await sdk.configure({ timeout: 5000 });
     console.log('Timeout set to 5 seconds');
+    
+    sdk.start();
   } catch (error) {
-    console.error('Configuration error:', error);
+    console.error('Configuration error:', error.message);
   }
 }
 ```
@@ -703,38 +803,49 @@ async publish(tag: any, topic?: string): Promise<any>
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `tag` | object | Yes | Tag data object to publish |
-| `topic` | string | No | Override default topic for this message |
+| `tag` | object | Yes | Tag data object to publish (any structure) |
+| `topic` | string | No | Override default topic for this message (MQTT only) |
 
-**Returns:** Promise
+**Returns:** Promise resolving with MQTT publish result
 
-**Errors Thrown:**
-- `Error`: No reader connected
-- `Error`: Reader does not support publishing (Serial, TCP readers)
+**Throws:** RfidSdkError if:
+- No reader connected
+- Reader does not support publishing (Serial, TCP readers throw error)
+- MQTT publish fails
 
 **Description:**  
-For MQTT readers, publishes tag data back to the broker. Useful for relay scenarios or notifying other subscribers of processed tags.
+For MQTT readers only, publishes tag data back to the broker. Useful for relay scenarios where the SDK forwards processed tags to other subscribers. Serial and TCP readers throw \"does not support publish\" error.
 
 #### Publish Example
 
 ```javascript
 sdk.on('tag', async (tag) => {
-  // Process tag locally...
+  // Process tag locally
   console.log('Processing:', tag.epc);
   
-  // Publish to MQTT for other consumers
+  // Perform some transformation or validation
+  const processedTag = {
+    epc: tag.epc,
+    rssi: tag.rssi,
+    processedAt: new Date().toISOString(),
+    sourceReader: 'reader-1',
+    validated: true
+  };
+  
+  // Publish processed result back to broker (MQTT only)
   try {
     await sdk.publish(
-      {
-        epc: tag.epc,
-        rssi: tag.rssi,
-        processedAt: new Date().toISOString()
-      },
-      'rfid/processed-tags'
+      processedTag,
+      'rfid/processed-tags'  // Optional: override topic
     );
+    console.log('Published to rfid/processed-tags');
   } catch (error) {
-    console.error('Publish failed:', error.message);
-    // Not fatal - continue processing
+    if (error.message.includes('does not support publish')) {
+      // Not using MQTT reader, skip publishing
+      console.log('Current reader does not support publishing');
+    } else {
+      console.error('Publish failed:', error.message);
+    }
   }
 });
 ```
@@ -1585,26 +1696,332 @@ sdk.on('tag', (tag) => {
 
 ---
 
+## Advanced Utilities and Exports
+
+### Error Handling Utilities
+
+The SDK exports comprehensive error handling utilities for structured error management:
+
+#### Exports
+
+```javascript
+const {
+  RfidSdk,
+  RfidSdkError,
+  createSdkError,
+  wrapNativeError,
+  serializeError,
+  ERROR_CODES,
+  type RfidSdkErrorObject,
+  type ErrorDetails,
+  MqttConnectionManager,
+  DatabaseSeeder,
+  createSeeder
+} = require('@evolve/sdk');
+```
+
+#### `RfidSdkError` Class
+
+Extended Error class with structured error support.
+
+```javascript
+const error = new RfidSdkError(
+  code: string,                 // E.g., 'EVRFID-CONN-001'
+  message: string,              // Human-readable message
+  recoverable: boolean = false, // Can system auto-retry?
+  details?: Record<string, any> // Context-specific data
+);
+
+// Methods:
+error.code           // Error code (EVRFID-*)
+error.message        // Message text
+error.timestamp      // Milliseconds since epoch
+error.details        // Additional context
+error.recoverable    // true if auto-recoverable
+error.toString()     // Formatted: [HH:MM:SS][ERROR][CODE] - message
+error.toJSON()       // Full structured object
+error.isRecoverable()// Check if recoverable
+```
+
+#### `createSdkError()` Function
+
+Factory function to create SDK errors from error code registry.
+
+```javascript
+const error = createSdkError(
+  'CONNECTION_FAILED',  // Error key from ERROR_CODES
+  {                     // Optional context
+    host: '192.168.1.100',
+    port: 10001,
+    reason: 'Connection refused'
+  }
+);
+```
+
+#### `wrapNativeError()` Function
+
+Wrap native JavaScript errors in SDK format.
+
+```javascript
+try {
+  // Some operation that throws
+  await someAsyncOperation();
+} catch (nativeError) {
+  const sdkError = wrapNativeError(
+    nativeError,
+    'CONNECTION_FAILED', // Error key
+    { operation: 'tcp_connect', host: '192.168.1.100' }
+  );
+  // sdkError.details.originalError contains original message
+}
+```
+
+#### `ERROR_CODES` Registry
+
+Complete error code registry with definitions.
+
+```javascript
+ERROR_CODES.CONNECTION_FAILED
+// Returns: {
+//   code: 'EVRFID-CONN-001',
+//   message: 'Failed to establish connection',
+//   recoverable: true
+// }
+
+// List all available codes:
+Object.keys(ERROR_CODES).forEach(key => {
+  const { code, message, recoverable } = ERROR_CODES[key];
+  console.log(`${code}: ${message} (${recoverable ? 'recoverable' : 'fatal'})`);
+});
+```
+
+---
+
+### Database Seeder Utility
+
+#### Class: `DatabaseSeeder`
+
+Manages seed data for testing and bulk import of RFID events.
+
+```javascript
+const { DatabaseSeeder, createSeeder } = require('@evolve/sdk');
+
+// Create seeder with database reference
+const seeder = new DatabaseSeeder(databaseInstance);
+
+// Or use factory function
+const seeder = createSeeder(databaseInstance);
+```
+
+#### Method: `importFromJson(filePath)`
+
+Import seed data from a JSON file.
+
+```javascript
+async importFromJson(filePath: string): Promise<{ 
+  success: boolean; 
+  count: number; 
+  error?: string 
+}>
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filePath` | string | Path to JSON seed data file |
+
+**Expected JSON Format:**
+
+```json
+{
+  "events": [
+    {
+      "epc": "DEADBEEF12345678",
+      "readerId": "reader-1",
+      "antenna": 1,
+      "rssi": -65
+    },
+    {
+      "epc": "DEADBEEF87654321",
+      "readerId": "reader-1",
+      "antenna": 2,
+      "rssi": -45
+    }
+  ],
+  "metadata": {
+    "description": "Test data",
+    "createdAt": "2026-03-09T00:00:00Z",
+    "tags": ["test", "demo"]
+  }
+}
+```
+
+**Returns:** Promise resolving to:
+- `success`: true if import succeeded
+- `count`: Number of events imported
+- `error`: Error message if failed
+
+**Example:**
+
+```javascript
+const seeder = new DatabaseSeeder(myDatabase);
+
+try {
+  const result = await seeder.importFromJson('./seed-data.json');
+  if (result.success) {
+    console.log(`Imported ${result.count} events`);
+  } else {
+    console.error('Import failed:', result.error);
+  }
+} catch (error) {
+  console.error('Seeder error:', error.message);
+}
+```
+
+---
+
+### MQTT Connection Manager
+
+#### Class: `MqttConnectionManager`
+
+Advanced MQTT connection management with configurable retry logic.
+
+```javascript
+const { MqttConnectionManager } = require('@evolve/sdk');
+
+const manager = new MqttConnectionManager();
+
+// Connect with full configuration
+await manager.connect({
+  brokerUrl: 'mqtts://broker.example.com:8883',
+  topic: 'rfid/tags',
+  username: 'user',
+  password: 'pass',
+  clientId: 'evolve-reader-1',
+  keepalive: 30,
+  reconnectPeriod: 5000,
+  connectTimeout: 10000,
+  rejectUnauthorized: true,
+  maxRetries: 3
+});
+
+// Manage connection
+manager.onConnectionStatusChange((status) => {
+  console.log('Connected:', status.connected);
+});
+
+manager.onMessage((topic, payload) => {
+  console.log(`Message on ${topic}:`, payload.toString());
+});
+
+// Graceful disconnect
+await manager.disconnect();
+```
+
+#### Methods:
+
+- `connect(config)` - Establish MQTT connection
+- `disconnect()` - Close connection
+- `publish(topic, payload)` - Publish message
+- `subscribe(topic)` - Subscribe to topic
+- `onConnectionStatusChange(callback)` - Listen for status changes
+- `onMessage(callback)` - Listen for messages
+
+---
+
+## Event Management API
+
+The SDK implements Node.js EventEmitter pattern for all event handling.
+
+#### Method: `on(event, callback)`
+
+Register event listener.
+
+```javascript
+on(event: string, callback: (...args: any[]) => void): this
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `event` | string | Event name (see Event Reference below) |
+| `callback` | function | Handler function |
+
+**Returns:** Instance for chaining
+
+**Example:**
+
+```javascript
+sdk.on('tag', (tag) => {
+  console.log('Tag:', tag.epc);
+}).on('stats', (stats) => {
+  console.log('Stats:', stats);
+}).on('error', (err) => {
+  console.error('Error:', err.message);
+});
+```
+
+#### Method: `off(event, callback)` / `removeListener(event, callback)`
+
+Remove event listener.
+
+```javascript
+off(event: string, callback: (...args: any[]) => void): this
+removeListener(event: string, callback: (...args: any[]) => void): this
+```
+
+Both methods are functional aliases.
+
+**Example:**
+
+```javascript
+const handler = (tag) => console.log('Tag:', tag.epc);
+
+sdk.on('tag', handler);
+
+// Later: remove listener
+sdk.off('tag', handler);
+```
+
+---
+
+## Complete Event Reference
+
+| Event | Emitter | Parameters | When Fired |
+|-------|---------|------------|-----------|
+| `'tag'` | SDK | `(tagData)` | Valid tag detected and throttle window passed |
+| `'stats'` | SDK | `(stats)` | After each tag processed; on stats reset |
+| `'connected'` | SDK | none | Reader connection established |
+| `'disconnected'` | SDK | none | Reader disconnected (cable removed or error) |
+| `'error'` | SDK | `(errorObj)` | Connection error, protocol error, or exception |
+
+---
+
 ## Summary of Main APIs
 
 | Category | API | Purpose |
 |----------|-----|---------|
 | **Initialization** | `new RfidSdk()` | Create SDK instance |
-| **Connections** | `connectTcp()` | TCP/IP reader connection |
-| | `connectSerial()` | Serial reader connection |
-| | `connectMqtt()` | MQTT broker connection |
+| **Event Management** | `on(event, callback)` | Register event listener |
+| | `off(event, callback)` | Remove event listener |
+| | `removeListener(event, callback)` | Remove listener (alias) |
+| **Connections** | `connectTcp(host, port)` | TCP/IP reader connection |
+| | `connectSerial(path, baud, protocol)` | Serial reader connection |
+| | `connectMqtt(brokerUrl, topic, options)` | MQTT broker connection |
 | | `disconnect()` | Close connection gracefully |
-| **Scanning** | `start() / startScan()` | Begin tag scanning |
-| | `stop() / stopScan()` | Stop tag scanning |
-| **Events** | `on('tag', ...)` | Listen for tag reads |
-| | `on('stats', ...)` | Listen for stat updates |
-| | `on('connected', ...)` | Listen for connection |
-| | `on('disconnected', ...)` | Listen for disconnection |
-| | `on('error', ...)` | Listen for errors |
-| **Statistics** | `getCumulativeStats()` | Get session stats |
-| | `resetCumulativeStats()` | Reset session stats |
-| **Configuration** | `configure()` | Apply reader settings |
-| | `publish()` | MQTT publish (MQTT only) |
+| **Scanning** | `start()` / `startScan()` | Begin tag scanning |
+| | `stop()` / `stopScan()` | Stop tag scanning |
+| **Events** | `on('tag', ...)` | New tag detected (raw data) |
+| | `on('stats', ...)` | Statistics updated |
+| | `on('connected', ...)` | Reader connected |
+| | `on('disconnected', ...)` | Reader disconnected |
+| | `on('error', ...)` | Error occurred (structured) |
+| **Statistics** | `getCumulativeStats()` | Get session stats {total, unique} |
+| | `resetCumulativeStats()` | Reset session stats to zero |
+| **Configuration** | `configure(settings)` | Apply reader-specific settings |
+| | `publish(tag, topic)` | Publish to MQTT (MQTT only) |
 
 ---
 
@@ -1665,15 +2082,206 @@ setInterval(() => seenTags.clear(), 10000);
 
 ---
 
+## TypeScript Definitions
+
+All SDK classes and interfaces are fully typed with TypeScript definitions located in `/dist/index.d.ts`:
+
+### Core Type Definitions
+
+```typescript
+interface TagData {
+  id: string;              // Unique tag ID
+  epc?: string;            // Electronic Product Code
+  timestamp: number;       // Milliseconds since epoch
+  raw: string;             // Raw hex string
+  rssi?: number;           // Signal strength (dBm)
+  id_full?: string;        // Full ID with protocol prefix
+}
+
+interface RawPacket {
+  id: string;              // Packet ID
+  timestamp: number;       // Receive timestamp
+  direction: 'RX' | 'TX';  // Receive or transmit
+  data: Buffer;            // Raw packet data
+}
+
+interface CumulativeStats {
+  total: number;           // Total tags read in session
+  unique: number;          // Count of unique EPCs
+}
+
+interface MqttConnectionConfig {
+  username?: string;
+  password?: string;
+  clientId?: string;
+  keepalive?: number;
+  reconnect?: boolean;
+  protocol?: 'mqtt' | 'mqtts';
+  ca?: string | Buffer[];
+  cert?: string | Buffer;
+  key?: string | Buffer;
+  rejectUnauthorized?: boolean;
+  [key: string]: any;
+}
+
+interface ReaderMessage {
+  code: string;            // Error code (e.g., 'EVRFID-CONN-001')
+  message: string;         // Human-readable message
+  recoverable: boolean;    // Can be retried
+  details?: any;           // Additional context
+}
+```
+
+### Error Type Definitions
+
+```typescript
+class RfidSdkError extends Error {
+  code: string;
+  message: string;
+  recoverable: boolean;
+  details?: any;
+  formatted: string;       // Pre-formatted [HH:MM:SS][ERROR][CODE] - message
+
+  toString(): string;
+  toJSON(): object;
+  getLogEntry(): {code: string; message: string};
+  isRecoverable(): boolean;
+}
+
+// Error creation utilities
+function createSdkError(key: string, details?: any): RfidSdkError;
+function wrapNativeError(err: Error, key: string, details?: any): RfidSdkError;
+function serializeError(err: any): string;
+
+// Full ERROR_CODES registry with 46 codes across 9 categories
+const ERROR_CODES: {
+  [key: string]: {code: string; message: string; recoverable: boolean}
+};
+```
+
+### RfidSdk Type Definition
+
+```typescript
+class RfidSdk extends EventEmitter {
+  constructor();
+  
+  // Connection methods
+  connectTcp(host: string, port: number): Promise<boolean>;
+  connectSerial(port: string, baudRate?: number, protocol?: string): Promise<void>;
+  connectMqtt(brokerUrl: string, topic: string, options?: MqttConnectionConfig): Promise<boolean>;
+  disconnect(): Promise<void>;
+  
+  // Scanning control
+  start(): void;
+  startScan(): void;
+  stop(): void;
+  stopScan(): void;
+  
+  // Data access
+  getCumulativeStats(): CumulativeStats;
+  resetCumulativeStats(): void;
+  
+  // Configuration
+  configure(settings: {[key: string]: any}): void;
+  
+  // MQTT publishing
+  publish(tag: TagData, topic?: string): void;
+  
+  // Event registration (inherited from EventEmitter)
+  on(event: string, listener: (...args: any[]) => void): this;
+  once(event: string, listener: (...args: any[]) => void): this;
+  off(event: string, listener: (...args: any[]) => void): this;
+  removeListener(event: string, listener: (...args: any[]) => void): this;
+  removeAllListeners(event?: string): this;
+}
+```
+
+### Utility Type Definitions
+
+```typescript
+class DatabaseSeeder {
+  importFromJson(filePath: string): void;
+}
+
+class MqttConnectionManager {
+  connect(brokerUrl: string, options?: MqttConnectionConfig): Promise<void>;
+  disconnect(): Promise<void>;
+  publish(topic: string, message: string | Buffer): Promise<void>;
+  subscribe(topic: string): Promise<void>;
+  onConnectionStatusChange(callback: (status: boolean) => void): void;
+  onMessage(callback: (topic: string, message: Buffer) => void): void;
+}
+
+function createSeeder(): DatabaseSeeder;
+```
+
+### Event Type Definitions
+
+```typescript
+// Tag read event
+emit('tag', (tag: TagData) => {}): void;
+
+// Statistics update
+emit('stats', (stats: CumulativeStats) => {}): void;
+
+// Connection established
+emit('connected', (readerInfo: any) => {}): void;
+
+// Connection lost
+emit('disconnected', (reason: string) => {}): void;
+
+// Error occurred
+emit('error', (error: RfidSdkError) => {}): void;
+```
+
+### Usage Example with TypeScript
+
+```typescript
+import { RfidSdk, createSdkError, RfidSdkError, TagData } from '@evolve/sdk';
+
+const sdk = new RfidSdk();
+
+try {
+  await sdk.connectSerial('/dev/ttyUSB0', 115200, 'A0');
+  
+  sdk.on('tag', (tag: TagData) => {
+    console.log(`EPC: ${tag.epc}, RSSI: ${tag.rssi}dBm`);
+  });
+  
+  sdk.on('error', (err: RfidSdkError) => {
+    console.error(`Error: ${err.code} - ${err.message}`);
+    if (err.isRecoverable()) {
+      console.log('Attempting recovery...');
+    }
+  });
+  
+  const stats = sdk.getCumulativeStats();
+  console.log(`Total: ${stats.total}, Unique: ${stats.unique}`);
+  
+} catch (error) {
+  if (error instanceof RfidSdkError) {
+    console.error(`SDK Error: ${error.formatted}`);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+---
+
 ## Additional Resources
 
-- **Serial Protocols**: Refer to reader manufacturer documentation (Feig, Kinexus, etc.)
-- **MQTT Specification**: https://mqtt.org/
-- **Node.js EventEmitter**: https://nodejs.org/api/events.html
-- **TypeScript Types**: Check `dist/index.d.ts` in installed package
+- **Source Code:** `sdk/src/` directory
+- **TypeScript Definitions:** Auto-generated in `dist/index.d.ts`
+- **Error Codes:** Complete registry in `sdk/src/errors/RfidSdkError.ts`
+- **Serial Protocols:** Documentation in `docs/SERIAL_CONNECTION_GUIDE.md`, `docs/MQTT_QUICKSTART.md`
+- **Integration Examples:** Check `docs/INTEGRATION_EXAMPLE.md` for real-world usage
+- **Node.js EventEmitter:** https://nodejs.org/api/events.html
+- **MQTT Specification:** https://mqtt.org/
+- **TypeScript Guide:** https://www.typescriptlang.org/
 
 ---
 
 **End of API Reference**
 
-For support or SDK updates, visit the project repository or contact your system administrator.
+For support or SDK updates, refer to the project repository or contact your system administrator.
