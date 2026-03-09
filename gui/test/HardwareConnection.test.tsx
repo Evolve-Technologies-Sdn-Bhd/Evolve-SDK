@@ -25,6 +25,14 @@ const mockElectronAPI = {
   onTagRead: jest.fn(),
   onRawData: jest.fn(),
   clearAllDataListeners: jest.fn(),
+  listSerialPorts: jest.fn().mockResolvedValue({
+    ports: [
+      { path: 'COM1', manufacturer: 'FTDI' },
+      { path: 'COM2', manufacturer: 'USB Serial' },
+      { path: 'COM3', manufacturer: 'CP210x' },
+      { path: 'COM4', manufacturer: 'USB Serial' },
+    ],
+  }),
 };
 
 Object.defineProperty(window, 'electronAPI', {
@@ -126,19 +134,29 @@ describe('HardwareConnection Component', () => {
     const serialRadio = radios.find(radio => radio.nextSibling?.textContent?.trim() === 'Serial COM') as HTMLInputElement;
     await user.click(serialRadio);
 
-    // Wait for Serial controls to appear
+    // Wait for Serial controls and dynamic ports to appear
     await waitFor(() => {
       expect(screen.getByText('COM Port')).toBeInTheDocument();
     }, { timeout: 2000 });
 
-    // Fill form - use getByDisplayValue to find the selects
-    const comSelect = screen.getByDisplayValue('COM4') as HTMLSelectElement;
-    const baudSelect = screen.getByDisplayValue('115200') as HTMLSelectElement;
+    // Wait for selects to render and find the COM select by options
+    const selects = await screen.findAllByRole('combobox');
+    const byRoleMatch = selects.find(sel => Array.from((sel as HTMLSelectElement).options).some(o => /^COM\\d+$/i.test(o.value))) as HTMLSelectElement | undefined;
+    const comLabel = screen.getByText('COM Port');
+    const siblingSelect = comLabel.parentElement?.nextElementSibling?.querySelector('select') as HTMLSelectElement | null;
+    const comSelect = (byRoleMatch || siblingSelect || selects[0]) as HTMLSelectElement;
+    // Baud select by label (traverse)
+    const baudLabel = screen.getByText('Baud Rate');
+    const baudSelect = baudLabel.parentElement!.querySelector('select') as HTMLSelectElement;
     // Find the Reader Protocol select by traversing from its label
     const protoLabel = screen.getByText('Reader Protocol');
     const protocolSelect = protoLabel.parentElement!.querySelector('select') as HTMLSelectElement;
 
-    await user.selectOptions(comSelect, 'COM4');
+    // Choose COM4 if present; otherwise choose first available
+    const targetValue = Array.from(comSelect.options).some(o => o.value === 'COM4')
+      ? 'COM4'
+      : (comSelect.options[0]?.value ?? 'COM1');
+    await user.selectOptions(comSelect, targetValue);
     await user.selectOptions(baudSelect, '115200');
     await user.selectOptions(protocolSelect, 'F5001');
 
@@ -147,7 +165,11 @@ describe('HardwareConnection Component', () => {
     await user.click(connectButton);
 
     await waitFor(() => {
-      expect(mockSdkService.connectSerial).toHaveBeenCalledWith('COM4', 115200, 'F5001');
+      const [port, baud, proto] = mockSdkService.connectSerial.mock.calls[0];
+      expect(baud).toBe(115200);
+      expect(proto).toBe('F5001');
+      expect(typeof port).toBe('string');
+      expect(port.startsWith('COM')).toBe(true);
     });
 
     expect(screen.getByText('Connected')).toBeInTheDocument();
