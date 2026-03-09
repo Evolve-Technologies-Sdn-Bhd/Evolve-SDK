@@ -1,6 +1,6 @@
 # Evolve RFID SDK - Complete API Reference
 
-**Version:** 0.1.0  
+**Version:** 1.0.0  
 **Target Audience:** External developers integrating the SDK into applications  
 **Language:** JavaScript/TypeScript (Node.js)  
 
