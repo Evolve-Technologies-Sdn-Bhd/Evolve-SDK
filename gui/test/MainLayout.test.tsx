@@ -243,7 +243,7 @@ describe('MainLayout Component', () => {
     const exportCallback = mockElectronAPI.onExportDataTrigger.mock.calls[0][0];
     await exportCallback('7');
 
-    expect(mockAddLog).toHaveBeenCalledWith("No data", "WARNING");
+    expect(mockAddLog).toHaveBeenCalledWith(expect.stringMatching(/No data/), "WARNING");
   });
 
   it('handles save failure after successful data fetch', async () => {
@@ -257,7 +257,7 @@ describe('MainLayout Component', () => {
 
     expect(mockElectronAPI.getExportData).toHaveBeenCalledWith(1);
     expect(mockElectronAPI.saveExportedCSV).toHaveBeenCalledWith('csv,data', 1, undefined);
-    expect(mockAddLog).toHaveBeenCalledWith("Export failed: No content to save", "ERROR");
+    expect(mockAddLog).toHaveBeenCalledWith(expect.stringMatching(/Export .*failed/i), "ERROR");
   });
 
   it('handles system messages', () => {

@@ -1,6 +1,7 @@
 import net from 'net';
 import { ReaderManager } from '../readers/ReaderManager';
 import { A0Protocol } from '../utils/A0Protocol';
+import { createSdkError, wrapNativeError, RfidSdkError } from '../errors/RfidSdkError';
 
 export class TcpReader extends ReaderManager {
   private client?: net.Socket;
@@ -51,12 +52,23 @@ export class TcpReader extends ReaderManager {
         const timeout = setTimeout(() => {
           if (connectResolved || hasSettled) return;
           connectResolved = true;
-          this.handleConnectionFailure(new Error('Connection timeout'), () => {
-            if (!hasSettled) {
-              hasSettled = true;
-              reject(new Error('Connection timeout'));
-            }
-          }, attemptConnection);
+          
+          const timeoutError = createSdkError('CONNECTION_TIMEOUT', {
+            host: this.host,
+            port: this.port,
+            timeoutMs: this.connectTimeoutMs,
+          });
+          
+          this.handleConnectionFailure(
+            new Error(timeoutError.message),
+            () => {
+              if (!hasSettled) {
+                hasSettled = true;
+                reject(timeoutError);
+              }
+            },
+            attemptConnection
+          );
         }, this.connectTimeoutMs);
 
         this.client.connect(this.port, this.host, () => {
@@ -84,14 +96,26 @@ export class TcpReader extends ReaderManager {
             this.handleConnectionFailure(err, () => {
               if (!hasSettled) {
                 hasSettled = true;
-                reject(err);
+                const sdkError = wrapNativeError(err, 'CONNECTION_FAILED', {
+                  host: this.host,
+                  port: this.port,
+                });
+                reject(sdkError);
               }
             }, attemptConnection);
             return;
           }
 
-          this.log(`[TcpReader] Socket error: ${err?.message || err}`, 'error');
-          this.rfidEmitter.emitError(err);
+          // Handle errors after connection
+          const sdkError = wrapNativeError(err, 'UNEXPECTED_DISCONNECT', {
+            host: this.host,
+            port: this.port,
+            error: err.message,
+          });
+          
+          this.log(sdkError.toString(), 'error');
+          this.rfidEmitter.emitError(sdkError);
+          
           if (!this.isManuallyDisconnected) {
             this.emit('disconnected');
           }
@@ -208,10 +232,24 @@ export class TcpReader extends ReaderManager {
       this.log(`[TcpReader] Connection failed: ${error.message}. Retrying in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
       this.retryTimeout = setTimeout(attemptConnection, delay);
     } else {
-      this.log(`[TcpReader] Failed to connect after ${this.maxRetries} attempts. Giving up.`, 'error');
+      // Emit structured error when max retries exceeded
+      const sdkError = wrapNativeError(error, 'CONNECTION_FAILED', {
+        host: this.host,
+        port: this.port,
+        attempts: this.maxRetries,
+        lastError: error.message,
+      });
+      this.log(sdkError.toString(), 'error');
+      
       if (this.listenerCount('error') > 0) {
-        this.emit('error', new Error(`Connection failed after ${this.maxRetries} attempts: ${error.message}`));
+        this.emit('error', sdkError);
       }
+      
+      // Also emit via EventBus
+      if (this.rfidEmitter) {
+        this.rfidEmitter.emitError(sdkError);
+      }
+      
       onMaxRetriesExceeded();
     }
   }

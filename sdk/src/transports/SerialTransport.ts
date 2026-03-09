@@ -7,6 +7,7 @@ import { AOProtocolReader } from '../readers/AOProtocolReader';
 import { A0Protocol } from '../utils/A0Protocol';
 import { F5001Protocol } from '../utils/F5001Protocol';
 import { TagData } from '../events/EventBus';
+import { createSdkError, wrapNativeError } from '../errors/RfidSdkError';
 
 export type ProtocolType = 'UF3-S' | 'F5001' | 'A0';
 
@@ -38,14 +39,29 @@ export class SerialReader extends ReaderManager {
         });
 
         this.port.open((err) => {
-          if (err) return reject(err);
+          if (err) {
+            // Map serial error codes to structured errors
+            const sdkError = wrapNativeError(err, 'PORT_NOT_AVAILABLE', {
+              port: this.path,
+              baudRate: this.baud,
+            });
+            this.rfidEmitter.emitError(sdkError);
+            return reject(sdkError);
+          }
           
           this.port?.set({ dtr: true, rts: true });
           this.isConnected = true;
           this.initializeProtocolReader();
 
           this.port?.on('data', (data) => this.handleIncomingData(data));
-          this.port?.on('error', (err) => this.rfidEmitter.emitError(err));
+          
+          this.port?.on('error', (err) => {
+            const sdkError = wrapNativeError(err, 'SERIAL_IO_ERROR', {
+              port: this.path,
+            });
+            this.rfidEmitter.emitError(sdkError);
+          });
+          
           this.port?.on('close', () => {
             this.isConnected = false;
             this.rfidEmitter.emitDisconnected();
@@ -53,8 +69,13 @@ export class SerialReader extends ReaderManager {
 
           resolve();
         });
-      } catch (err) {
-        reject(err);
+      } catch (err: any) {
+        const sdkError = wrapNativeError(err, 'PORT_NOT_AVAILABLE', {
+          port: this.path,
+          reason: err?.message,
+        });
+        this.rfidEmitter.emitError(sdkError);
+        reject(sdkError);
       }
     });
   }

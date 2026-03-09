@@ -72,6 +72,41 @@ const formatPayload = async (tag) => {
 
 export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   
+  // ========================================
+  // SDK ERROR HANDLING
+  // ========================================
+  // Register error listener to prevent uncaught exceptions
+  // All SDK errors are emitted here for logging/monitoring
+  if (sdk) {
+    sdk.on('error', (errorObj) => {
+      // errorObj is a structured error: { code, message, timestamp, details, recoverable, formatted }
+      const logEntry = {
+        timestamp: new Date(errorObj.timestamp).toISOString(),
+        code: errorObj.code,
+        message: errorObj.message,
+        recoverable: errorObj.recoverable,
+        details: errorObj.details,
+        formatted: errorObj.formatted,
+      };
+      
+      // Log to console
+      console.error(`[SDK-ERROR] ${errorObj.formatted}`);
+      
+      // Optional: Send to renderer for GUI display (e.g., system error log)
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('sdk:error', logEntry);
+      }
+      
+      // Optional: Log to file for monitoring/debugging
+      const logFile = path.join(__dirname, '../../logs/sdk_errors.jsonl');
+      try {
+        fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
+      } catch (writeErr) {
+        console.error('[SDK-ERROR] Failed to write error log:', writeErr.message);
+      }
+    });
+  }
+  
   // Helper to get current database (prioritizes global.dbInstance)
   const getDb = () => {
     if (global.dbInstance) {
@@ -112,7 +147,13 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
-      console.error(`[IPC] Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`);
+      const errorCode = err?.code || 'EVRFID-CONN-001';
+      
+      // Format: [HH:MM:SS][ERROR][CODE] - message
+      const timestamp = new Date().toISOString().split('T')[1].slice(0, -5); // HH:MM:SS
+      const formattedError = `[${timestamp}][ERROR][${errorCode}] - Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`;
+      
+      console.error(formattedError);
       console.error(`[IPC] Error details:`, err);
       throw new Error(errorMsg);
     }
@@ -165,7 +206,13 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true };
     } catch (err) {
       const errorMsg = err?.message || String(err);
-      console.error(`[IPC] Connection Failed: Serial ${comPort} - ${errorMsg}`);
+      const errorCode = err?.code || 'EVRFID-SERIAL-002';
+      
+      // Format: [HH:MM:SS][ERROR][CODE] - message
+      const timestamp = new Date().toISOString().split('T')[1].slice(0, -5); // HH:MM:SS
+      const formattedError = `[${timestamp}][ERROR][${errorCode}] - Connection Failed: Serial ${comPort} - ${errorMsg}`;
+      
+      console.error(formattedError);
       console.error(`[IPC] Error details:`, err);
       throw new Error(errorMsg);
     }
@@ -402,7 +449,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = true;
       console.log('[IPC] Scan started successfully');
     } catch (err) {
-      console.error('[IPC] Error starting SDK:', err);
+      console.error('[EVGUI-IPC-004] Error starting SDK:', err);
       scanActive = false;
       // Clean up listeners on error
       if (typeof sdk.removeListener === 'function') {
@@ -454,7 +501,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = false;
       console.log('[IPC] Scan stopped successfully');
     } catch (err) {
-      console.error('[IPC] Error stopping scan:', err);
+      console.error('[EVGUI-IPC-005] Error stopping scan:', err);
       scanActive = false;
     }
   });
@@ -726,7 +773,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true, content: buffer.toString('base64'), count: events.length, isExcel: true };
       
     } catch (err) {
-      console.error('[IPC] ✗ Database export error:', err.message);
+      console.error('[EVRFID-DATA-005] ✗ Database export error:', err.message);
       console.error('[IPC] Error stack:', err.stack);
       return { success: false, error: `Export error: ${err.message}` };
     }
@@ -749,7 +796,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       fs.writeFileSync(filePath, logContent, 'utf-8');
       return { success: true };
     } catch (err) {
-      console.error('Failed to save log file:', err);
+      console.error('[EVGUI-EXPORT-001] Failed to save log file:', err);
       return { success: false, error: err.message };
     }
   });
