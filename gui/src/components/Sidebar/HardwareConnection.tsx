@@ -1,11 +1,18 @@
 // gui/src/components/Sidebar/HardwareConnection.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, X, RefreshCw, Info } from 'lucide-react';
 import { sdkService } from '../../services/sdkService';
 
 interface ConnectionResult {
   success: boolean;
   error?: string;
+}
+
+interface SerialPortInfo {
+  path: string;
+  manufacturer?: string;
+  vendorId?: string;
+  productId?: string;
 }
 
 export default function HardwareConnection() {
@@ -15,9 +22,13 @@ export default function HardwareConnection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   
+  // Serial Port Discovery
+  const [availablePorts, setAvailablePorts] = useState<SerialPortInfo[]>([]);
+  const [loadingPorts, setLoadingPorts] = useState(false);
+  
   // Serial Form State
   const [serialConfig, setSerialConfig] = useState({
-    comPort: 'COM4',
+    comPort: '',
     baudRate: 115200,
     protocol: 'F5001' 
   });
@@ -40,6 +51,44 @@ export default function HardwareConnection() {
     password: '',
     ssl: false
   });
+
+  // Load available COM ports
+  const loadAvailablePorts = async () => {
+    setLoadingPorts(true);
+    try {
+      const result = await (window as any).electronAPI?.listSerialPorts?.();
+      if (result?.ports && Array.isArray(result.ports)) {
+        setAvailablePorts(result.ports);
+        // Auto-select the first available port
+        if (result.ports.length > 0 && !serialConfig.comPort) {
+          setSerialConfig(prev => ({
+            ...prev,
+            comPort: result.ports[0].path
+          }));
+        }
+      } else {
+        console.warn('[GUI] No ports returned or invalid response');
+        setAvailablePorts([]);
+      }
+    } catch (err) {
+      console.error('[GUI] Error loading serial ports:', err);
+      setAvailablePorts([]);
+    } finally {
+      setLoadingPorts(false);
+    }
+  };
+
+  // Load ports on component mount
+  useEffect(() => {
+    loadAvailablePorts();
+  }, []);
+
+  // Load ports when switching to serial mode
+  useEffect(() => {
+    if (mode === 'serial' && availablePorts.length === 0) {
+      loadAvailablePorts();
+    }
+  }, [mode]);
 
   // 1. Generic Input Handler
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -240,18 +289,39 @@ export default function HardwareConnection() {
           <div className="pl-4 mb-3 border-l-2 border-gray-200">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-gray-500">COM Port</label>
-                <select value={serialConfig.comPort} onChange={(e) => setSerialConfig({...serialConfig, comPort: e.target.value})} className="w-full border p-1 text-xs" disabled={connected}>
-                  <option>COM1</option>
-                  <option>COM2</option>
-                  <option>COM3</option>
-                  <option>COM4</option>
-                  <option>COM5</option>
-                  <option>COM6</option>
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] text-gray-500">COM Port</label>
+                  <button
+                    type="button"
+                    onClick={loadAvailablePorts}
+                    disabled={connected || loadingPorts}
+                    className="text-gray-400 hover:text-blue-600 disabled:text-gray-300 transition-colors flex items-center"
+                    title="Refresh available ports"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${loadingPorts ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+                {availablePorts.length > 0 ? (
+                  <select 
+                    value={serialConfig.comPort} 
+                    onChange={(e) => setSerialConfig({...serialConfig, comPort: e.target.value})} 
+                    className="w-full border p-1 text-xs" 
+                    disabled={connected}
+                  >
+                    {availablePorts.map(port => (
+                      <option key={port.path} value={port.path}>
+                        {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full border p-2 text-xs text-gray-500 bg-gray-50 rounded">
+                    {loadingPorts ? 'Scanning...' : 'No ports found'}
+                  </div>
+                )}
               </div>
               <div>
-                <label className="block text-[10px] text-gray-500">Baud Rate</label>
+                <label className="block text-[10px] text-gray-500 mb-1">Baud Rate</label>
                 <select value={serialConfig.baudRate} onChange={(e) => setSerialConfig({...serialConfig, baudRate: parseInt(e.target.value) || 115200})} className="w-full border p-1 text-xs" disabled={connected}>
                   <option value="75">75</option>
                   <option value="110">110</option>

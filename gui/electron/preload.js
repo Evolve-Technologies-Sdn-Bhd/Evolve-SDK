@@ -71,5 +71,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('reader:connect-serial', config);
   },
 
+  listSerialPorts: () => ipcRenderer.invoke('serial:list-ports'),
+
   resetCounters: () => ipcRenderer.invoke('reader:reset-counters'),
 });

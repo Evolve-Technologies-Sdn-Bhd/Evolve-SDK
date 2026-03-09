@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs'; 
 import { fileURLToPath, pathToFileURL } from 'url';
 import ExcelJS from 'exceljs';
+import { SerialPort } from 'serialport';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -114,6 +115,27 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       console.error(`[IPC] Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`);
       console.error(`[IPC] Error details:`, err);
       throw new Error(errorMsg);
+    }
+  });
+
+  // List available COM ports
+  ipcMain.handle('serial:list-ports', async () => {
+    try {
+      const ports = await SerialPort.list();
+      // Filter and map ports to a simpler format
+      const availablePorts = ports.map(port => ({
+        path: port.path,
+        productId: port.productId,
+        vendorId: port.vendorId,
+        manufacturer: port.manufacturer
+      }));
+      
+      console.log(`[IPC] Available ports: ${availablePorts.map(p => p.path).join(', ')}`);
+      return { success: true, ports: availablePorts };
+    } catch (err) {
+      const errorMsg = err?.message || String(err);
+      console.error(`[IPC] Error listing COM ports: ${errorMsg}`);
+      return { success: false, error: errorMsg, ports: [] };
     }
   });
 
