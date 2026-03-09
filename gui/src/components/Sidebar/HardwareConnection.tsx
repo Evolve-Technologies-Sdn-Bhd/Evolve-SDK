@@ -341,7 +341,7 @@ export default function HardwareConnection() {
                   >
                     {availablePorts.map(port => (
                       <option key={port.path} value={port.path}>
-                        {port.path} {port.manufacturer ? `(${port.manufacturer})` : ''}
+                        {port.path}
                       </option>
                     ))}
                   </select>
