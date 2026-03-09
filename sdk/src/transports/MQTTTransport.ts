@@ -1,6 +1,7 @@
 import mqtt from 'mqtt';
 import { ReaderManager } from '../readers/ReaderManager';
 import { RfidEventEmitter, TagData } from '../events/EventBus';
+import { createSdkError, wrapNativeError } from '../errors/RfidSdkError';
 
 export class MqttReader extends ReaderManager {
   private client?: mqtt.MqttClient;
@@ -39,10 +40,16 @@ export class MqttReader extends ReaderManager {
         const timeout = setTimeout(() => {
           if (!connectResolved && !hasSettled) {
             connectResolved = true;
-            this.handleConnectionFailure('Connection timeout', () => {
+            
+            const timeoutError = createSdkError('CONNECTION_TIMEOUT', {
+              broker: this.brokerUrl,
+              timeoutMs: 12000,
+            });
+            
+            this.handleConnectionFailure(timeoutError.message, () => {
               if (!hasSettled) {
                 hasSettled = true;
-                reject(new Error('Connection timeout'));
+                reject(timeoutError);
               }
             }, attemptConnection);
           }
@@ -102,11 +109,18 @@ export class MqttReader extends ReaderManager {
           if (connectResolved || hasSettled) return;
           connectResolved = true;
           clearTimeout(timeout);
-          console.error('[MqttReader] Connection error:', err);
-          this.handleConnectionFailure(err.message, () => {
+          
+          const sdkError = wrapNativeError(
+            typeof err === 'string' ? new Error(err) : err as Error,
+            'BROKER_CONNECTION_FAILED',
+            { broker: this.brokerUrl }
+          );
+          
+          console.error(sdkError.toString());
+          this.handleConnectionFailure(sdkError.message, () => {
             if (!hasSettled) {
               hasSettled = true;
-              reject(err);
+              reject(sdkError);
             }
           }, attemptConnection);
         });
@@ -146,13 +160,29 @@ export class MqttReader extends ReaderManager {
       );
       this.retryTimeout = setTimeout(attemptConnection, delay);
     } else {
-      console.error(
-        `[MqttReader] Failed to connect after ${this.maxRetries} attempts. Giving up.`
+      // Emit structured error when max retries exceeded
+      const sdkError = wrapNativeError(
+        new Error(error),
+        'BROKER_CONNECTION_FAILED',
+        {
+          broker: this.brokerUrl,
+          attempts: this.maxRetries,
+          lastError: error,
+        }
       );
-      // Only emit error event if there are listeners (EventEmitter throws if no listeners exist)
+      
+      console.error(sdkError.toString());
+      
+      // Only emit error event if there are listeners
       if (this.listenerCount('error') > 0) {
-        this.emit('error', new Error(`Connection failed after ${this.maxRetries} attempts: ${error}`));
+        this.emit('error', sdkError);
       }
+      
+      // Also emit via EventBus
+      if (this.rfidEmitter) {
+        this.rfidEmitter.emitError(sdkError);
+      }
+      
       onMaxRetriesExceeded();
     }
   }

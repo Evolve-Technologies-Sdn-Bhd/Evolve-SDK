@@ -1,5 +1,6 @@
 // src/events/RfidEvents.ts
 import { EventEmitter } from 'events';
+import { RfidSdkError, RfidSdkErrorObject, serializeError } from '../errors/RfidSdkError';
 
 export interface TagData {
   id: string;
@@ -36,7 +37,27 @@ export class RfidEventEmitter extends EventEmitter {
     this.emit('disconnected');
   }
 
-  emitError(err: Error) {
-    this.emit('error', err);
+  /**
+   * Emit error with automatic formatting to RfidSdkError
+   * Accepts both Error and RfidSdkError instances
+   * Safely handles cases where no error listener is registered
+   * 
+   * NOTE: Error logging is handled by the listener in sdkbridge.js
+   * to avoid duplicate console outputs. This method only emits.
+   */
+  emitError(err: Error | RfidSdkError): void {
+    let errorObject: RfidSdkErrorObject;
+
+    if (err instanceof RfidSdkError) {
+      errorObject = err.toJSON();
+    } else {
+      // Wrap native errors
+      errorObject = serializeError(err);
+    }
+
+    // Safety check: only emit if there are listeners to prevent uncaught exception
+    if (this.listenerCount('error') > 0) {
+      this.emit('error', errorObject);
+    }
   }
 }

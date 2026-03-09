@@ -1,4 +1,5 @@
 import { RfidEventEmitter, TagData, RawPacket } from '../src/events/EventBus';
+import { RfidSdkError, RfidSdkErrorObject } from '../src/errors/RfidSdkError';
 
 describe('EventBus', () => {
   let emitter: RfidEventEmitter;
@@ -53,6 +54,24 @@ describe('EventBus', () => {
     emitter.on('error', cb);
     const err = new Error('test');
     emitter.emitError(err);
-    expect(cb).toHaveBeenCalledWith(err);
+    
+    // Verify emitError wraps native errors in RfidSdkErrorObject
+    expect(cb).toHaveBeenCalled();
+    const emittedError = cb.mock.calls[0][0] as RfidSdkErrorObject;
+    expect(emittedError.code).toBe('EVRFID-SYSTEM-003');
+    expect(emittedError.message).toBe('test');
+    expect(emittedError.recoverable).toBe(false);
+    expect(emittedError.details?.originalError).toBe('Error: test');
+    expect(emittedError.formatted).toContain('[ERROR][EVRFID-SYSTEM-003]');
+  });
+
+  it('should not throw if error event has no listeners', () => {
+    const emitterNoListeners = new RfidEventEmitter();
+    const err = new Error('test error with no listeners');
+    
+    // Should not throw - logs to console instead
+    expect(() => {
+      emitterNoListeners.emitError(err);
+    }).not.toThrow();
   });
 });
