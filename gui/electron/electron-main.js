@@ -398,7 +398,7 @@ function createApplicationMenu() {
         resolve(global.docsPort);
       });
       server.on('error', (err) => {
-        console.error('[Menu] Docs HTTP server error:', err);
+        console.error('[EVGUI-MENU-001] Docs HTTP server error:', err);
       });
     });
   };
@@ -433,7 +433,7 @@ function createApplicationMenu() {
       console.log(`[Menu] Successfully requested browser to open: ${httpUrl}`);
 
     } catch (err) {
-      console.error(`[Menu] Exception while trying to open ${docName}:`, err);
+      console.error(`[EVGUI-MENU-002] Exception while trying to open ${docName}:`, err);
       dialog.showErrorBox('Open PDF Error', String(err && (err.stack || err.message || err)));
     }
   };

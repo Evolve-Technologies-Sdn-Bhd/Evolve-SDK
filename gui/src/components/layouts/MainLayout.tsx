@@ -41,7 +41,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       // @ts-ignore
       const res = await window.electronAPI.saveLogs(content);
       if (res.success) addLog("Logs exported successfully.", "SUCCESS");
-      else addLog(`Export failed: ${res.error}`, "ERROR");
+      else addLog(`[EVGUI-EXPORT-001] Export logs failed: ${res.error ?? 'Unknown error'}`, "ERROR");
     });
 
     // 3. Export Data Listener
@@ -54,7 +54,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const dbResult = await window.electronAPI.getExportData(days);
 
       if (!dbResult.success) {
-        addLog(dbResult.error || `No tag data found for the last ${days} days.`, "WARNING");
+        addLog(`[EVGUI-EXPORT-004] ${dbResult.error || `No tag data found for the last ${days} days.`}`, "WARNING");
         return;
       }
 
@@ -64,7 +64,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (saveResult.success) {
         addLog(`Successfully exported ${dbResult.count} tag records to Excel.`, "SUCCESS");
       } else {
-        addLog(`Export failed: ${saveResult.error}`, "ERROR");
+        addLog(`[EVGUI-EXPORT-003] Export data save failed: ${saveResult.error ?? 'Unknown error'}`, "ERROR");
       }
     });
 

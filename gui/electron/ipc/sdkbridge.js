@@ -427,7 +427,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = true;
       console.log('[IPC] Scan started successfully');
     } catch (err) {
-      console.error('[IPC] Error starting SDK:', err);
+      console.error('[EVGUI-IPC-004] Error starting SDK:', err);
       scanActive = false;
       // Clean up listeners on error
       if (typeof sdk.removeListener === 'function') {
@@ -479,7 +479,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = false;
       console.log('[IPC] Scan stopped successfully');
     } catch (err) {
-      console.error('[IPC] Error stopping scan:', err);
+      console.error('[EVGUI-IPC-005] Error stopping scan:', err);
       scanActive = false;
     }
   });
@@ -751,7 +751,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true, content: buffer.toString('base64'), count: events.length, isExcel: true };
       
     } catch (err) {
-      console.error('[IPC] ✗ Database export error:', err.message);
+      console.error('[EVRFID-DATA-005] ✗ Database export error:', err.message);
       console.error('[IPC] Error stack:', err.stack);
       return { success: false, error: `Export error: ${err.message}` };
     }
@@ -774,7 +774,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       fs.writeFileSync(filePath, logContent, 'utf-8');
       return { success: true };
     } catch (err) {
-      console.error('Failed to save log file:', err);
+      console.error('[EVGUI-EXPORT-001] Failed to save log file:', err);
       return { success: false, error: err.message };
     }
   });

@@ -141,6 +141,29 @@ The RFID SDK now has full structured error code support with the format:
 
 ---
 
+## ➕ New GUI Error Code Categories
+
+To align the application layer with SDK error semantics, the GUI now introduces structured codes for menu, export, and IPC bridge operations:
+
+### 10. **EVGUI-EXPORT** (3 codes)
+- EXPORT-001: Export logs failed (save to file)
+- EXPORT-003: Export data save failed (CSV/Excel)
+- EXPORT-004: No data available for requested period
+
+### 11. **EVGUI-IPC** (3 codes)
+- IPC-001: Disconnect failed
+- IPC-004: Start scan failed
+- IPC-005: Stop scan failed
+- IPC-006: Reset counters failed
+
+### 12. **EVGUI-MENU** (2 codes)
+- MENU-001: Docs HTTP server error
+- MENU-002: Failed to open documentation PDF
+
+These codes are emitted via console and surfaced in the GUI error log using the same structured format.
+
+---
+
 ## 📊 Error Attributes
 
 Each error object contains:
