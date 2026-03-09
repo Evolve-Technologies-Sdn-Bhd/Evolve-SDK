@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test": "jest --config jest.config.cjs --coverage",
     "test:watch": "jest --config jest.config.cjs --watch",
-    "test:sandbag": "jest --config jest.config.cjs test/sandbag.perf.test.ts --no-coverage"
+    "test:sandbag": "jest --config jest.config.cjs test/sandbag.perf.test.ts --no-coverage",
+    "test:clear": "jest --config jest.config.cjs --clearCache"
   },
   "build": {
     "appId": "com.evolve.rfidsdk",

@@ -309,10 +309,10 @@ describe('MainLayout Component', () => {
     expect(logEntry).toHaveClass('break-words');
 
     const timestamp = screen.getByText('[10:30:45]');
-    expect(timestamp).toHaveClass('text-gray-400', 'mr-2');
+    expect(timestamp).toHaveClass('text-gray-400');
 
     const typeIndicator = screen.getByText('[INFO]');
-    expect(typeIndicator).toHaveClass('font-bold', 'mr-2', 'text-blue-600');
+    expect(typeIndicator).toHaveClass('font-bold', 'text-blue-600');
   });
 
   it('applies correct styling to log panel', () => {

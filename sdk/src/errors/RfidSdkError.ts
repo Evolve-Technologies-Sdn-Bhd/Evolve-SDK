@@ -5,6 +5,9 @@
  * [HH:MM:SS][ERROR][CODE] - message
  * 
  * Example: [11:02:56][ERROR][EVRFID-TCP-001] - Invalid TCP configuration
+ * 
+ * NOTE: The format has NO spaces between brackets to prevent duplication when
+ * displayed through multiple logging layers (browser console + log panel).
  */
 
 export interface ErrorDetails {

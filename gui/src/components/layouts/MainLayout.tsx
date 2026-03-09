@@ -71,9 +71,37 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // 4. System Messages Listener
     // @ts-ignore
     const removeSystemMessageListener = window.electronAPI.onSystemMessage((message: string, level: string) => {
+      // Normalize: strip any leading embedded timestamp/level to avoid double prefix
+      // Patterns handled:
+      // "[HH:MM:SS][LEVEL] ..." and "[HH:MM:SS] [LEVEL] ..."
+      const stripLeading = (s: string) => {
+        return s
+          .replace(/^\[\d{2}:\d{2}:\d{2}\]\s*\[(INFO|ERROR|WARN|WARNING)\]\s*/i, '')
+          .replace(/^\[\d{2}:\d{2}:\d{2}\]\[(INFO|ERROR|WARN|WARNING)\]\s*/i, '');
+      };
+      const normalized = stripLeading(message);
       // Map level to LogEntry type
       const logType = level === 'error' ? 'ERROR' : level === 'warn' ? 'WARNING' : 'INFO';
-      addLog(message, logType);
+      addLog(normalized, logType);
+    });
+
+    // 5. SDK Error Event Listener
+    // Listens for structured error events from the SDK
+    // @ts-ignore
+    const removeErrorListener = window.electronAPI?.on?.('sdk:error', (logEntry: any) => {
+      // logEntry contains: { timestamp, code, message, recoverable, details, formatted }
+      // formatted is: [HH:MM:SS][ERROR][CODE] - message
+      // We extract code and message because addLog will add timestamp and [ERROR] label
+      const errorMessage = `[${logEntry.code}] - ${logEntry.message}`;
+      addLog(errorMessage, 'ERROR');
+      
+      // Log additional details if available
+      if (logEntry.recoverable) {
+        addLog(`[INFO] Error is recoverable - system will attempt auto-retry`, 'INFO');
+      }
+      if (logEntry.details && Object.keys(logEntry.details).length > 0) {
+        addLog(`[DEBUG] Error context: ${JSON.stringify(logEntry.details)}`, 'INFO');
+      }
     });
 
     // --- CLEANUP FUNCTION ---
@@ -83,6 +111,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       removeLogsListener();
       removeDataListener();
       removeSystemMessageListener();
+      removeErrorListener?.();
     };
 
   }, []); // Run once on mount
@@ -111,11 +140,13 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <div className="flex-1 overflow-y-auto p-2 font-mono text-xs bg-white space-y-1">
                     {logs.map((log) => (
                       <div key={log.id} className="break-words">
-                        <span className="text-gray-400 mr-2">[{log.timestamp}]</span>
-                        <span className={`font-bold mr-2 ${log.type === 'ERROR' ? 'text-red-600' : log.type === 'SUCCESS' ? 'text-green-600' : log.type === 'WARNING' ? 'text-orange-500' : 'text-blue-600'}`}>
-                          [{log.type}]
+                        <span>
+                          <span className="text-gray-400">[{log.timestamp}]</span>
+                          <span className={log.type === 'ERROR' ? 'text-red-600 font-bold' : log.type === 'SUCCESS' ? 'text-green-600 font-bold' : log.type === 'WARNING' ? 'text-orange-500 font-bold' : 'text-blue-600 font-bold'}>
+                            [{log.type}]
+                          </span>
+                          <span className="text-gray-800">{log.message}</span>
                         </span>
-                        <span className="text-gray-800">{log.message}</span>
                       </div>
                     ))}
                     <div ref={logsEndRef} />

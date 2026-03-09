@@ -15,12 +15,20 @@ interface SerialPortInfo {
   productId?: string;
 }
 
+interface ErrorObject {
+  code?: string;
+  message: string;
+  formatted?: string;
+  recoverable?: boolean;
+  details?: Record<string, any>;
+}
+
 export default function HardwareConnection() {
   const [mode, setMode] = useState<'serial' | 'tcp' | 'mqtt'>('tcp');
   const [connected, setConnected] = useState(false);
   const [isMqttModalOpen, setMqttModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<ErrorObject | string>('');
   
   // Serial Port Discovery
   const [availablePorts, setAvailablePorts] = useState<SerialPortInfo[]>([]);
@@ -51,6 +59,23 @@ export default function HardwareConnection() {
     password: '',
     ssl: false
   });
+
+  // Helper: Parse error to preserve structure
+  const parseError = (err: unknown): ErrorObject => {
+    if (typeof err === 'object' && err !== null) {
+      const errObj = err as Record<string, any>;
+      return {
+        code: errObj.code,
+        message: errObj.message || String(err),
+        formatted: errObj.formatted,
+        recoverable: errObj.recoverable,
+        details: errObj.details
+      };
+    }
+    return {
+      message: err instanceof Error ? err.message : String(err)
+    };
+  };
 
   // Load available COM ports
   const loadAvailablePorts = async () => {
@@ -162,7 +187,9 @@ export default function HardwareConnection() {
       setConnected(true);
       setMqttModalOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      // Preserve full error object structure if available
+      const errorObj = parseError(err);
+      setError(errorObj);
       try { await sdkService.disconnect(); } catch (e) {}
     } finally {
       setLoading(false);
@@ -219,7 +246,9 @@ export default function HardwareConnection() {
       
       setConnected(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      // Preserve full error object structure if available
+      const errorObj = parseError(err);
+      setError(errorObj);
       try { await sdkService.disconnect(); } catch (e) {}
     } finally {
       setLoading(false);
@@ -241,7 +270,9 @@ export default function HardwareConnection() {
       if (result && result.success === false) throw new Error(result.error || 'Connection failed');
       setConnected(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      // Preserve full error object structure if available
+      const errorObj = parseError(err);
+      setError(errorObj);
       try { await sdkService.disconnect(); } catch (e) {}
     } finally {
       setLoading(false);
@@ -401,7 +432,7 @@ export default function HardwareConnection() {
               <button onClick={() => setMqttModalOpen(false)} className="text-gray-400 hover:text-red-500"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleMqttSubmit}>
-              {error && <div className="bg-red-50 border-b border-red-200 px-6 py-3"><p className="text-[10px] text-red-600">{error}</p></div>}
+              {/* Intentionally omit any connection/log error display inside this modal */}
               <div className="p-6 space-y-5 text-xs">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <label htmlFor="name" className="text-right text-gray-500 font-medium"><span className="text-red-500 mr-1">*</span>Name</label>

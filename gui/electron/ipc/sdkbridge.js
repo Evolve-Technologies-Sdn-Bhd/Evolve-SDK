@@ -7,6 +7,19 @@ import { SerialPort } from 'serialport';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// --- Formatting Helpers ---
+function timeStr(ts = Date.now()) {
+  const d = new Date(ts);
+  return d.toTimeString().slice(0, 8); // HH:MM:SS
+}
+function formatErrorLine(code, message, ts = Date.now()) {
+  return `[${timeStr(ts)}] [ERROR] [${code}] ${message}`;
+}
+function logErrorWithCode(code, message, err) {
+  const final = `${message}${err?.message ? `: ${err.message}` : ''}`;
+  console.error(formatErrorLine(code, final));
+}
+
 /**
  * Helper function to standardize tag payload format
  * Ensures all tags have: EPC, Frame_Hex, RSSI
@@ -89,10 +102,9 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
         formatted: errorObj.formatted,
       };
       
-      // Log to console
-      console.error(`[SDK-ERROR] ${errorObj.formatted}`);
-      
-      // Optional: Send to renderer for GUI display (e.g., system error log)
+      // Send to renderer for GUI display via SDK error channel
+      // NOTE: Do NOT log to console.error here - it would be intercepted by setupLogForwarding
+      // and sent as a duplicate 'system:message' event, causing duplication in logs
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('sdk:error', logEntry);
       }
@@ -146,16 +158,15 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       console.log(`[IPC] TCP Connection Successful: ${resolvedHost}:${resolvedPort}`);
       return { success: true };
     } catch (err) {
-      const errorMsg = err?.message || String(err);
-      const errorCode = err?.code || 'EVRFID-CONN-001';
-      
-      // Format: [HH:MM:SS][ERROR][CODE] - message
-      const timestamp = new Date().toISOString().split('T')[1].slice(0, -5); // HH:MM:SS
-      const formattedError = `[${timestamp}][ERROR][${errorCode}] - Connection Failed: TCP ${host || ip || address}:${port} - ${errorMsg}`;
-      
-      console.error(formattedError);
-      console.error(`[IPC] Error details:`, err);
-      throw new Error(errorMsg);
+      // Let SDK error handler deal with formatting and emission
+      // SDK will emit structured error via 'error' event with proper formatting
+      // Ensure consistent formatting to terminal
+      if (err?.code) {
+        console.error(formatErrorLine(err.code, err.message, err.timestamp ?? Date.now()));
+      } else {
+        logErrorWithCode('EVRFID-CONN-001', 'TCP connection failed', err);
+      }
+      throw err;
     }
   });
 
@@ -175,7 +186,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true, ports: availablePorts };
     } catch (err) {
       const errorMsg = err?.message || String(err);
-      console.error(`[IPC] Error listing COM ports: ${errorMsg}`);
+      console.error(formatErrorLine('EVGUI-IPC-002', `Error listing COM ports: ${errorMsg}`));
       return { success: false, error: errorMsg, ports: [] };
     }
   });
@@ -205,16 +216,14 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       console.log(`[IPC] Serial Connection Successful: ${comPort} @ ${baudRate} baud with ${selectedProtocol} protocol`);
       return { success: true };
     } catch (err) {
-      const errorMsg = err?.message || String(err);
-      const errorCode = err?.code || 'EVRFID-SERIAL-002';
-      
-      // Format: [HH:MM:SS][ERROR][CODE] - message
-      const timestamp = new Date().toISOString().split('T')[1].slice(0, -5); // HH:MM:SS
-      const formattedError = `[${timestamp}][ERROR][${errorCode}] - Connection Failed: Serial ${comPort} - ${errorMsg}`;
-      
-      console.error(formattedError);
-      console.error(`[IPC] Error details:`, err);
-      throw new Error(errorMsg);
+      // Let SDK error handler deal with formatting and emission
+      // SDK will emit structured error via 'error' event with proper formatting
+      if (err?.code) {
+        console.error(formatErrorLine(err.code, err.message, err.timestamp ?? Date.now()));
+      } else {
+        logErrorWithCode('EVRFID-SERIAL-002', 'Serial connection failed', err);
+      }
+      throw err;
     }
   });
 
@@ -244,7 +253,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
           currentRawDataListener = null;
           scanActive = false;
         } catch (stopErr) {
-          console.error('[IPC] Error stopping scan on disconnect:', stopErr);
+          logErrorWithCode('EVGUI-IPC-005', 'Error stopping scan on disconnect', stopErr);
         }
       }
       
@@ -253,7 +262,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       
       return { success: true };
     } catch (err) {
-      console.error(`[IPC] Disconnect failed: ${err.message}`);
+      console.error(formatErrorLine('EVGUI-IPC-001', `Disconnect failed: ${err?.message || String(err)}`));
       // Still notify renderer of disconnection even if there's an error
       mainWindow.webContents.send('rfid:disconnected', { type: 'Reader', error: err.message });
       throw err;
@@ -274,7 +283,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       currentReaderType = 'MQTT';
       return { success: true };
     } catch (err) {
-      console.error('[IPC] MQTT connection error:', err);
+      logErrorWithCode('EVRFID-MQTT-002', 'MQTT connection error', err);
       // Throw error so GUI receives promise rejection
       throw new Error(err?.message || String(err));
     }
@@ -288,7 +297,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       await sdk.publish(tag, topic);
       return { success: true };
     } catch (err) {
-      console.error('mqtt publish error', err);
+      logErrorWithCode('EVRFID-MQTT-006', 'mqtt publish error', err);
       return { success: false, error: err?.message || String(err) };
     }
   });
@@ -307,7 +316,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       console.log('[IPC] Counters reset successfully');
       return { success: true };
     } catch (err) {
-      console.error('[IPC] Error resetting counters:', err);
+      logErrorWithCode('EVGUI-IPC-006', 'Error resetting counters', err);
       return { success: false, error: err?.message || String(err) };
     }
   });
@@ -405,17 +414,17 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
                   currentDb.saveToFile();
                 }
                 console.log('[IPC] ✓ Tag saved after column migration');
-              } catch (migrationErr) {
-                console.error('[IPC] Failed to migrate column:', migrationErr.message || migrationErr);
+      } catch (migrationErr) {
+                logErrorWithCode('EVRFID-DATA-005', 'Failed to migrate column', migrationErr);
               }
             } else {
-              console.error('[IPC] Error saving tag to database:', errorMsg);
+              console.error(formatErrorLine('EVRFID-DATA-005', `Error saving tag to database: ${errorMsg}`));
               console.error('[IPC] Query was:', query);
             }
           }
         }
       } catch (err) {
-        console.error('[IPC] Error formatting/sending tag:', err);
+        logErrorWithCode('EVRFID-TAG-001', 'Error formatting/sending tag', err);
       }
     };
 
@@ -423,7 +432,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       try {
         mainWindow.webContents.send('rfid:stats', stats);
       } catch (err) {
-        console.error('[IPC] Error sending stats:', err);
+        logErrorWithCode('EVGUI-IPC-003', 'Error sending stats', err);
       }
     };
 
@@ -431,7 +440,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       try {
         mainWindow.webContents.send('rfid:raw-data', packet);
       } catch (err) {
-        console.error('[IPC] Error sending raw data:', err);
+        logErrorWithCode('EVGUI-IPC-003', 'Error sending raw data', err);
       }
     };
 
@@ -449,7 +458,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = true;
       console.log('[IPC] Scan started successfully');
     } catch (err) {
-      console.error('[EVGUI-IPC-004] Error starting SDK:', err);
+      logErrorWithCode('EVGUI-IPC-004', 'Error starting SDK', err);
       scanActive = false;
       // Clean up listeners on error
       if (typeof sdk.removeListener === 'function') {
@@ -501,7 +510,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       scanActive = false;
       console.log('[IPC] Scan stopped successfully');
     } catch (err) {
-      console.error('[EVGUI-IPC-005] Error stopping scan:', err);
+      logErrorWithCode('EVGUI-IPC-005', 'Error stopping scan', err);
       scanActive = false;
     }
   });
@@ -512,7 +521,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     console.log('[IPC] Received content size:', content ? content.length : 0, 'bytes');
     
     if (!content || content.length === 0) {
-      console.error('[IPC] ✗ No content provided to save');
+      console.error(formatErrorLine('EVGUI-EXPORT-003', 'Export data save failed: No content to save'));
       return { success: false, error: 'No content to save' };
     }
     
@@ -552,8 +561,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       console.log('[IPC] File size written:', fs.statSync(filePath).size, 'bytes');
       return { success: true };
     } catch (err) {
-      console.error('[IPC] ✗ Failed to save file:', err.message);
-      console.error('[IPC] Error stack:', err.stack);
+      console.error(formatErrorLine('EVGUI-EXPORT-003', `Export data save failed: ${err?.message || 'Unknown error'}`));
       return { success: false, error: err.message };
     }
   });
@@ -568,7 +576,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     const currentDb = getDb();
     
     if (!currentDb) {
-      console.error('[IPC] ✗ Database not available for export');
+      console.error(formatErrorLine('EVRFID-DATA-005', 'Database not available for export'));
       return { success: false, error: 'Database not available - make sure it was initialized' };
     }
 
@@ -773,8 +781,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       return { success: true, content: buffer.toString('base64'), count: events.length, isExcel: true };
       
     } catch (err) {
-      console.error('[EVRFID-DATA-005] ✗ Database export error:', err.message);
-      console.error('[IPC] Error stack:', err.stack);
+      console.error(formatErrorLine('EVRFID-DATA-005', `Database export error: ${err?.message || 'Unknown error'}`));
       return { success: false, error: `Export error: ${err.message}` };
     }
   });
@@ -796,7 +803,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
       fs.writeFileSync(filePath, logContent, 'utf-8');
       return { success: true };
     } catch (err) {
-      console.error('[EVGUI-EXPORT-001] Failed to save log file:', err);
+      console.error(formatErrorLine('EVGUI-EXPORT-001', `Failed to save log file: ${err?.message || 'Unknown error'}`));
       return { success: false, error: err.message };
     }
   });
