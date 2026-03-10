@@ -34,3 +34,23 @@
 2026-03-10 11:12:32 +08:00: Snapshots:   0 total
 2026-03-10 11:12:32 +08:00: Time:        3.354 s, estimated 4 s
 2026-03-10 11:12:32 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-10 12:06:40 +08:00: (node:20144) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-03-10 12:06:40 +08:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-03-10 12:06:45 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-10 12:06:45 +08:00:   Evolve SDK Performance
+2026-03-10 12:06:45 +08:00:     Database Query Performance
+2026-03-10 12:06:45 +08:00:       √ benchmarks date range filtering (103 ms)
+2026-03-10 12:06:45 +08:00:       √ benchmarks unique EPC extraction (43 ms)
+2026-03-10 12:06:45 +08:00:       √ benchmarks EPC count aggregation (38 ms)
+2026-03-10 12:06:45 +08:00:     Tag Processing Performance
+2026-03-10 12:06:45 +08:00:       √ benchmarks RSSI filtering (34 ms)
+2026-03-10 12:06:45 +08:00:       √ benchmarks event deduplication (84 ms)
+2026-03-10 12:06:45 +08:00:     Data Cleanup Performance
+2026-03-10 12:06:45 +08:00:       √ benchmarks 30-day retention filtering (153 ms)
+2026-03-10 12:06:45 +08:00:       √ benchmarks deletion overhead (10 ms)
+2026-03-10 12:06:45 +08:00: 
+2026-03-10 12:06:45 +08:00: Test Suites: 1 passed, 1 total
+2026-03-10 12:06:45 +08:00: Tests:       7 passed, 7 total
+2026-03-10 12:06:45 +08:00: Snapshots:   0 total
+2026-03-10 12:06:45 +08:00: Time:        2.253 s, estimated 3 s
+2026-03-10 12:06:45 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
