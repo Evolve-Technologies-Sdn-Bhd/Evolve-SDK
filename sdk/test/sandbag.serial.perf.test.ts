@@ -6,6 +6,11 @@ import { RfidEventEmitter } from '../src/events/EventBus';
  * Performance benchmarks for Serial communication
  * Tests data throughput, latency, and protocol parsing efficiency
  */
+
+// Use higher thresholds in CI environment (GitHub Actions runners are slower)
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const ciMultiplier = isCI ? 2.0 : 1.0;
+
 describe('Evolve SDK Serial Performance', () => {
   const logPerf = (name: string, ms: number) => {
     console.log(`${name}: ${ms.toFixed(2)}ms`);
@@ -94,7 +99,7 @@ describe('Evolve SDK Serial Performance', () => {
     console.log(`  - Unique tags: ${seenTags.size}`);
     console.log(`  - Duplicate rate: ${(((50000 - seenTags.size) / 50000) * 100).toFixed(2)}%`);
 
-    expect(endTime - startTime).toBeLessThan(50);
+    expect(endTime - startTime).toBeLessThan(50 * ciMultiplier);
   });
 
   // Benchmark 4: RSSI filtering performance

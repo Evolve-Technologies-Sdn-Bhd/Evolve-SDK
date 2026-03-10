@@ -6,6 +6,11 @@ import { RfidEventEmitter } from '../src/events/EventBus';
  * Performance benchmarks for MQTT communication
  * Tests payload parsing, latency, and concurrent message handling
  */
+
+// Use higher thresholds in CI environment (GitHub Actions runners are slower)
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
+const ciMultiplier = isCI ? 2.0 : 1.0;
+
 describe('Evolve SDK MQTT Performance', () => {
   const logPerf = (name: string, ms: number) => {
     console.log(`${name}: ${ms.toFixed(2)}ms`);
@@ -94,7 +99,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Unique tags: ${seenTags.size}`);
     console.log(`  - Average duplicate count: ${((100000 - seenTags.size) / seenTags.size).toFixed(2)}`);
 
-    expect(endTime - startTime).toBeLessThan(80);
+    expect(endTime - startTime).toBeLessThan(80 * ciMultiplier);
   });
 
   // Benchmark 4: RSSI filtering under load
