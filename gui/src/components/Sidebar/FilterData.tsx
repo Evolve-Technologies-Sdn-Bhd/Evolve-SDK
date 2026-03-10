@@ -14,7 +14,7 @@ export default function FilterData() {
       <div className="flex gap-2">
         <input 
           type="text" 
-          placeholder="Search EPC..." 
+          placeholder="Search JSON EPC..." 
           value={epcFilter}
           onChange={(e) => setEpcFilter(e.target.value)}
           className="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500"

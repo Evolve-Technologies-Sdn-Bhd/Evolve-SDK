@@ -47,7 +47,7 @@ describe('FilterData Component', () => {
 
   it('displays input field with placeholder', () => {
     render(<FilterData />);
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     expect(input).toBeInTheDocument();
     expect(input).toHaveValue('');
   });
@@ -113,7 +113,7 @@ describe('FilterData Component', () => {
 
     render(<FilterData />);
 
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     expect(input).toHaveValue('TEST_EPC');
   });
 
@@ -125,7 +125,7 @@ describe('FilterData Component', () => {
 
     render(<FilterData />);
 
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     expect(input).toHaveValue('');
 
     // Should not show filtering message
@@ -142,7 +142,7 @@ describe('FilterData Component', () => {
 
     render(<FilterData />);
 
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     expect(input).toHaveValue(specialFilter);
 
     expect(screen.getByText(specialFilter)).toBeInTheDocument();
