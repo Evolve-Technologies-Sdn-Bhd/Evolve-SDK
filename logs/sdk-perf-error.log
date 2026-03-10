@@ -1,0 +1,36 @@
+2026-03-10 11:09:20 +08:00: C:\Users\User\Desktop\IT_Project\JJ-wine\Evolve-SDK\run-sdk-test.bat:1
+2026-03-10 11:09:20 +08:00: @echo off
+2026-03-10 11:09:20 +08:00: ^
+2026-03-10 11:09:20 +08:00: 
+2026-03-10 11:09:20 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-10 11:09:20 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1692:18)
+2026-03-10 11:09:20 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1735:20)
+2026-03-10 11:09:20 +08:00:     at Object..js (node:internal/modules/cjs/loader:1893:10)
+2026-03-10 11:09:20 +08:00:     at Module.load (node:internal/modules/cjs/loader:1481:32)
+2026-03-10 11:09:20 +08:00:     at Module._load (node:internal/modules/cjs/loader:1300:12)
+2026-03-10 11:09:20 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-03-10 11:09:20 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+2026-03-10 11:09:20 +08:00:     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2026-03-10 11:09:20 +08:00:     at node:internal/main/run_main_module:33:47
+2026-03-10 11:09:20 +08:00: 
+2026-03-10 11:09:20 +08:00: Node.js v24.12.0
+2026-03-10 11:12:24 +08:00: (node:6532) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-03-10 11:12:24 +08:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-03-10 11:12:32 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-10 11:12:32 +08:00:   Evolve SDK Performance
+2026-03-10 11:12:32 +08:00:     Database Query Performance
+2026-03-10 11:12:32 +08:00:       √ benchmarks date range filtering (145 ms)
+2026-03-10 11:12:32 +08:00:       √ benchmarks unique EPC extraction (54 ms)
+2026-03-10 11:12:32 +08:00:       √ benchmarks EPC count aggregation (47 ms)
+2026-03-10 11:12:32 +08:00:     Tag Processing Performance
+2026-03-10 11:12:32 +08:00:       √ benchmarks RSSI filtering (43 ms)
+2026-03-10 11:12:32 +08:00:       √ benchmarks event deduplication (115 ms)
+2026-03-10 11:12:32 +08:00:     Data Cleanup Performance
+2026-03-10 11:12:32 +08:00:       √ benchmarks 30-day retention filtering (207 ms)
+2026-03-10 11:12:32 +08:00:       √ benchmarks deletion overhead (10 ms)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00: Test Suites: 1 passed, 1 total
+2026-03-10 11:12:32 +08:00: Tests:       7 passed, 7 total
+2026-03-10 11:12:32 +08:00: Snapshots:   0 total
+2026-03-10 11:12:32 +08:00: Time:        3.354 s, estimated 4 s
+2026-03-10 11:12:32 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.

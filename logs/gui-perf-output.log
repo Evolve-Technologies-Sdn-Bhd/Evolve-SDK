@@ -1,0 +1,30 @@
+2026-03-10 11:12:28 +08:00: 
+2026-03-10 11:12:28 +08:00: > evolve-sdk-gui@1.0.0 test:sandbag
+2026-03-10 11:12:28 +08:00: > jest --config jest.config.cjs test/sandbag.perf.test.ts --no-coverage
+2026-03-10 11:12:28 +08:00: 
+2026-03-10 11:12:31 +08:00:   console.log
+2026-03-10 11:12:31 +08:00:     Filter operation: 0.78ms
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:28:15)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:   console.log
+2026-03-10 11:12:31 +08:00:     Formatting operation: 0.90ms
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:48:15)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:   console.log
+2026-03-10 11:12:31 +08:00:     Map counting operation: 2.61ms
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:69:15)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:   console.log
+2026-03-10 11:12:31 +08:00:     State update batch: 0.80ms
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:90:15)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:   console.log
+2026-03-10 11:12:31 +08:00:     Sorting operation: 15.92ms
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:107:15)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00: GUI Performance test exited with code 0

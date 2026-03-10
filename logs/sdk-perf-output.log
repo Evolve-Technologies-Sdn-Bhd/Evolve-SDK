@@ -1,0 +1,50 @@
+2026-03-10 11:12:28 +08:00: 
+2026-03-10 11:12:28 +08:00: > @evolve/sdk@0.1.0 test:sandbag
+2026-03-10 11:12:28 +08:00: > jest test/sandbag.perf.test.ts --no-coverage
+2026-03-10 11:12:28 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     Date range filter (50k records): 11.13ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:26:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     Unique EPC extraction (100k records): 10.93ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:43:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     EPC aggregation (50k records): 21.28ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:65:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     RSSI filtering (100k records): 4.10ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:86:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     Deduplication (50k records): 29.13ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:110:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     30-day cleanup check (100k records): 37.79ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:133:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:       - Records to delete: 50233
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:134:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:       - Records to keep: 49767
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:135:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:   console.log
+2026-03-10 11:12:32 +08:00:     Deletion query preparation (50k records): 7.80ms
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00:       at Object.<anonymous> (test/sandbag.perf.test.ts:151:15)
+2026-03-10 11:12:32 +08:00: 
+2026-03-10 11:12:32 +08:00: SDK Performance test exited with code 0

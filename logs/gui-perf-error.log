@@ -1,0 +1,36 @@
+2026-03-10 11:09:20 +08:00: C:\Users\User\Desktop\IT_Project\JJ-wine\Evolve-SDK\run-gui-test.bat:1
+2026-03-10 11:09:20 +08:00: @echo off
+2026-03-10 11:09:20 +08:00: ^
+2026-03-10 11:09:20 +08:00: 
+2026-03-10 11:09:20 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-10 11:09:20 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1692:18)
+2026-03-10 11:09:20 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1735:20)
+2026-03-10 11:09:20 +08:00:     at Object..js (node:internal/modules/cjs/loader:1893:10)
+2026-03-10 11:09:20 +08:00:     at Module.load (node:internal/modules/cjs/loader:1481:32)
+2026-03-10 11:09:20 +08:00:     at Module._load (node:internal/modules/cjs/loader:1300:12)
+2026-03-10 11:09:20 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+2026-03-10 11:09:20 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+2026-03-10 11:09:20 +08:00:     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2026-03-10 11:09:20 +08:00:     at node:internal/main/run_main_module:33:47
+2026-03-10 11:09:20 +08:00: 
+2026-03-10 11:09:20 +08:00: Node.js v24.12.0
+2026-03-10 11:12:24 +08:00: (node:8432) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-03-10 11:12:24 +08:00: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-03-10 11:12:31 +08:00: ts-jest[config] (WARN) 
+2026-03-10 11:12:31 +08:00:     The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in C:/Users/User/Desktop/IT_Project/JJ-wine/Evolve-SDK/gui/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+2026-03-10 11:12:31 +08:00:   
+2026-03-10 11:12:31 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-10 11:12:31 +08:00:   Evolve SDK GUI Performance
+2026-03-10 11:12:31 +08:00:     Component Rendering Performance
+2026-03-10 11:12:31 +08:00:       √ benchmarks tag filter operation (43 ms)
+2026-03-10 11:12:31 +08:00:       √ benchmarks data formatting for large datasets (15 ms)
+2026-03-10 11:12:31 +08:00:       √ benchmarks tag counting with Map (7 ms)
+2026-03-10 11:12:31 +08:00:     UI State Management Performance
+2026-03-10 11:12:31 +08:00:       √ benchmarks rapid state updates (4 ms)
+2026-03-10 11:12:31 +08:00:       √ benchmarks EPC sorting performance (22 ms)
+2026-03-10 11:12:31 +08:00: 
+2026-03-10 11:12:31 +08:00: Test Suites: 1 passed, 1 total
+2026-03-10 11:12:31 +08:00: Tests:       5 passed, 5 total
+2026-03-10 11:12:31 +08:00: Snapshots:   0 total
+2026-03-10 11:12:31 +08:00: Time:        2.413 s
+2026-03-10 11:12:31 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
