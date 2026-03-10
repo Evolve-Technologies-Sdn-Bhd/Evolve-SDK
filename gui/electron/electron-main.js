@@ -530,7 +530,7 @@ function createApplicationMenu() {
             },
             {
               label: 'API Documentation',
-              click: () => openResourcePdf('UM01260205001_User Manual Welcoming Dashboard.pdf', 'API Documentation')
+              click: () => openResourcePdf('RFID SDK API Documentation.pdf', 'API Documentation')
             }
           ],
         },

@@ -55,7 +55,7 @@ describe('FilterData Component', () => {
   it('calls setEpcFilter when input changes', () => {
     render(<FilterData />);
 
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     fireEvent.change(input, { target: { value: 'ABC123' } });
 
     expect(mockSetEpcFilter).toHaveBeenCalledWith('ABC123');
@@ -151,7 +151,7 @@ describe('FilterData Component', () => {
   it('input field has correct styling classes', () => {
     render(<FilterData />);
 
-    const input = screen.getByPlaceholderText('Search EPC...');
+    const input = screen.getByPlaceholderText('Search JSON EPC...');
     expect(input).toHaveClass('flex-1', 'border', 'border-gray-300', 'rounded', 'px-2', 'py-1', 'text-xs', 'focus:outline-none', 'focus:border-blue-500');
   });
 

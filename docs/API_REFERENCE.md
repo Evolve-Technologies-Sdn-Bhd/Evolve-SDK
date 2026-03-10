@@ -886,8 +886,8 @@ When receiving tags via MQTT, the payload format depends on your reader configur
 Serial readers send binary frames formatted according to their protocol:
 
 - **A0 Protocol:** `[HEADER] [LEN] [ADDR] [CMD] [DATA...] [CHECKSUM]`
-- **F5001 Protocol:** Feig Electronics proprietary format
-- **UF3-S Protocol:** Kinexus UF3-S command/response format
+- **F5001 Protocol:** Sunray proprietary format
+- **UF3-S Protocol:** SEUIC command/response format
 
 The SDK automatically parses these frames and extracts EPC identifiers.
 
