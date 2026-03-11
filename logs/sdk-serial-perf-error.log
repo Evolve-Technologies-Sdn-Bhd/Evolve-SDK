@@ -1,0 +1,195 @@
+2026-03-11 09:45:56 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 09:45:56 +08:00:   Evolve SDK Serial Performance
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (28 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial bulk data reception (100k tags) (98 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial deduplication with 50k unique tags (17 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (49 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (30 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 09:45:56 +08:00:     √ benchmarks serial data throughput at different baud rates (4 ms)
+2026-03-11 09:45:56 +08:00: 
+2026-03-11 09:45:56 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:45:56 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:45:56 +08:00: Snapshots:   0 total
+2026-03-11 09:45:56 +08:00: Time:        2.27 s, estimated 3 s
+2026-03-11 09:45:56 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 09:49:23 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 09:49:23 +08:00:   Evolve SDK Serial Performance
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (30 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial bulk data reception (100k tags) (109 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial deduplication with 50k unique tags (20 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (50 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (30 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 09:49:23 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 09:49:23 +08:00: 
+2026-03-11 09:49:23 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:49:23 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:49:23 +08:00: Snapshots:   0 total
+2026-03-11 09:49:23 +08:00: Time:        1.367 s, estimated 3 s
+2026-03-11 09:49:23 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 09:56:55 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 09:56:55 +08:00:   Evolve SDK Serial Performance
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (30 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial bulk data reception (100k tags) (112 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial deduplication with 50k unique tags (20 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (54 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (31 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 09:56:55 +08:00:     √ benchmarks serial data throughput at different baud rates (4 ms)
+2026-03-11 09:56:55 +08:00: 
+2026-03-11 09:56:55 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:56:55 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:56:55 +08:00: Snapshots:   0 total
+2026-03-11 09:56:55 +08:00: Time:        1.306 s, estimated 3 s
+2026-03-11 09:56:55 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 10:04:33 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 10:04:33 +08:00:   Evolve SDK Serial Performance
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (30 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial bulk data reception (100k tags) (110 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial deduplication with 50k unique tags (21 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (63 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (30 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 10:04:33 +08:00:     √ benchmarks serial data throughput at different baud rates (5 ms)
+2026-03-11 10:04:33 +08:00: 
+2026-03-11 10:04:33 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:04:33 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:04:33 +08:00: Snapshots:   0 total
+2026-03-11 10:04:33 +08:00: Time:        1.465 s, estimated 3 s
+2026-03-11 10:04:33 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 10:40:48 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 10:40:48 +08:00:   Evolve SDK Serial Performance
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (26 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial bulk data reception (100k tags) (107 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial deduplication with 50k unique tags (21 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (52 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (31 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (3 ms)
+2026-03-11 10:40:48 +08:00:     √ benchmarks serial data throughput at different baud rates (4 ms)
+2026-03-11 10:40:48 +08:00: 
+2026-03-11 10:40:48 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:40:48 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:40:48 +08:00: Snapshots:   0 total
+2026-03-11 10:40:48 +08:00: Time:        1.337 s, estimated 3 s
+2026-03-11 10:40:48 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 10:43:10 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 10:43:10 +08:00:   Evolve SDK Serial Performance
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (33 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial bulk data reception (100k tags) (100 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial deduplication with 50k unique tags (18 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (51 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (29 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 10:43:10 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 10:43:10 +08:00: 
+2026-03-11 10:43:10 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:43:10 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:43:10 +08:00: Snapshots:   0 total
+2026-03-11 10:43:10 +08:00: Time:        1.276 s, estimated 3 s
+2026-03-11 10:43:10 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 10:50:26 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 10:50:26 +08:00:   Evolve SDK Serial Performance
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (25 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial bulk data reception (100k tags) (99 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial deduplication with 50k unique tags (18 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (49 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (29 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 10:50:26 +08:00:     √ benchmarks serial data throughput at different baud rates (4 ms)
+2026-03-11 10:50:26 +08:00: 
+2026-03-11 10:50:26 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:50:26 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:50:26 +08:00: Snapshots:   0 total
+2026-03-11 10:50:26 +08:00: Time:        1.293 s, estimated 3 s
+2026-03-11 10:50:26 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 10:52:36 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 10:52:36 +08:00:   Evolve SDK Serial Performance
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (33 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial bulk data reception (100k tags) (104 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial deduplication with 50k unique tags (19 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (58 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (33 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 10:52:36 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 10:52:36 +08:00: 
+2026-03-11 10:52:36 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:52:36 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:52:36 +08:00: Snapshots:   0 total
+2026-03-11 10:52:36 +08:00: Time:        1.227 s, estimated 3 s
+2026-03-11 10:52:36 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 11:03:00 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 11:03:00 +08:00:   Evolve SDK Serial Performance
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (40 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial bulk data reception (100k tags) (100 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial deduplication with 50k unique tags (18 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (50 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (33 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 11:03:00 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 11:03:00 +08:00: 
+2026-03-11 11:03:00 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:03:00 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:03:00 +08:00: Snapshots:   0 total
+2026-03-11 11:03:00 +08:00: Time:        1.39 s, estimated 3 s
+2026-03-11 11:03:00 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 11:14:58 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 11:14:58 +08:00:   Evolve SDK Serial Performance
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (29 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial bulk data reception (100k tags) (100 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial deduplication with 50k unique tags (18 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (50 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (28 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 11:14:58 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 11:14:58 +08:00: 
+2026-03-11 11:14:58 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:14:58 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:14:58 +08:00: Snapshots:   0 total
+2026-03-11 11:14:58 +08:00: Time:        1.285 s, estimated 3 s
+2026-03-11 11:14:58 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 11:15:26 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 11:15:26 +08:00:   Evolve SDK Serial Performance
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (35 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial bulk data reception (100k tags) (106 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial deduplication with 50k unique tags (18 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (52 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (30 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (3 ms)
+2026-03-11 11:15:26 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 11:15:26 +08:00: 
+2026-03-11 11:15:26 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:15:26 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:15:26 +08:00: Snapshots:   0 total
+2026-03-11 11:15:26 +08:00: Time:        1.246 s, estimated 3 s
+2026-03-11 11:15:26 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 11:17:06 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 11:17:06 +08:00:   Evolve SDK Serial Performance
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (23 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial bulk data reception (100k tags) (104 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial deduplication with 50k unique tags (20 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (49 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (29 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 11:17:06 +08:00:     √ benchmarks serial data throughput at different baud rates (12 ms)
+2026-03-11 11:17:06 +08:00: 
+2026-03-11 11:17:06 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:17:06 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:17:06 +08:00: Snapshots:   0 total
+2026-03-11 11:17:06 +08:00: Time:        1.275 s, estimated 3 s
+2026-03-11 11:17:06 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.
+2026-03-11 11:27:14 +08:00: PASS test/sandbag.serial.perf.test.ts
+2026-03-11 11:27:14 +08:00:   Evolve SDK Serial Performance
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial frame parsing (F5001 protocol) (32 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial bulk data reception (100k tags) (120 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial deduplication with 50k unique tags (28 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial RSSI filtering (100k tags) (52 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks concurrent antenna parsing (4 antennas, 25k tags each) (30 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial error recovery (1000 recovery cycles) (2 ms)
+2026-03-11 11:27:14 +08:00:     √ benchmarks serial data throughput at different baud rates (3 ms)
+2026-03-11 11:27:14 +08:00: 
+2026-03-11 11:27:14 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:27:14 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:27:14 +08:00: Snapshots:   0 total
+2026-03-11 11:27:14 +08:00: Time:        1.505 s, estimated 3 s
+2026-03-11 11:27:14 +08:00: Ran all test suites matching test/sandbag.serial.perf.test.ts.

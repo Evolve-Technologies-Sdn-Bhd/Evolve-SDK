@@ -1,0 +1,384 @@
+2026-03-11 09:49:20 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 09:49:20 +08:00: @ECHO off
+2026-03-11 09:49:20 +08:00: ^
+2026-03-11 09:49:20 +08:00: 
+2026-03-11 09:49:20 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 09:49:20 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 09:49:20 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 09:49:20 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 09:49:20 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 09:49:20 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 09:49:20 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 09:49:20 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 09:49:20 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 09:49:20 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 09:49:20 +08:00: 
+2026-03-11 09:49:20 +08:00: Node.js v22.20.0
+2026-03-11 09:56:54 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 09:56:54 +08:00: @ECHO off
+2026-03-11 09:56:54 +08:00: ^
+2026-03-11 09:56:54 +08:00: 
+2026-03-11 09:56:54 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 09:56:54 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 09:56:54 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 09:56:54 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 09:56:54 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 09:56:54 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 09:56:54 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 09:56:54 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 09:56:54 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 09:56:54 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 09:56:54 +08:00: 
+2026-03-11 09:56:54 +08:00: Node.js v22.20.0
+2026-03-11 10:04:31 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:04:31 +08:00: @ECHO off
+2026-03-11 10:04:31 +08:00: ^
+2026-03-11 10:04:31 +08:00: 
+2026-03-11 10:04:31 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:04:31 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:04:31 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:04:31 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:04:31 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:04:31 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:04:31 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:04:31 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:04:31 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:04:31 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:04:31 +08:00: 
+2026-03-11 10:04:31 +08:00: Node.js v22.20.0
+2026-03-11 10:40:46 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:40:46 +08:00: @ECHO off
+2026-03-11 10:40:46 +08:00: ^
+2026-03-11 10:40:46 +08:00: 
+2026-03-11 10:40:46 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:40:46 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:40:46 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:40:46 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:40:46 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:40:46 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:40:46 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:40:46 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:40:46 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:40:46 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:40:46 +08:00: 
+2026-03-11 10:40:46 +08:00: Node.js v22.20.0
+2026-03-11 10:41:53 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:41:53 +08:00: @ECHO off
+2026-03-11 10:41:53 +08:00: ^
+2026-03-11 10:41:53 +08:00: 
+2026-03-11 10:41:53 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:41:53 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:41:53 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:41:53 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:41:53 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:41:53 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:41:53 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:41:53 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:41:53 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:41:53 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:41:53 +08:00: 
+2026-03-11 10:41:53 +08:00: Node.js v22.20.0
+2026-03-11 10:42:19 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:42:19 +08:00: @ECHO off
+2026-03-11 10:42:19 +08:00: ^
+2026-03-11 10:42:19 +08:00: 
+2026-03-11 10:42:19 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:42:19 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:42:19 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:42:19 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:42:19 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:42:19 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:42:19 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:42:19 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:42:19 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:42:19 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:42:19 +08:00: 
+2026-03-11 10:42:19 +08:00: Node.js v22.20.0
+2026-03-11 10:43:09 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:43:09 +08:00: @ECHO off
+2026-03-11 10:43:09 +08:00: ^
+2026-03-11 10:43:09 +08:00: 
+2026-03-11 10:43:09 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:43:09 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:43:09 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:43:09 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:43:09 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:43:09 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:43:09 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:43:09 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:43:09 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:43:09 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:43:09 +08:00: 
+2026-03-11 10:43:09 +08:00: Node.js v22.20.0
+2026-03-11 10:44:42 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 10:44:42 +08:00: @ECHO off
+2026-03-11 10:44:42 +08:00: ^
+2026-03-11 10:44:42 +08:00: 
+2026-03-11 10:44:42 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 10:44:42 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 10:44:42 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 10:44:42 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 10:44:42 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 10:44:42 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 10:44:42 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 10:44:42 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 10:44:42 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 10:44:42 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 10:44:42 +08:00: 
+2026-03-11 10:44:42 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:04 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:04 +08:00: @ECHO off
+2026-03-11 11:17:04 +08:00: ^
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:04 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:04 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:04 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:04 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:04 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:04 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:04 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:04 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:04 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:04 +08:00: 
+2026-03-11 11:17:04 +08:00: Node.js v22.20.0
+2026-03-11 11:17:05 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:05 +08:00: @ECHO off
+2026-03-11 11:17:05 +08:00: ^
+2026-03-11 11:17:05 +08:00: 
+2026-03-11 11:17:05 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:05 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:05 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:05 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:05 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:05 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:05 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:05 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:05 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:05 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:05 +08:00: 
+2026-03-11 11:17:05 +08:00: Node.js v22.20.0
+2026-03-11 11:17:05 +08:00: C:\USERS\BING\APPDATA\ROAMING\NPM\NPM.CMD:1
+2026-03-11 11:17:05 +08:00: @ECHO off
+2026-03-11 11:17:05 +08:00: ^
+2026-03-11 11:17:05 +08:00: 
+2026-03-11 11:17:05 +08:00: SyntaxError: Invalid or unexpected token
+2026-03-11 11:17:05 +08:00:     at wrapSafe (node:internal/modules/cjs/loader:1638:18)
+2026-03-11 11:17:05 +08:00:     at Module._compile (node:internal/modules/cjs/loader:1680:20)
+2026-03-11 11:17:05 +08:00:     at Object..js (node:internal/modules/cjs/loader:1839:10)
+2026-03-11 11:17:05 +08:00:     at Module.load (node:internal/modules/cjs/loader:1441:32)
+2026-03-11 11:17:05 +08:00:     at Function._load (node:internal/modules/cjs/loader:1263:12)
+2026-03-11 11:17:05 +08:00:     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2026-03-11 11:17:05 +08:00:     at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+2026-03-11 11:17:05 +08:00:     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2026-03-11 11:17:05 +08:00:     at node:internal/main/run_main_module:36:49
+2026-03-11 11:17:05 +08:00: 
+2026-03-11 11:17:05 +08:00: Node.js v22.20.0

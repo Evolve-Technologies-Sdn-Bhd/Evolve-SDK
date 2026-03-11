@@ -54,3 +54,237 @@
 2026-03-10 12:06:45 +08:00: Snapshots:   0 total
 2026-03-10 12:06:45 +08:00: Time:        2.253 s, estimated 3 s
 2026-03-10 12:06:45 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 09:45:55 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 09:45:55 +08:00:   Evolve SDK Performance
+2026-03-11 09:45:55 +08:00:     Database Query Performance
+2026-03-11 09:45:55 +08:00:       √ benchmarks date range filtering (89 ms)
+2026-03-11 09:45:55 +08:00:       √ benchmarks unique EPC extraction (39 ms)
+2026-03-11 09:45:55 +08:00:       √ benchmarks EPC count aggregation (14 ms)
+2026-03-11 09:45:55 +08:00:     Tag Processing Performance
+2026-03-11 09:45:55 +08:00:       √ benchmarks RSSI filtering (56 ms)
+2026-03-11 09:45:55 +08:00:       √ benchmarks event deduplication (55 ms)
+2026-03-11 09:45:55 +08:00:     Data Cleanup Performance
+2026-03-11 09:45:55 +08:00:       √ benchmarks 30-day retention filtering (107 ms)
+2026-03-11 09:45:55 +08:00:       √ benchmarks deletion overhead (5 ms)
+2026-03-11 09:45:55 +08:00: 
+2026-03-11 09:45:55 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:45:55 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:45:55 +08:00: Snapshots:   0 total
+2026-03-11 09:45:55 +08:00: Time:        1.847 s, estimated 3 s
+2026-03-11 09:45:55 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 09:49:23 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 09:49:23 +08:00:   Evolve SDK Performance
+2026-03-11 09:49:23 +08:00:     Database Query Performance
+2026-03-11 09:49:23 +08:00:       √ benchmarks date range filtering (91 ms)
+2026-03-11 09:49:23 +08:00:       √ benchmarks unique EPC extraction (35 ms)
+2026-03-11 09:49:23 +08:00:       √ benchmarks EPC count aggregation (14 ms)
+2026-03-11 09:49:23 +08:00:     Tag Processing Performance
+2026-03-11 09:49:23 +08:00:       √ benchmarks RSSI filtering (32 ms)
+2026-03-11 09:49:23 +08:00:       √ benchmarks event deduplication (61 ms)
+2026-03-11 09:49:23 +08:00:     Data Cleanup Performance
+2026-03-11 09:49:23 +08:00:       √ benchmarks 30-day retention filtering (117 ms)
+2026-03-11 09:49:23 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 09:49:23 +08:00: 
+2026-03-11 09:49:23 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:49:23 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:49:23 +08:00: Snapshots:   0 total
+2026-03-11 09:49:23 +08:00: Time:        1.497 s, estimated 3 s
+2026-03-11 09:49:23 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 09:56:55 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 09:56:55 +08:00:   Evolve SDK Performance
+2026-03-11 09:56:55 +08:00:     Database Query Performance
+2026-03-11 09:56:55 +08:00:       √ benchmarks date range filtering (84 ms)
+2026-03-11 09:56:55 +08:00:       √ benchmarks unique EPC extraction (36 ms)
+2026-03-11 09:56:55 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 09:56:55 +08:00:     Tag Processing Performance
+2026-03-11 09:56:55 +08:00:       √ benchmarks RSSI filtering (30 ms)
+2026-03-11 09:56:55 +08:00:       √ benchmarks event deduplication (54 ms)
+2026-03-11 09:56:55 +08:00:     Data Cleanup Performance
+2026-03-11 09:56:55 +08:00:       √ benchmarks 30-day retention filtering (100 ms)
+2026-03-11 09:56:55 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 09:56:55 +08:00: 
+2026-03-11 09:56:55 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 09:56:55 +08:00: Tests:       7 passed, 7 total
+2026-03-11 09:56:55 +08:00: Snapshots:   0 total
+2026-03-11 09:56:55 +08:00: Time:        1.376 s, estimated 3 s
+2026-03-11 09:56:55 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 10:04:33 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 10:04:33 +08:00:   Evolve SDK Performance
+2026-03-11 10:04:33 +08:00:     Database Query Performance
+2026-03-11 10:04:33 +08:00:       √ benchmarks date range filtering (93 ms)
+2026-03-11 10:04:33 +08:00:       √ benchmarks unique EPC extraction (36 ms)
+2026-03-11 10:04:33 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 10:04:33 +08:00:     Tag Processing Performance
+2026-03-11 10:04:33 +08:00:       √ benchmarks RSSI filtering (33 ms)
+2026-03-11 10:04:33 +08:00:       √ benchmarks event deduplication (58 ms)
+2026-03-11 10:04:33 +08:00:     Data Cleanup Performance
+2026-03-11 10:04:33 +08:00:       √ benchmarks 30-day retention filtering (105 ms)
+2026-03-11 10:04:33 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 10:04:33 +08:00: 
+2026-03-11 10:04:33 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:04:33 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:04:33 +08:00: Snapshots:   0 total
+2026-03-11 10:04:33 +08:00: Time:        1.579 s, estimated 3 s
+2026-03-11 10:04:33 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 10:40:48 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 10:40:48 +08:00:   Evolve SDK Performance
+2026-03-11 10:40:48 +08:00:     Database Query Performance
+2026-03-11 10:40:48 +08:00:       √ benchmarks date range filtering (82 ms)
+2026-03-11 10:40:48 +08:00:       √ benchmarks unique EPC extraction (33 ms)
+2026-03-11 10:40:48 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 10:40:48 +08:00:     Tag Processing Performance
+2026-03-11 10:40:48 +08:00:       √ benchmarks RSSI filtering (31 ms)
+2026-03-11 10:40:48 +08:00:       √ benchmarks event deduplication (53 ms)
+2026-03-11 10:40:48 +08:00:     Data Cleanup Performance
+2026-03-11 10:40:48 +08:00:       √ benchmarks 30-day retention filtering (100 ms)
+2026-03-11 10:40:48 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 10:40:48 +08:00: 
+2026-03-11 10:40:48 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:40:48 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:40:48 +08:00: Snapshots:   0 total
+2026-03-11 10:40:48 +08:00: Time:        1.452 s, estimated 3 s
+2026-03-11 10:40:48 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 10:43:10 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 10:43:10 +08:00:   Evolve SDK Performance
+2026-03-11 10:43:10 +08:00:     Database Query Performance
+2026-03-11 10:43:10 +08:00:       √ benchmarks date range filtering (79 ms)
+2026-03-11 10:43:10 +08:00:       √ benchmarks unique EPC extraction (36 ms)
+2026-03-11 10:43:10 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 10:43:10 +08:00:     Tag Processing Performance
+2026-03-11 10:43:10 +08:00:       √ benchmarks RSSI filtering (31 ms)
+2026-03-11 10:43:10 +08:00:       √ benchmarks event deduplication (53 ms)
+2026-03-11 10:43:10 +08:00:     Data Cleanup Performance
+2026-03-11 10:43:10 +08:00:       √ benchmarks 30-day retention filtering (94 ms)
+2026-03-11 10:43:10 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 10:43:10 +08:00: 
+2026-03-11 10:43:10 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:43:10 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:43:10 +08:00: Snapshots:   0 total
+2026-03-11 10:43:10 +08:00: Time:        1.335 s, estimated 3 s
+2026-03-11 10:43:10 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 10:50:26 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 10:50:26 +08:00:   Evolve SDK Performance
+2026-03-11 10:50:26 +08:00:     Database Query Performance
+2026-03-11 10:50:26 +08:00:       √ benchmarks date range filtering (79 ms)
+2026-03-11 10:50:26 +08:00:       √ benchmarks unique EPC extraction (35 ms)
+2026-03-11 10:50:26 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 10:50:26 +08:00:     Tag Processing Performance
+2026-03-11 10:50:26 +08:00:       √ benchmarks RSSI filtering (30 ms)
+2026-03-11 10:50:26 +08:00:       √ benchmarks event deduplication (58 ms)
+2026-03-11 10:50:26 +08:00:     Data Cleanup Performance
+2026-03-11 10:50:26 +08:00:       √ benchmarks 30-day retention filtering (105 ms)
+2026-03-11 10:50:26 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 10:50:26 +08:00: 
+2026-03-11 10:50:26 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:50:26 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:50:26 +08:00: Snapshots:   0 total
+2026-03-11 10:50:26 +08:00: Time:        1.4 s, estimated 3 s
+2026-03-11 10:50:26 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 10:52:36 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 10:52:36 +08:00:   Evolve SDK Performance
+2026-03-11 10:52:36 +08:00:     Database Query Performance
+2026-03-11 10:52:36 +08:00:       √ benchmarks date range filtering (97 ms)
+2026-03-11 10:52:36 +08:00:       √ benchmarks unique EPC extraction (39 ms)
+2026-03-11 10:52:36 +08:00:       √ benchmarks EPC count aggregation (14 ms)
+2026-03-11 10:52:36 +08:00:     Tag Processing Performance
+2026-03-11 10:52:36 +08:00:       √ benchmarks RSSI filtering (34 ms)
+2026-03-11 10:52:36 +08:00:       √ benchmarks event deduplication (69 ms)
+2026-03-11 10:52:36 +08:00:     Data Cleanup Performance
+2026-03-11 10:52:36 +08:00:       √ benchmarks 30-day retention filtering (120 ms)
+2026-03-11 10:52:36 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 10:52:36 +08:00: 
+2026-03-11 10:52:36 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 10:52:36 +08:00: Tests:       7 passed, 7 total
+2026-03-11 10:52:36 +08:00: Snapshots:   0 total
+2026-03-11 10:52:36 +08:00: Time:        1.362 s, estimated 3 s
+2026-03-11 10:52:36 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 11:03:00 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 11:03:00 +08:00:   Evolve SDK Performance
+2026-03-11 11:03:00 +08:00:     Database Query Performance
+2026-03-11 11:03:00 +08:00:       √ benchmarks date range filtering (96 ms)
+2026-03-11 11:03:00 +08:00:       √ benchmarks unique EPC extraction (36 ms)
+2026-03-11 11:03:00 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 11:03:00 +08:00:     Tag Processing Performance
+2026-03-11 11:03:00 +08:00:       √ benchmarks RSSI filtering (33 ms)
+2026-03-11 11:03:00 +08:00:       √ benchmarks event deduplication (61 ms)
+2026-03-11 11:03:00 +08:00:     Data Cleanup Performance
+2026-03-11 11:03:00 +08:00:       √ benchmarks 30-day retention filtering (115 ms)
+2026-03-11 11:03:00 +08:00:       √ benchmarks deletion overhead (5 ms)
+2026-03-11 11:03:00 +08:00: 
+2026-03-11 11:03:00 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:03:00 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:03:00 +08:00: Snapshots:   0 total
+2026-03-11 11:03:00 +08:00: Time:        1.517 s, estimated 3 s
+2026-03-11 11:03:00 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 11:14:58 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 11:14:58 +08:00:   Evolve SDK Performance
+2026-03-11 11:14:58 +08:00:     Database Query Performance
+2026-03-11 11:14:58 +08:00:       √ benchmarks date range filtering (84 ms)
+2026-03-11 11:14:58 +08:00:       √ benchmarks unique EPC extraction (34 ms)
+2026-03-11 11:14:58 +08:00:       √ benchmarks EPC count aggregation (15 ms)
+2026-03-11 11:14:58 +08:00:     Tag Processing Performance
+2026-03-11 11:14:58 +08:00:       √ benchmarks RSSI filtering (30 ms)
+2026-03-11 11:14:58 +08:00:       √ benchmarks event deduplication (52 ms)
+2026-03-11 11:14:58 +08:00:     Data Cleanup Performance
+2026-03-11 11:14:58 +08:00:       √ benchmarks 30-day retention filtering (96 ms)
+2026-03-11 11:14:58 +08:00:       √ benchmarks deletion overhead (4 ms)
+2026-03-11 11:14:58 +08:00: 
+2026-03-11 11:14:58 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:14:58 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:14:58 +08:00: Snapshots:   0 total
+2026-03-11 11:14:58 +08:00: Time:        1.377 s, estimated 3 s
+2026-03-11 11:14:58 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 11:15:26 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 11:15:26 +08:00:   Evolve SDK Performance
+2026-03-11 11:15:26 +08:00:     Database Query Performance
+2026-03-11 11:15:26 +08:00:       √ benchmarks date range filtering (81 ms)
+2026-03-11 11:15:26 +08:00:       √ benchmarks unique EPC extraction (32 ms)
+2026-03-11 11:15:26 +08:00:       √ benchmarks EPC count aggregation (14 ms)
+2026-03-11 11:15:26 +08:00:     Tag Processing Performance
+2026-03-11 11:15:26 +08:00:       √ benchmarks RSSI filtering (34 ms)
+2026-03-11 11:15:26 +08:00:       √ benchmarks event deduplication (54 ms)
+2026-03-11 11:15:26 +08:00:     Data Cleanup Performance
+2026-03-11 11:15:26 +08:00:       √ benchmarks 30-day retention filtering (104 ms)
+2026-03-11 11:15:26 +08:00:       √ benchmarks deletion overhead (5 ms)
+2026-03-11 11:15:26 +08:00: 
+2026-03-11 11:15:26 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:15:26 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:15:26 +08:00: Snapshots:   0 total
+2026-03-11 11:15:26 +08:00: Time:        1.324 s, estimated 3 s
+2026-03-11 11:15:26 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 11:17:06 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 11:17:06 +08:00:   Evolve SDK Performance
+2026-03-11 11:17:06 +08:00:     Database Query Performance
+2026-03-11 11:17:06 +08:00:       √ benchmarks date range filtering (95 ms)
+2026-03-11 11:17:06 +08:00:       √ benchmarks unique EPC extraction (42 ms)
+2026-03-11 11:17:06 +08:00:       √ benchmarks EPC count aggregation (13 ms)
+2026-03-11 11:17:06 +08:00:     Tag Processing Performance
+2026-03-11 11:17:06 +08:00:       √ benchmarks RSSI filtering (37 ms)
+2026-03-11 11:17:06 +08:00:       √ benchmarks event deduplication (54 ms)
+2026-03-11 11:17:06 +08:00:     Data Cleanup Performance
+2026-03-11 11:17:06 +08:00:       √ benchmarks 30-day retention filtering (102 ms)
+2026-03-11 11:17:06 +08:00:       √ benchmarks deletion overhead (5 ms)
+2026-03-11 11:17:06 +08:00: 
+2026-03-11 11:17:06 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:17:06 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:17:06 +08:00: Snapshots:   0 total
+2026-03-11 11:17:06 +08:00: Time:        1.35 s, estimated 3 s
+2026-03-11 11:17:06 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 11:27:14 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 11:27:14 +08:00:   Evolve SDK Performance
+2026-03-11 11:27:14 +08:00:     Database Query Performance
+2026-03-11 11:27:14 +08:00:       √ benchmarks date range filtering (90 ms)
+2026-03-11 11:27:14 +08:00:       √ benchmarks unique EPC extraction (42 ms)
+2026-03-11 11:27:14 +08:00:       √ benchmarks EPC count aggregation (19 ms)
+2026-03-11 11:27:14 +08:00:     Tag Processing Performance
+2026-03-11 11:27:14 +08:00:       √ benchmarks RSSI filtering (39 ms)
+2026-03-11 11:27:14 +08:00:       √ benchmarks event deduplication (85 ms)
+2026-03-11 11:27:14 +08:00:     Data Cleanup Performance
+2026-03-11 11:27:14 +08:00:       √ benchmarks 30-day retention filtering (131 ms)
+2026-03-11 11:27:14 +08:00:       √ benchmarks deletion overhead (6 ms)
+2026-03-11 11:27:14 +08:00: 
+2026-03-11 11:27:14 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 11:27:14 +08:00: Tests:       7 passed, 7 total
+2026-03-11 11:27:14 +08:00: Snapshots:   0 total
+2026-03-11 11:27:14 +08:00: Time:        1.607 s, estimated 3 s
+2026-03-11 11:27:14 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
