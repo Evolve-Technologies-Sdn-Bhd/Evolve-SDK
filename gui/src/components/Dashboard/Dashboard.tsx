@@ -171,12 +171,20 @@ export default function Dashboard() {
   }, []);
 
   const setupListeners = useCallback(() => {
+    let tagReadRegistered = false;
+    let rawDataRegistered = false;
+
     // subscribe to tag reads
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onTagRead) {
-      // @ts-ignore
-      const unsubscribe = window.electronAPI.onTagRead(handleTagReceived);
-      unsubscribeRef.current.tagReadUnsub = unsubscribe;
+      try {
+        // @ts-ignore
+        const unsubscribe = window.electronAPI.onTagRead(handleTagReceived);
+        unsubscribeRef.current.tagReadUnsub = unsubscribe;
+        tagReadRegistered = true;
+      } catch (err) {
+        console.error('[Dashboard] Error registering tag read listener:', err);
+      }
     } else {
       console.error('[Dashboard] electronAPI.onTagRead not available');
     }
@@ -184,34 +192,45 @@ export default function Dashboard() {
     // subscribe to raw data
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onRawData) {
-      // @ts-ignore
-      const unsubscribe = window.electronAPI.onRawData(handleRawDataReceived);
-      unsubscribeRef.current.rawDataUnsub = unsubscribe;
+      try {
+        // @ts-ignore
+        const unsubscribe = window.electronAPI.onRawData(handleRawDataReceived);
+        unsubscribeRef.current.rawDataUnsub = unsubscribe;
+        rawDataRegistered = true;
+      } catch (err) {
+        console.error('[Dashboard] Error registering raw data listener:', err);
+      }
     } else {
       console.warn('[Dashboard] electronAPI.onRawData not available');
+    }
+
+    if (tagReadRegistered || rawDataRegistered) {
+      console.log('[Dashboard] Listeners registered successfully');
     }
   }, [handleTagReceived, handleRawDataReceived]);
 
   // Setup and teardown listeners
   const removeListeners = useCallback(() => {
+    let unsubscribed = false;
+
     // Unsubscribe from tag reads
     if (unsubscribeRef.current.tagReadUnsub) {
       try {
         unsubscribeRef.current.tagReadUnsub();
+        unsubscribed = true;
       } catch (err) {
         console.error('[Dashboard] Error unsubscribing tag listener:', err);
       }
-      unsubscribeRef.current.tagReadUnsub = undefined;
     }
     
     // Unsubscribe from raw data
     if (unsubscribeRef.current.rawDataUnsub) {
       try {
         unsubscribeRef.current.rawDataUnsub();
+        unsubscribed = true;
       } catch (err) {
         console.error('[Dashboard] Error unsubscribing raw data listener:', err);
       }
-      unsubscribeRef.current.rawDataUnsub = undefined;
     }
     
     // Force remove all listeners on the IPC side as final safety measure
@@ -223,25 +242,37 @@ export default function Dashboard() {
         console.error('[Dashboard] Error clearing IPC listeners:', err);
       }
     }
+
+    if (unsubscribed) {
+      console.log('[Dashboard] Listeners unsubscribed successfully');
+    }
   }, []);
 
   const handleRefresh = useCallback(async () => {
     // Step 1: Remove all listeners to stop incoming data
     removeListeners();
     
-    // Step 2: Clear the logs immediately after removing listeners
+    // Step 2: Clear the logs immediately
     setLogs([]);
     
-    // Step 3: Clear all data listeners on the IPC side to ensure no queued messages
+    // Step 3: Clear all data listeners on the IPC side
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
-      window.electronAPI.clearAllDataListeners();
+      try {
+        window.electronAPI.clearAllDataListeners();
+      } catch (err) {
+        console.error('[Dashboard] Error clearing IPC listeners during refresh:', err);
+      }
     }
     
-    // Step 4: Wait to ensure all pending callbacks and messages are flushed
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Step 4: Wait to ensure all pending callbacks are flushed
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Step 5: Re-register listeners for fresh data stream
+    // Step 5: Clear the refs to ensure cleanslate
+    unsubscribeRef.current.tagReadUnsub = undefined;
+    unsubscribeRef.current.rawDataUnsub = undefined;
+    
+    // Step 6: Re-register listeners for fresh data stream
     setupListeners();
   }, [removeListeners, setupListeners]);
 
