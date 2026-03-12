@@ -306,3 +306,21 @@
 2026-03-11 11:27:13 +08:00: Snapshots:   0 total
 2026-03-11 11:27:13 +08:00: Time:        1.114 s
 2026-03-11 11:27:13 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.
+2026-03-11 17:39:43 +08:00: ts-jest[config] (WARN) 
+2026-03-11 17:39:43 +08:00:     The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in C:/Users/Bing/Documents/Work_Khairul/Evolve SDK/RFIDSDK/EvolveSDK/gui/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+2026-03-11 17:39:43 +08:00:   
+2026-03-11 17:39:43 +08:00: PASS test/sandbag.perf.test.ts
+2026-03-11 17:39:43 +08:00:   Evolve SDK GUI Performance
+2026-03-11 17:39:43 +08:00:     Component Rendering Performance
+2026-03-11 17:39:43 +08:00:       √ benchmarks tag filter operation (40 ms)
+2026-03-11 17:39:43 +08:00:       √ benchmarks data formatting for large datasets (7 ms)
+2026-03-11 17:39:43 +08:00:       √ benchmarks tag counting with Map (3 ms)
+2026-03-11 17:39:43 +08:00:     UI State Management Performance
+2026-03-11 17:39:43 +08:00:       √ benchmarks rapid state updates (2 ms)
+2026-03-11 17:39:43 +08:00:       √ benchmarks EPC sorting performance (16 ms)
+2026-03-11 17:39:43 +08:00: 
+2026-03-11 17:39:44 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 17:39:44 +08:00: Tests:       5 passed, 5 total
+2026-03-11 17:39:44 +08:00: Snapshots:   0 total
+2026-03-11 17:39:44 +08:00: Time:        1.273 s
+2026-03-11 17:39:44 +08:00: Ran all test suites matching test/sandbag.perf.test.ts.

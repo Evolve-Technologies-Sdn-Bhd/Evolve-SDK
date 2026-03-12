@@ -1480,3 +1480,117 @@
 2026-03-11 11:27:14 +08:00: 
 2026-03-11 11:27:14 +08:00: 
 2026-03-11 11:27:14 +08:00: [PERF] SDK Serial Performance test exited with code 0
+2026-03-11 17:39:42 +08:00: 
+2026-03-11 17:39:42 +08:00: > @evolve/sdk@0.1.0 test:serial-perf
+2026-03-11 17:39:42 +08:00: > jest test/sandbag.serial.perf.test.ts --no-coverage
+2026-03-11 17:39:42 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial frame parsing (10k frames): 5.39ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average per frame: 0.001ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:44:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Throughput: 1856631 frames/sec
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:45:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial bulk reception (100k tags): 20.04ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Tags processed: 100000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:76:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average latency: 0.0002ms per tag
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:77:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial deduplication (50k reads, 10k unique): 19.02ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Unique tags: 10000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:99:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Duplicate rate: 80.00%
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:100:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial RSSI filtering (100k tags, threshold > -70): 2.37ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Tags above threshold: 59848
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:118:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Filtered out: 40152
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:119:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Concurrent antenna parsing (4 antennas, 100k total): 27.35ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Total processed: 100000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:144:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial error recovery (1000 cycles): 0.36ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.serial.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Successful recoveries: 504
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:171:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Recovery success rate: 50.40%
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:172:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     Serial throughput at different baud rates:
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.serial.perf.test.ts:196:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 9600 baud: expected 104166.67ms, actual 0.61ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.serial.perf.test.ts:198:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 57600 baud: expected 17361.11ms, actual 0.25ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.serial.perf.test.ts:198:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 115200 baud: expected 8680.56ms, actual 0.06ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.serial.perf.test.ts:198:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00: [PERF] SDK Serial Performance test exited with code 0

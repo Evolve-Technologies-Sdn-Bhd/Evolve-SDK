@@ -2013,3 +2013,158 @@
 2026-03-11 11:27:14 +08:00: 
 2026-03-11 11:27:14 +08:00: 
 2026-03-11 11:27:14 +08:00: [PERF] SDK MQTT Performance test exited with code 0
+2026-03-11 17:39:42 +08:00: 
+2026-03-11 17:39:42 +08:00: > @evolve/sdk@0.1.0 test:mqtt-perf
+2026-03-11 17:39:42 +08:00: > jest test/sandbag.mqtt.perf.test.ts --no-coverage
+2026-03-11 17:39:42 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT JSON parsing (10k payloads): 7.56ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average per payload: 0.0008ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:41:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Throughput: 1322541 payloads/sec
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:42:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT binary parsing (10k payloads): 3.66ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average per payload: 0.0004ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:75:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Throughput: 2728811 payloads/sec
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:76:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Speedup vs JSON: -20.69x
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:77:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT deduplication (100k messages, 20k unique): 43.02ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Unique tags: 20000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:99:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average duplicate count: 4.00
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:100:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT RSSI filtering (100k messages): 1.63ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Messages above threshold: 66961
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:119:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Filtered out: 33039
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:120:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Filter efficiency: 66.96%
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:121:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT topic routing (100k messages, 10 topics): 3.33ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Topics used: 10
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:147:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Average messages per topic: 10000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:148:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT concurrent processing (5 subscribers, 100k total messages): 4.00ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Total processed: 100000
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:174:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Per subscriber rate: 4999000 msgs/sec
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:175:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT payload size impact:
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:207:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 100B payload: 0.76ms, 124.71 MB/s
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.mqtt.perf.test.ts:209:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 500B payload: 0.87ms, 550.62 MB/s
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.mqtt.perf.test.ts:209:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 1000B payload: 1.12ms, 848.16 MB/s
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.mqtt.perf.test.ts:209:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - 5000B payload: 2.42ms, 1972.28 MB/s
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at test/sandbag.mqtt.perf.test.ts:209:15
+2026-03-11 17:39:44 +08:00:           at Array.forEach (<anonymous>)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:     MQTT connection stability (1000 cycles): 0.41ms
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at logPerf (test/sandbag.mqtt.perf.test.ts:16:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Successful connections: 989
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:238:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Failed connections: 11
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:239:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:   console.log
+2026-03-11 17:39:44 +08:00:       - Success rate: 98.90%
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00:       at Object.<anonymous> (test/sandbag.mqtt.perf.test.ts:240:13)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00: [PERF] SDK MQTT Performance test exited with code 0

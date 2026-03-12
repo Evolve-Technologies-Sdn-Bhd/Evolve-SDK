@@ -526,7 +526,7 @@ function createApplicationMenu() {
             },
             {
               label: 'Troubleshooting Guide',
-              click: () => openResourcePdf('SDD01260219001_Software Design Document RFID SDK JJ Wine.pdf', 'Troubleshooting Guide')
+              click: () => openResourcePdf('UM01260311001_Troubleshooting Guide.pdf', 'Troubleshooting Guide')
             },
             {
               label: 'API Documentation',

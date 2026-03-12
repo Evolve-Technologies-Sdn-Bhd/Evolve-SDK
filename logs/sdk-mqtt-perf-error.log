@@ -206,3 +206,19 @@
 2026-03-11 11:27:14 +08:00: Snapshots:   0 total
 2026-03-11 11:27:14 +08:00: Time:        1.506 s, estimated 2 s
 2026-03-11 11:27:14 +08:00: Ran all test suites matching test/sandbag.mqtt.perf.test.ts.
+2026-03-11 17:39:44 +08:00: PASS test/sandbag.mqtt.perf.test.ts
+2026-03-11 17:39:44 +08:00:   Evolve SDK MQTT Performance
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT JSON payload parsing (10k payloads) (53 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT binary payload parsing (10k payloads) (29 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT message deduplication (100k messages, 20k unique) (46 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT RSSI filtering (100k messages, threshold -70) (84 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT topic routing (100k messages, 10 topics) (18 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT concurrent processing (5 virtual subscribers, 20k messages each) (6 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT payload size impact (1k-10k payloads) (19 ms)
+2026-03-11 17:39:44 +08:00:     √ benchmarks MQTT connection stability (1000 connect/disconnect cycles) (4 ms)
+2026-03-11 17:39:44 +08:00: 
+2026-03-11 17:39:44 +08:00: Test Suites: 1 passed, 1 total
+2026-03-11 17:39:44 +08:00: Tests:       8 passed, 8 total
+2026-03-11 17:39:44 +08:00: Snapshots:   0 total
+2026-03-11 17:39:44 +08:00: Time:        1.557 s, estimated 3 s
+2026-03-11 17:39:44 +08:00: Ran all test suites matching test/sandbag.mqtt.perf.test.ts.
