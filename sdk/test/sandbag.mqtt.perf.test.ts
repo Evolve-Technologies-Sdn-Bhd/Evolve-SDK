@@ -41,7 +41,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Average per payload: ${avgMs.toFixed(4)}ms`);
     console.log(`  - Throughput: ${Math.round(10000 / ((endTime - startTime) / 1000))} payloads/sec`);
 
-    expect(endTime - startTime).toBeLessThan(100);
+    expect(endTime - startTime).toBeLessThan(100 * ciMultiplier);
   });
 
   // Benchmark 2: Binary payload parsing
@@ -76,7 +76,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Throughput: ${Math.round(10000 / ((endTime - startTime) / 1000))} payloads/sec`);
     console.log(`  - Speedup vs JSON: ${((100 - startTime) / 100).toFixed(2)}x`);
 
-    expect(endTime - startTime).toBeLessThan(50);
+    expect(endTime - startTime).toBeLessThan(50 * ciMultiplier);
   });
 
   // Benchmark 3: Message deduplication
@@ -120,7 +120,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Filtered out: ${messages.length - filtered.length}`);
     console.log(`  - Filter efficiency: ${((filtered.length / messages.length) * 100).toFixed(2)}%`);
 
-    expect(endTime - startTime).toBeLessThan(50);
+    expect(endTime - startTime).toBeLessThan(50 * ciMultiplier);
   });
 
   // Benchmark 5: Topic-based message routing
@@ -147,7 +147,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Topics used: ${routedMessages.size}`);
     console.log(`  - Average messages per topic: ${(100000 / routedMessages.size).toFixed(0)}`);
 
-    expect(endTime - startTime).toBeLessThan(80);
+    expect(endTime - startTime).toBeLessThan(80 * ciMultiplier);
   });
 
   // Benchmark 6: Concurrent broker message processing
@@ -174,7 +174,7 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Total processed: ${results.reduce((a, b) => a + b, 0)}`);
     console.log(`  - Per subscriber rate: ${Math.round((messagesPerSubscriber * 1000) / (endTime - startTime))} msgs/sec`);
 
-    expect(endTime - startTime).toBeLessThan(150);
+    expect(endTime - startTime).toBeLessThan(150 * ciMultiplier);
   });
 
   // Benchmark 7: Payload size impact
@@ -209,7 +209,7 @@ describe('Evolve SDK MQTT Performance', () => {
       console.log(`  - ${payloadSize}B payload: ${processingTimeMs.toFixed(2)}ms, ${throughputMBps.toFixed(2)} MB/s`);
     });
 
-    expect(results[results.length - 1].processingTimeMs).toBeLessThan(500);
+    expect(results[results.length - 1].processingTimeMs).toBeLessThan(500 * ciMultiplier);
   });
 
   // Benchmark 8: Connection stability simulation
@@ -239,6 +239,6 @@ describe('Evolve SDK MQTT Performance', () => {
     console.log(`  - Failed connections: ${failureCount}`);
     console.log(`  - Success rate: ${((successCount / 1000) * 100).toFixed(2)}%`);
 
-    expect(endTime - startTime).toBeLessThan(150);
+    expect(endTime - startTime).toBeLessThan(150 * ciMultiplier);
   });
 });

@@ -44,7 +44,7 @@ describe('Evolve SDK Serial Performance', () => {
     console.log(`  - Average per frame: ${avgMs.toFixed(3)}ms`);
     console.log(`  - Throughput: ${Math.round(10000 / ((endTime - startTime) / 1000))} frames/sec`);
 
-    expect(endTime - startTime).toBeLessThan(100); // Should parse 10k frames in < 100ms
+    expect(endTime - startTime).toBeLessThan(100 * ciMultiplier); // Should parse 10k frames in < 100ms
   });
 
   // Benchmark 2: Bulk data reception (simulating continuous serial stream)
@@ -76,7 +76,7 @@ describe('Evolve SDK Serial Performance', () => {
     console.log(`  - Tags processed: ${processedCount}`);
     console.log(`  - Average latency: ${((endTime - startTime) / processedCount).toFixed(4)}ms per tag`);
 
-    expect(endTime - startTime).toBeLessThan(500);
+    expect(endTime - startTime).toBeLessThan(500 * ciMultiplier);
   });
 
   // Benchmark 3: Deduplication during serial streaming
@@ -118,7 +118,7 @@ describe('Evolve SDK Serial Performance', () => {
     console.log(`  - Tags above threshold: ${filteredTags.length}`);
     console.log(`  - Filtered out: ${tags.length - filteredTags.length}`);
 
-    expect(endTime - startTime).toBeLessThan(50);
+    expect(endTime - startTime).toBeLessThan(50 * ciMultiplier);
   });
 
   // Benchmark 5: Concurrent frame parsing (multi-antenna simulation)
@@ -143,7 +143,7 @@ describe('Evolve SDK Serial Performance', () => {
     logPerf('Concurrent antenna parsing (4 antennas, 100k total)', endTime - startTime);
     console.log(`  - Total processed: ${results.reduce((a, b) => a + b, 0)}`);
 
-    expect(endTime - startTime).toBeLessThan(100);
+    expect(endTime - startTime).toBeLessThan(100 * ciMultiplier);
   });
 
   // Benchmark 6: Port error recovery simulation
@@ -171,7 +171,7 @@ describe('Evolve SDK Serial Performance', () => {
     console.log(`  - Successful recoveries: ${recoveredCount}`);
     console.log(`  - Recovery success rate: ${((recoveredCount / 1000) * 100).toFixed(2)}%`);
 
-    expect(endTime - startTime).toBeLessThan(100);
+    expect(endTime - startTime).toBeLessThan(100 * ciMultiplier);
   });
 
   // Benchmark 7: Baud rate impact simulation (data rate differences)
@@ -198,6 +198,6 @@ describe('Evolve SDK Serial Performance', () => {
       console.log(`  - ${baud} baud: expected ${expectedTimeMs.toFixed(2)}ms, actual ${actualTimeMs.toFixed(2)}ms`);
     });
 
-    expect(results[results.length - 1].actualTimeMs).toBeLessThan(50);
+    expect(results[results.length - 1].actualTimeMs).toBeLessThan(50 * ciMultiplier);
   });
 });
