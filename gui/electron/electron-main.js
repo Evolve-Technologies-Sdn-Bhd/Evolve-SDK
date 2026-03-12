@@ -26,30 +26,21 @@ global.dbInstance = null;
 
 async function initializeSDK() {
   try {
-    const projectRoot = app.isPackaged
-      ? process.resourcesPath
-      : path.resolve(__dirname, '../../');
-
-    const sdkPath = path.join(projectRoot, 'sdk/dist/index.js');
-
-    const sdkUrl = pathToFileURL(sdkPath).href;
-    const sdkModule = await import(sdkUrl);
-
+    // Standard module import - works in both dev (via node_modules link) 
+    // and production (bundled in app.asar/node_modules)
+    const sdkModule = await import('@evolve/sdk');
     const RfidSdk = sdkModule?.RfidSdk ?? sdkModule?.default;
 
     if (RfidSdk && typeof RfidSdk === 'function') {
       sdk = new RfidSdk();
-
       console.log('[App] ✓ SDK instance created');
 
-      // Optional but recommended
       if (typeof sdk.initialize === 'function') {
         await sdk.initialize();
         console.log('[App] ✓ SDK initialize() complete');
       }
-
     } else {
-      console.warn('[Electron] SDK class not found');
+      console.warn('[Electron] SDK class not found in @evolve/sdk module');
       sdk = null;
     }
 
@@ -451,7 +442,7 @@ function createApplicationMenu() {
       }
 
       // Serve over localhost and open in default browser
-      const baseDir = app.isPackaged ? process.resourcesPath : path.join(__dirname, '../resources');
+      const baseDir = app.isPackaged ? path.join(process.resourcesPath, 'resources') : path.join(__dirname, '../resources');
       const port = await ensureDocsServer(baseDir);
       const httpUrl = `http://127.0.0.1:${port}/docs/${encodeURIComponent(fileName)}`;
       console.log(`[Menu] Opening PDF in browser via: ${httpUrl}`);
