@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { RawPacket } from "./RawDataConsole";
 import { JSONFormatter } from "../../../utils/PayloadFormatter";
 
@@ -7,7 +7,25 @@ interface JSONViewerProps {
   formatter?: typeof JSONFormatter;
 }
 
-export default function JSONViewer({ logs, formatter = JSONFormatter }: JSONViewerProps) {
+// Memoized log item to prevent re-renders of unchanged items
+const LogItem = React.memo(({ log, formatter }: { log: RawPacket; formatter: typeof JSONFormatter }) => (
+  <div key={log.id} className="mb-4 p-2 bg-gray-100 rounded">
+    <div className="flex gap-2 mb-2 text-gray-600 text-xs">
+      <span className="font-bold">{log.id}</span>
+      <span className={log.direction === 'RX' ? 'text-green-600' : 'text-blue-600'}>
+        [{log.direction}]
+      </span>
+      <span>{log.timestamp}</span>
+    </div>
+    <pre className="text-xs overflow-auto bg-white p-2 rounded border border-gray-300">
+      {formatter.getDisplayJson(log.data)}
+    </pre>
+  </div>
+));
+
+LogItem.displayName = 'JSONLogItem';
+
+function JSONViewer({ logs, formatter = JSONFormatter }: JSONViewerProps) {
   if (logs.length === 0) {
     return (
       <div className="text-gray-400 italic text-center mt-10">
@@ -16,22 +34,16 @@ export default function JSONViewer({ logs, formatter = JSONFormatter }: JSONView
     );
   }
 
+  // Only show last 100 logs to reduce DOM size and improve performance
+  const visibleLogs = useMemo(() => logs.slice(-100), [logs]);
+
   return (
     <>
-      {logs.map((log) => (
-        <div key={log.id} className="mb-4 p-2 bg-gray-100 rounded">
-          <div className="flex gap-2 mb-2 text-gray-600 text-xs">
-            <span className="font-bold">{log.id}</span>
-            <span className={log.direction === 'RX' ? 'text-green-600' : 'text-blue-600'}>
-              [{log.direction}]
-            </span>
-            <span>{log.timestamp}</span>
-          </div>
-          <pre className="text-xs overflow-auto bg-white p-2 rounded border border-gray-300">
-            {formatter.getDisplayJson(log.data)}
-          </pre>
-        </div>
+      {visibleLogs.map((log) => (
+        <LogItem key={log.id} log={log} formatter={formatter} />
       ))}
     </>
   );
 }
+
+export default React.memo(JSONViewer);

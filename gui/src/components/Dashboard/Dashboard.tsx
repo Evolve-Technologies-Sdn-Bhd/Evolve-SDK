@@ -13,27 +13,40 @@ declare global {
   }
 }
 
+// Maximum number of logs to keep in memory (keeps UI performant)
+const MAX_LOGS = 2000;
+
 export default function Dashboard() {
   const [logs, setLogs] = useState<RawPacket[]>([]);
   const [viewType, setViewType] = useState<DataViewType>('raw');
   const scrollRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef< { tagReadUnsub?: () => void; rawDataUnsub?: () => void } >({});
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const { epcFilter } = useFilter();
 
-  // Auto-scroll
+  // Debounced auto-scroll - only scroll every 100ms maximum, not on every log
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
     }
-  }, [logs]); // Auto-scroll when logs change
+    
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 50); // Debounce by 50ms
+
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [logs]);
 
   // Create memoized tag handler that doesn't have stale closures
   const handleTagReceived = useCallback((tag: any) => {
-    console.log('[Dashboard] ✓ Received tag event:', JSON.stringify(tag, null, 2));
-    
     // Use PayloadFormatter to format the tag data
     const formattedTag = PayloadFormatter.formatTagForDisplay(tag);
-    console.log('[Dashboard] ✓ Formatted tag:', JSON.stringify(formattedTag, null, 2));
 
     const newLog: RawPacket = {
       id: formattedTag.id,
@@ -42,22 +55,17 @@ export default function Dashboard() {
       data: formattedTag.data,
     };
 
-    console.log('[Dashboard] ✓ New log object:', JSON.stringify(newLog, null, 2));
-    console.log('[Dashboard] ✓ Log data type:', typeof newLog.data, 'Content:', newLog.data);
     setLogs((prev) => {
-      const updated = [...prev, newLog];
-      console.log('[Dashboard] ✓ Updated logs count:', updated.length);
+      // Keep last 1999 logs + new one = 2000 max
+      const updated = [...prev.slice(-1999), newLog];
       return updated;
     });
   }, []);
 
   // Create memoized raw data handler
   const handleRawDataReceived = useCallback((packet: RawPacket) => {
-    console.log('[Dashboard] ✓ Received raw data packet:', packet);
-    
     // Skip TX (command) packets and very short packets that are likely control frames
     if (packet.direction === 'TX') {
-      console.log('[Dashboard] ⊘ Skipping TX command packet');
       return;
     }
     
@@ -65,7 +73,6 @@ export default function Dashboard() {
     if (typeof packet.data === 'string') {
       const cleanHex = packet.data.replace(/\s/g, '');
       if (cleanHex.length < 20) {
-        console.log('[Dashboard] ⊘ Skipping short control frame');
         return;
       }
     }
@@ -77,17 +84,11 @@ export default function Dashboard() {
       // First check if it's direct JSON
       if (packet.data.trim().startsWith('{') || packet.data.trim().startsWith('[')) {
         try {
-          console.log('[Dashboard] Attempting to parse JSON payload...');
-          const jsonData = JSON.parse(packet.data);
-          console.log('[Dashboard] ✓ Parsed JSON:', jsonData);
-          processedData = jsonData;
+          processedData = JSON.parse(packet.data);
         } catch (error) {
-          console.error('[Dashboard] Error parsing JSON:', error);
           // Fall back to hex decoding
           if (/^[0-9A-Fa-f\s]+$/.test(packet.data)) {
             try {
-              // Try to decode hex to JSON
-              console.log('[Dashboard] Attempting to decode hex to JSON...');
               const cleanHex = packet.data.replace(/\s/g, '');
               let decodedString = '';
               for (let i = 0; i < cleanHex.length; i += 2) {
@@ -97,19 +98,15 @@ export default function Dashboard() {
               
               const decodedTrimmed = decodedString.trim();
               if (decodedTrimmed.startsWith('{')) {
-                const jsonData = JSON.parse(decodedTrimmed);
-                console.log('[Dashboard] ✓ Hex decoded to JSON:', jsonData);
-                processedData = jsonData;
+                processedData = JSON.parse(decodedTrimmed);
               } else {
                 // Hex decode didn't give JSON, try binary protocol
-                console.log('[Dashboard] Hex decoding did not produce JSON, trying binary protocol...');
                 const decrypted = PayloadDecryptor.parseEpcFromHex(packet.data);
                 if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
                   processedData = {
                     EPC: decrypted.EPC,
                     Frame_Hex: packet.data,
                   };
-                  console.log('[Dashboard] ✓ Binary protocol decode succeeded:', processedData);
                 }
               }
             } catch (error) {
@@ -121,8 +118,6 @@ export default function Dashboard() {
       // If not JSON text, try hex decoding
       else if (/^[0-9A-Fa-f\s]+$/.test(packet.data)) {
         try {
-          // Try hex to JSON first
-          console.log('[Dashboard] Attempting hex to JSON conversion...');
           const cleanHex = packet.data.replace(/\s/g, '');
           let decodedString = '';
           for (let i = 0; i < cleanHex.length; i += 2) {
@@ -132,19 +127,15 @@ export default function Dashboard() {
           
           const decodedTrimmed = decodedString.trim();
           if (decodedTrimmed.startsWith('{')) {
-            const jsonData = JSON.parse(decodedTrimmed);
-            console.log('[Dashboard] ✓ Hex decoded to JSON:', jsonData);
-            processedData = jsonData;
+            processedData = JSON.parse(decodedTrimmed);
           } else {
             // Hex doesn't decode to JSON, try binary protocol
-            console.log('[Dashboard] Hex does not decode to JSON, trying binary protocol...');
             const decrypted = PayloadDecryptor.parseEpcFromHex(packet.data);
             if (decrypted.EPC && decrypted.EPC !== 'UNKNOWN' && decrypted.EPC !== 'ERROR') {
               processedData = {
                 EPC: decrypted.EPC,
                 Frame_Hex: packet.data,
               };
-              console.log('[Dashboard] ✓ Binary protocol decode succeeded:', processedData);
             }
           }
         } catch (error) {
@@ -156,7 +147,6 @@ export default function Dashboard() {
     // Filter out entries with unknown/error EPC to prevent clutter
     if (typeof processedData === 'object' && processedData !== null) {
       if (processedData.EPC === 'UNKNOWN' || processedData.EPC === 'ERROR') {
-        console.log('[Dashboard] ⊘ Skipping entry with', processedData.EPC, 'EPC');
         return;
       }
     }
@@ -164,7 +154,6 @@ export default function Dashboard() {
     // Also filter if packet data itself is already parsed as UNKNOWN/ERROR
     if (typeof packet.data === 'object' && packet.data !== null) {
       if (packet.data.EPC === 'UNKNOWN' || packet.data.EPC === 'ERROR') {
-        console.log('[Dashboard] ⊘ Skipping raw packet with', packet.data.EPC, 'EPC');
         return;
       }
     }
@@ -174,53 +163,41 @@ export default function Dashboard() {
       data: processedData
     };
     
-    console.log('[Dashboard] ✓ Adding raw data log:', { 
-      dataType: typeof newLog.data,
-      data: newLog.data,
-      fullLog: JSON.stringify(newLog, null, 2)
-    });
     setLogs((prev) => {
-      const updated = [...prev, newLog];
-      console.log('[Dashboard] ✓ Updated logs count after raw data:', updated.length);
+      // Keep last 1999 logs + new one = 2000 max
+      const updated = [...prev.slice(-1999), newLog];
       return updated;
     });
   }, []);
 
   const setupListeners = useCallback(() => {
-    console.log('[Dashboard] Setting up tag listener - electronAPI exists:', !!window.electronAPI);
-
     // subscribe to tag reads
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onTagRead) {
-      console.log('[Dashboard] ✓ Registering onTagRead listener');
       // @ts-ignore
       const unsubscribe = window.electronAPI.onTagRead(handleTagReceived);
       unsubscribeRef.current.tagReadUnsub = unsubscribe;
     } else {
-      console.error('[Dashboard] ✗ electronAPI.onTagRead not available');
+      console.error('[Dashboard] electronAPI.onTagRead not available');
     }
 
     // subscribe to raw data
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.onRawData) {
-      console.log('[Dashboard] ✓ Registering onRawData listener');
       // @ts-ignore
       const unsubscribe = window.electronAPI.onRawData(handleRawDataReceived);
       unsubscribeRef.current.rawDataUnsub = unsubscribe;
     } else {
-      console.warn('[Dashboard] ⚠ electronAPI.onRawData not available');
+      console.warn('[Dashboard] electronAPI.onRawData not available');
     }
   }, [handleTagReceived, handleRawDataReceived]);
 
   // Setup and teardown listeners
   const removeListeners = useCallback(() => {
-    console.log('[Dashboard] Removing all listeners');
-    
     // Unsubscribe from tag reads
     if (unsubscribeRef.current.tagReadUnsub) {
       try {
         unsubscribeRef.current.tagReadUnsub();
-        console.log('[Dashboard] ✓ Tag read listener unsubscribed');
       } catch (err) {
         console.error('[Dashboard] Error unsubscribing tag listener:', err);
       }
@@ -231,7 +208,6 @@ export default function Dashboard() {
     if (unsubscribeRef.current.rawDataUnsub) {
       try {
         unsubscribeRef.current.rawDataUnsub();
-        console.log('[Dashboard] ✓ Raw data listener unsubscribed');
       } catch (err) {
         console.error('[Dashboard] Error unsubscribing raw data listener:', err);
       }
@@ -243,7 +219,6 @@ export default function Dashboard() {
     if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
       try {
         window.electronAPI.clearAllDataListeners();
-        console.log('[Dashboard] ✓ IPC listeners cleared');
       } catch (err) {
         console.error('[Dashboard] Error clearing IPC listeners:', err);
       }
@@ -251,53 +226,40 @@ export default function Dashboard() {
   }, []);
 
   const handleRefresh = useCallback(async () => {
-    console.log('[Dashboard] Refresh button clicked - starting listener reset');
-    
     // Step 1: Remove all listeners to stop incoming data
     removeListeners();
-    console.log('[Dashboard] ✓ All listeners removed');
     
     // Step 2: Clear the logs immediately after removing listeners
     setLogs([]);
-    console.log('[Dashboard] ✓ Logs cleared');
     
     // Step 3: Clear all data listeners on the IPC side to ensure no queued messages
     // @ts-ignore
     if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
       window.electronAPI.clearAllDataListeners();
-      console.log('[Dashboard] ✓ IPC listeners cleared');
     }
     
-    // Step 4: Wait longer to ensure all pending callbacks and messages are flushed
-    // This allows the event loop to process any remaining pending listener callbacks
+    // Step 4: Wait to ensure all pending callbacks and messages are flushed
     await new Promise(resolve => setTimeout(resolve, 200));
     
     // Step 5: Re-register listeners for fresh data stream
-    console.log('[Dashboard] ✓ Registering new listeners');
     setupListeners();
-    console.log('[Dashboard] ✓ Refresh complete - new data stream active');
   }, [removeListeners, setupListeners]);
 
   // Filter logs based on EPC filter (memoized to prevent unnecessary recalculations)
   // Only applies when viewType is 'json'
   const filteredLogs = useMemo(() => {
-    console.log(`[Dashboard] Computing filteredLogs: viewType=${viewType}, filter="${epcFilter}", totalLogs=${logs.length}`);
-    
     // If not in JSON view, show all logs without filtering
     if (viewType !== 'json') {
-      console.log(`[Dashboard] View is ${viewType}, returning all ${logs.length} logs (no filter)`);
       return logs;
     }
 
     // In JSON view, apply EPC filter
     if (epcFilter.trim() === '') {
       // No filter - return all logs
-      console.log(`[Dashboard] No filter text, returning all ${logs.length} logs`);
       return logs;
     }
 
     // Apply strict EPC filter in JSON view
-    console.log(`[Dashboard] Applying filter "${epcFilter}" to ${logs.length} logs`);
     const filtered = logs.filter((log) => {
       // Only process logs with valid data
       if (!log || !log.data) {
@@ -408,14 +370,6 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <span className="text-gray-700 font-mono text-sm font-bold">
             Data Stream
-          </span>
-          
-          {/* Status indicator */}
-          <span className="text-xs text-gray-600 px-2 py-1 bg-white rounded border border-gray-300">
-            {viewType === 'json' && epcFilter.trim() ? 
-              `${filteredLogs.length}/${logs.length} logs (${filteredLogs.length === 0 ? 'no matches' : 'filtered'})` 
-              : `${logs.length} ${logs.length === 1 ? 'log' : 'logs'}`
-            }
           </span>
         </div>
 

@@ -19,7 +19,7 @@ interface RawDataConsoleProps {
   viewType: DataViewType;
 }
 
-export default function RawDataConsole({
+function RawDataConsole({
   logs,
   scrollRef,
   viewType,
@@ -35,3 +35,5 @@ export default function RawDataConsole({
     </div>
   );
 }
+
+export default React.memo(RawDataConsole);
