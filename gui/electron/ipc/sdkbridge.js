@@ -139,10 +139,10 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   ipcMain.handle('reader:connect', async (_event, { host, ip, address, port }) => {
     try {
       if (!sdk) {
-        throw new Error('SDK not initialized. Cannot connect to TCP reader.');
+        throw new Error('SDK not loaded');
       }
       if (typeof sdk.connectTcp !== 'function') {
-        throw new Error('SDK does not have connectTcp method. SDK may not be properly loaded.');
+        throw new Error('TCP not supported by SDK');
       }
       const resolvedHost = host || ip || address;
       if (!resolvedHost) {
@@ -195,10 +195,10 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   ipcMain.handle('reader:connect-serial', async (_event, { comPort, baudRate, protocol }) => {
     try {
       if (!sdk) {
-        throw new Error('SDK not initialized. Cannot connect to serial reader.');
+        throw new Error('SDK not loaded');
       }
       if (typeof sdk.connectSerial !== 'function') {
-        throw new Error('SDK does not have connectSerial method. SDK may not be properly loaded.');
+        throw new Error('Serial not supported by SDK');
       }
       if (!comPort) {
         throw new Error('COM port is required');
@@ -230,41 +230,40 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   // Disconnect
   ipcMain.handle('reader:disconnect', async () => {
     try {
-      const type = sdk.reader?.constructor.name || 'Reader';
-      await sdk.disconnect();
-      currentReaderType = 'UNKNOWN';
-      console.log(`[IPC] ${type} disconnected successfully`);
-      
-      // Stop scan if active
-      if (scanActive) {
-        try {
-          sdk.stop();
-          if (currentTagListener && typeof currentTagListener === 'function' && typeof sdk.removeListener === 'function') {
-            sdk.removeListener('tag', currentTagListener);
-          }
-          if (currentStatsListener && typeof currentStatsListener === 'function' && typeof sdk.removeListener === 'function') {
-            sdk.removeListener('stats', currentStatsListener);
-          }
-          if (currentRawDataListener && typeof currentRawDataListener === 'function' && typeof sdk.removeListener === 'function') {
-            sdk.removeListener('rawData', currentRawDataListener);
-          }
-          currentTagListener = null;
-          currentStatsListener = null;
-          currentRawDataListener = null;
-          scanActive = false;
-        } catch (stopErr) {
-          logErrorWithCode('EVGUI-IPC-005', 'Error stopping scan on disconnect', stopErr);
-        }
+
+      if (!sdk) {
+        return { success: false, message: 'SDK not initialized' };
       }
-      
-      // Notify renderer that disconnection occurred
+
+      if (!sdk.reader) {
+        console.warn('[IPC] No reader connected');
+        return { success: false, message: 'No reader connected' };
+      }
+
+      const type = sdk.reader?.constructor?.name || 'Reader';
+
+      await sdk.disconnect();
+
+      currentReaderType = 'UNKNOWN';
+
+      console.log(`[IPC] ${type} disconnected successfully`);
+
       mainWindow.webContents.send('rfid:disconnected', { type });
-      
+
       return { success: true };
+
     } catch (err) {
-      console.error(formatErrorLine('EVGUI-IPC-001', `Disconnect failed: ${err?.message || String(err)}`));
-      // Still notify renderer of disconnection even if there's an error
-      mainWindow.webContents.send('rfid:disconnected', { type: 'Reader', error: err.message });
+
+      console.error(formatErrorLine(
+        'EVGUI-IPC-001',
+        `Disconnect failed: ${err?.message || String(err)}`
+      ));
+
+      mainWindow.webContents.send('rfid:disconnected', {
+        type: 'Reader',
+        error: err.message
+      });
+
       throw err;
     }
   });
@@ -454,6 +453,11 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     sdk.on('rawData', rawDataListener);
     
     try {
+      if (!sdk || !sdk.reader) {
+        console.warn('[IPC] Cannot start scan - reader not connected');
+        return;
+      }
+      
       sdk.start();
       scanActive = true;
       console.log('[IPC] Scan started successfully');

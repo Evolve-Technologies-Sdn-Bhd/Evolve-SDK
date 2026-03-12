@@ -26,21 +26,33 @@ global.dbInstance = null;
 
 async function initializeSDK() {
   try {
-    // Attempt to import the compiled SDK. If unavailable, fall back to mock mode.
-    // Use absolute path from project root for reliable module resolution
-    const projectRoot = path.resolve(__dirname, '../../');
-    const sdkPath = path.resolve(projectRoot, 'sdk/dist/index.js');
-    const { pathToFileURL } = await import('url');
+    const projectRoot = app.isPackaged
+      ? process.resourcesPath
+      : path.resolve(__dirname, '../../');
+
+    const sdkPath = path.join(projectRoot, 'sdk/dist/index.js');
+
     const sdkUrl = pathToFileURL(sdkPath).href;
     const sdkModule = await import(sdkUrl);
+
     const RfidSdk = sdkModule?.RfidSdk ?? sdkModule?.default;
+
     if (RfidSdk && typeof RfidSdk === 'function') {
       sdk = new RfidSdk();
-      console.log('[App] SDK initialized successfully');
+
+      console.log('[App] ✓ SDK instance created');
+
+      // Optional but recommended
+      if (typeof sdk.initialize === 'function') {
+        await sdk.initialize();
+        console.log('[App] ✓ SDK initialize() complete');
+      }
+
     } else {
       console.warn('[Electron] SDK class not found');
       sdk = null;
     }
+
   } catch (err) {
     console.warn('[Electron] SDK not available; running in mock mode.', err?.message ?? err);
     sdk = null;
@@ -270,10 +282,17 @@ function createWindow() {
   
   console.log('[Main] Window created');
 
-  const startUrl = process.env.ELECTRON_START_URL || `file://${path.join(__dirname, '../dist/index.html')}`;
-  // During development we typically serve from Vite at localhost:5173
-  console.log('[Main] Loading URL:', 'http://localhost:5173');
-  mainWindow.loadURL('http://localhost:5173');
+
+  let startUrl;
+
+  if (app.isPackaged) {
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log('[Main] Loading packaged UI:', indexPath);
+    mainWindow.loadFile(indexPath);
+  } else {
+    console.log('[Main] Loading dev server: http://localhost:5173');
+    mainWindow.loadURL('http://localhost:5173');
+  }
   
   // Listen for did-finish-load to confirm window is ready
   mainWindow.webContents.on('did-finish-load', () => {
@@ -296,6 +315,13 @@ function createWindow() {
 
   // Register SDK bridge handlers
   console.log('[Main] About to register SDK bridge. db status:', db ? 'initialized' : 'null/undefined');
+
+  if (sdk) {
+    console.log('[Main] Registering SDK bridge...');
+  } else {
+    console.warn('[Main] SDK not available - GUI will run in mock mode');
+  }
+
   registerSdkBridge({ mainWindow, sdk, db });
   console.log('[Main] SDK bridge registered successfully');
 }
@@ -410,7 +436,7 @@ function createApplicationMenu() {
       let pdfPath;
       if (app.isPackaged) {
         // Production path
-        pdfPath = path.join(process.resourcesPath, fileName);
+        pdfPath = path.join(process.resourcesPath, 'resources', fileName);
       } else {
         // Development path (relative to src/electron-main.js)
         pdfPath = path.join(__dirname, '../resources', fileName);
