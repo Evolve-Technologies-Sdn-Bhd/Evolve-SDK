@@ -55,6 +55,8 @@ export default function HardwareConnection() {
     port: 1883,
     topic: 'rfid/tags',
     clientId: 'mqttx_' + Math.random().toString(16).substring(2, 8),
+    username: '',
+    password: '',
     ssl: false
   });
 
@@ -170,7 +172,11 @@ export default function HardwareConnection() {
       
       const options: any = { clientId: mqttConfig.clientId };
       
-      console.log('[GUI] MQTT Connection Attempt:', { brokerUrl, topic: mqttConfig.topic });
+      // Only add credentials if they are not empty
+      if (mqttConfig.username.trim()) options.username = mqttConfig.username.trim();
+      if (mqttConfig.password.trim()) options.password = mqttConfig.password.trim();
+      
+      console.log('[GUI] MQTT Connection Attempt:', { brokerUrl, topic: mqttConfig.topic, hasAuth: !!options.username });
       
       const result = await withTimeout(
         sdkService.connectMqtt(brokerUrl, mqttConfig.topic, options),
@@ -464,6 +470,21 @@ export default function HardwareConnection() {
                     <input id="topic" name="topic" type="text" required disabled={loading} value={mqttConfig.topic} onChange={handleInputChange} placeholder="e.g., rfid/tags" className="w-full border border-gray-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none" />
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="username" className="text-right text-gray-500 font-medium">Username</label>
+                  <div className="col-span-3">
+                    <input id="username" name="username" type="text" disabled={loading} value={mqttConfig.username} onChange={handleInputChange} placeholder="Optional" className="w-full border border-gray-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none" />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="password" className="text-right text-gray-500 font-medium">Password</label>
+                  <div className="col-span-3">
+                    <input id="password" name="password" type="password" disabled={loading} value={mqttConfig.password} onChange={handleInputChange} placeholder="Optional" className="w-full border border-gray-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-4 items-center gap-4">
                   <label htmlFor="clientId" className="text-right text-gray-500 font-medium">Client ID</label>
                   <div className="col-span-3 flex gap-2">

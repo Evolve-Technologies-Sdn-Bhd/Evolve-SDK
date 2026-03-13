@@ -61,7 +61,37 @@ describe("MqttReader", () => {
     await connectPromise;
 
     expect(mockMqtt.connect).toHaveBeenCalled();
+    const [url, options] = (mockMqtt.connect as jest.Mock).mock.calls[0];
+    expect(url).toBe("mqtt://127.0.0.1:1883");
+    // Should NOT have username or password if not provided
+    expect(options).not.toHaveProperty('username');
+    expect(options).not.toHaveProperty('password');
     expect(mockClient.subscribe).toHaveBeenCalledWith("rfid/tags", expect.any(Function));
+  });
+
+  /**
+   * TEST 1.1
+   * Should pass authentication options if provided
+   */
+  test("should pass authentication options if provided", async () => {
+    const emitter = new RfidEventEmitter();
+    const authenticatedReader = new MqttReader(
+      "mqtt://127.0.0.1:1883", 
+      "rfid/tags", 
+      emitter, 
+      { username: 'user1', password: 'pass1' }
+    );
+
+    const connectPromise = authenticatedReader.connect();
+    setImmediate(() => mockClient.emit("connect"));
+    await connectPromise;
+
+    expect(mockMqtt.connect).toHaveBeenCalled();
+    const [, options] = (mockMqtt.connect as jest.Mock).mock.calls[0]; // first call in this test
+    expect(options).toMatchObject({
+      username: 'user1',
+      password: 'pass1'
+    });
   });
 
   /**

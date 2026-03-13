@@ -56,7 +56,14 @@ export class RfidSdkError extends Error {
   private generateFormattedError(): string {
     const date = new Date(this.timestamp);
     const timeStr = date.toISOString().split('T')[1].slice(0, -5); // HH:MM:SS
-    return `[${timeStr}][ERROR][${this.code}] - ${this.message}`;
+    
+    // Include original error if it exists and is different from the generic message
+    let displayMessage = this.message;
+    if (this.details.originalError && this.details.originalError !== this.message) {
+      displayMessage = `${this.message}: ${this.details.originalError}`;
+    }
+    
+    return `[${timeStr}][ERROR][${this.code}] - ${displayMessage}`;
   }
 
   /**
