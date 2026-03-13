@@ -55,8 +55,6 @@ export default function HardwareConnection() {
     port: 1883,
     topic: 'rfid/tags',
     clientId: 'mqttx_' + Math.random().toString(16).substring(2, 8),
-    username: '',
-    password: '',
     ssl: false
   });
 
@@ -171,8 +169,6 @@ export default function HardwareConnection() {
       if (!mqttConfig.topic.trim()) throw new Error('Topic is required');
       
       const options: any = { clientId: mqttConfig.clientId };
-      if (mqttConfig.username) options.username = mqttConfig.username;
-      if (mqttConfig.password) options.password = mqttConfig.password;
       
       console.log('[GUI] MQTT Connection Attempt:', { brokerUrl, topic: mqttConfig.topic });
       
@@ -473,18 +469,6 @@ export default function HardwareConnection() {
                   <div className="col-span-3 flex gap-2">
                      <input id="clientId" name="clientId" type="text" disabled={loading} value={mqttConfig.clientId} onChange={handleInputChange} className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-gray-600 bg-gray-50 focus:border-blue-500 outline-none" />
                     <button type="button" onClick={regenerateClientId} disabled={loading} className="text-gray-400 hover:text-blue-600"><RefreshCw className="w-4 h-4" /></button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="username" className="text-right text-gray-500 font-medium">Username</label>
-                  <div className="col-span-3">
-                    <input id="username" name="username" type="text" disabled={loading} value={mqttConfig.username} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <label htmlFor="password" className="text-right text-gray-500 font-medium">Password</label>
-                  <div className="col-span-3">
-                    <input id="password" name="password" type="password" disabled={loading} value={mqttConfig.password} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-1.5 focus:border-blue-500 outline-none" />
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
