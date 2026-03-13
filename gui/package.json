@@ -43,7 +43,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "resources/icon.ico"
+      "icon": "resources/CLB_letterhead.ico"
     },
     "nsis": {
       "oneClick": false,

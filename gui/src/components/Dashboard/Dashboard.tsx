@@ -249,23 +249,25 @@ export default function Dashboard() {
   }, []);
 
   const handleRefresh = useCallback(async () => {
-    // Step 1: Remove all listeners to stop incoming data.
-    // `removeListeners` also handles telling the main process to clear listeners.
+    console.log('[Dashboard] Refreshing data stream...');
+    
+    // Step 1: Remove all listeners to stop incoming data
     removeListeners();
-
-    // Step 2: Clear the logs from the UI.
+    
+    // Step 2: Clear the logs immediately
     setLogs([]);
-
-    // Step 3: Clear the local unsubscribe function references for a clean slate.
+    
+    // Step 3: Wait a bit longer to ensure IPC queue is fully processed
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Step 4: Reset the refs
     unsubscribeRef.current.tagReadUnsub = undefined;
     unsubscribeRef.current.rawDataUnsub = undefined;
-
-    // Step 4: Wait briefly to allow any in-flight IPC messages to be discarded
-    // before we re-subscribe.
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Step 5: Re-register listeners to start a fresh data stream.
+    
+    // Step 5: Re-register listeners
     setupListeners();
+    
+    console.log('[Dashboard] Refresh complete.');
   }, [removeListeners, setupListeners]);
 
   // Filter logs based on EPC filter (memoized to prevent unnecessary recalculations)

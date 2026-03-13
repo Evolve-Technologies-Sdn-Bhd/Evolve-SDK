@@ -7,13 +7,21 @@ import { pathToFileURL as p2u } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Ensure Electron's user data directory is set to a writable location to
-// avoid Chromium disk-cache permission errors on Windows.
+// Get the standard user data path and ensure it exists
+const userDataDir = app.getPath('userData');
 try {
-  const userDataDir = path.join(app.getPath('home'), '.evolve-sdk-electron');
-  app.setPath('userData', userDataDir);
+  if (!fs.existsSync(userDataDir)) {
+    fs.mkdirSync(userDataDir, { recursive: true });
+  }
 } catch (err) {
-  console.warn('[Main] Could not set userData path:', err);
+  // If we can't even create this, something is seriously wrong.
+  // Log to a fallback location in the temp directory.
+  const tempDir = app.getPath('temp');
+  fs.writeFileSync(
+    path.join(tempDir, 'evolve-sdk-boot-error.log'),
+    `Failed to create userData directory at ${userDataDir}: ${err.stack}`
+  );
+  app.quit();
 }
 
 let sdk = null;
@@ -54,16 +62,7 @@ async function initializeDatabase() {
   try {
     console.log('[App] Starting database initialization...');
     
-    // Database path in user data directory
-    const userDataDir = path.join(app.getPath('home'), '.evolve-sdk-electron');
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(userDataDir)) {
-      fs.mkdirSync(userDataDir, { recursive: true });
-      console.log('[App] Created user data directory:', userDataDir);
-    }
-    
-    const dbPath = path.join(userDataDir, 'rfid_events.db');
+    const dbPath = path.join(app.getPath('userData'), 'rfid_events.db');
     console.log('[App] Database path:', dbPath);
     
     // Initialize sql.js
@@ -217,13 +216,25 @@ async function initializeDatabase() {
 // Global safety: catch uncaught exceptions and unhandled rejections in the
 // main process so the app doesn't crash from unexpected stream/socket errors
 process.on('uncaughtException', (err) => {
-  console.error('[Main] Uncaught Exception:', err);
+  const now = new Date().toISOString().replace(/:/g, '-');
+  const logPath = path.join(app.getPath('userData'), `crash-${now}.log`);
+  const errorMessage = `Uncaught Exception: ${err.stack || err.message || err}`;
+  
   try {
-    // Show a simple error dialog so the user can see the message
-    dialog.showErrorBox('Uncaught Exception', String(err && (err.stack || err.message || err)));
-  } catch (e) {
-    console.error('[Main] Failed to show error box:', e);
+    fs.writeFileSync(logPath, errorMessage);
+    console.error('[Main] Uncaught Exception. Full details logged to:', logPath);
+  } catch (writeErr) {
+    console.error('[Main] CRITICAL: Failed to write crash log:', writeErr);
   }
+
+  try {
+    dialog.showErrorBox('Application Error', 'A critical error occurred. Please check the logs for details.');
+  } catch (dialogErr) {
+    console.error('[Main] Failed to show error dialog:', dialogErr);
+  }
+  
+  // It's generally recommended to quit the app after an uncaught exception
+  app.quit();
 });
 
 process.on('unhandledRejection', (reason) => {
@@ -244,31 +255,54 @@ app.disableHardwareAcceleration();
 
 function createWindow() {
   console.log('[Main] Creating window...');
-  const iconPath = path.join(__dirname, '../resources/CLB_letterhead.ico');
+  
+  // Resolve icon path based on package status
+  const iconPath = app.isPackaged 
+    ? path.join(process.resourcesPath, 'resources', 'CLB_letterhead.ico')
+    : path.join(__dirname, '../resources/CLB_letterhead.ico');
+  
+  console.log('[Main] Using app icon:', iconPath);
   
   // Ensure cache directory exists with proper permissions
-  const cacheDir = path.join(app.getPath('userData'), 'cache');
+  const cacheDir = path.join(app.getPath('userData'), 'Cache');
   if (!fs.existsSync(cacheDir)) {
     try {
       fs.mkdirSync(cacheDir, { recursive: true });
-      console.log('[Main] Created cache directory:', cacheDir);
     } catch (err) {
-      console.warn('[Main] Could not create cache directory:', err.message);
+      console.warn('[Main] Could not create cache directory:', err);
     }
   }
-  
-    mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      title: 'Evolve SDK - RFID Management',
-      icon: iconPath,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-        // Disable code cache to avoid permission issues
-        v8CodeCache: false,
-      },
+
+  const preloadPath = path.join(__dirname, '../dist/preload.js');
+
+  console.log('---- PATH DIAGNOSTICS ----');
+  console.log(`[DIAG] __dirname: ${__dirname}`);
+  console.log(`[DIAG] Preload Path: ${preloadPath}`);
+  console.log(`[DIAG] Preload Path Exists: ${fs.existsSync(preloadPath)}`);
+  console.log('--------------------------');
+
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 900,
+    minWidth: 1000,
+    minHeight: 700,
+    icon: iconPath,
+    webPreferences: {
+      preload: preloadPath,
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+      webSecurity: true,
+      spellcheck: false,
+      backgroundThrottling: false,
+    },
+    show: false, // Don't show until ready
+    title: 'Evolve Technology Platform'
+  });
+
+  // Wait for the window to be ready before showing it to avoid a white flash
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show();
   });
   
   console.log('[Main] Window created');
