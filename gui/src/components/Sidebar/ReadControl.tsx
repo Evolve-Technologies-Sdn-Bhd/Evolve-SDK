@@ -1,9 +1,39 @@
 // gui/src/components/Sidebar/ReadControl.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { sdkService } from '../../services/sdkService';
 
 export default function ReadControl() {
   const [scanning, setScanning] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const startTimeRef = useRef<number>(0);
+
+  // Timer logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (scanning) {
+      // If we just started (elapsed is 0), set start time. 
+      // If we are resuming (not implemented but good for robustness), adjust start time.
+      if (startTimeRef.current === 0) {
+        startTimeRef.current = Date.now() - elapsedTime;
+      }
+      
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - startTimeRef.current);
+      }, 200); // Update 5 times a second is enough for seconds display
+    } else {
+      startTimeRef.current = 0;
+    }
+    return () => clearInterval(interval);
+  }, [scanning]);
+
+  // Format time as HH:MM:SS
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // Auto-stop scan when reader disconnects
   useEffect(() => {
@@ -20,7 +50,18 @@ export default function ReadControl() {
       }
     };
 
+    const handleReset = () => {
+      console.log('[ReadControl] Resetting timer');
+      setElapsedTime(0);
+      if (scanning) {
+        startTimeRef.current = Date.now();
+      } else {
+        startTimeRef.current = 0;
+      }
+    };
+
     sdkService.onDisconnected(handleDisconnect);
+    sdkService.onResetCounters(handleReset);
 
     return () => {
       // Note: IPC listeners persist, but this component cleanup is still good practice
@@ -29,7 +70,9 @@ export default function ReadControl() {
 
   return (
     <div className="mb-4 p-2 border border-gray-300 rounded bg-white shadow-sm">
-      <h3 className="text-xs font-bold text-gray-700 mb-2">Read Control</h3>
+      <div className="mb-2">
+        <h3 className="text-xs font-bold text-gray-700">Read Control</h3>
+      </div>
       
       <div className="flex flex-col gap-2">
         <button 
@@ -71,6 +114,11 @@ export default function ReadControl() {
         <span className={scanning ? "text-green-600" : "text-red-600"}>
           {scanning ? '● Scanning' : '● Stopped'}
         </span>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center justify-center">
+        <span className="text-sm font-mono font-bold text-gray-800">Total Time:</span>
+        <span className="text-lg font-mono font-bold text-blue-600">{formatTime(elapsedTime)}</span>
       </div>
     </div>
   );

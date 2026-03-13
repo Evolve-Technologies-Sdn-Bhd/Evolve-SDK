@@ -31,6 +31,7 @@ export interface ReaderTransport {
   onStats: (callback: (stats: { total: number; unique: number }) => void) => (() => void) | undefined;
   onRawData: (callback: (packet: any) => void) => void;
   onDisconnected: (callback: (data: { type: string; error?: string }) => void) => void;
+  onResetCounters: (callback: () => void) => void;
   resetCounters: () => Promise<any>;
 }
 
@@ -46,10 +47,13 @@ export interface SdkService {
   onStats: (callback: (stats: { total: number; unique: number }) => void) => (() => void) | undefined;
   onRawData: (callback: (packet: any) => void) => void;
   onDisconnected: (callback: (data: { type: string; error?: string }) => void) => void;
+  onResetCounters: (callback: () => void) => void;
   resetCounters: () => Promise<any>;
 }
 
 export function createSdkService(transport: ReaderTransport): SdkService {
+  const resetListeners: (() => void)[] = [];
+
   return {
     /**
      * Connect to RFID reader via TCP/IP
@@ -144,11 +148,23 @@ export function createSdkService(transport: ReaderTransport): SdkService {
     },
 
     /**
+     * Register callback for counter reset events
+     *
+     * @param callback - Function called when counters are reset
+     */
+    onResetCounters: (callback: () => void) => {
+      resetListeners.push(callback);
+    },
+
+    /**
      * Reset cumulative counters in the SDK (total count and unique tag set)
      * This resets the in-memory session statistics without clearing historical data
      */
     resetCounters: async () => {
-      return await transport.resetCounters();
+      const result = await transport.resetCounters();
+      // Notify all listeners
+      resetListeners.forEach(cb => cb());
+      return result;
     }
   };
 }
