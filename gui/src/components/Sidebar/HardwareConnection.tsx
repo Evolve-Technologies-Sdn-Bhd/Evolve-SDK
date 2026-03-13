@@ -81,18 +81,39 @@ export default function HardwareConnection() {
   const loadAvailablePorts = async () => {
     setLoadingPorts(true);
     try {
-      const result = await (window as any).electronAPI?.listSerialPorts?.();
-      if (result?.ports && Array.isArray(result.ports)) {
-        setAvailablePorts(result.ports);
-        // Auto-select the first available port
-        if (result.ports.length > 0 && !serialConfig.comPort) {
+      // 1. Check if the Electron Bridge even exists
+      if (!(window as any).electronAPI || typeof (window as any).electronAPI.listSerialPorts !== 'function') {
+        console.error('[GUI] ERROR: electronAPI.listSerialPorts is undefined! Check your preload.js file.');
+        setAvailablePorts([]);
+        return;
+      }
+
+      const result = await (window as any).electronAPI.listSerialPorts();
+      console.log('[GUI] Raw ports response:', result);
+      
+      // 2. Handle stringified JSON (common fix for Electron IPC serialization issues)
+      let parsedResult = result;
+      if (typeof result === 'string') {
+        try {
+          parsedResult = JSON.parse(result);
+        } catch (e) {
+          console.warn('[GUI] Could not parse serial ports string');
+        }
+      }
+
+      const ports = parsedResult?.ports || parsedResult ||[];
+      
+      if (Array.isArray(ports)) {
+        setAvailablePorts(ports);
+        // Auto-select the first available port if none selected
+        if (ports.length > 0 && !serialConfig.comPort) {
           setSerialConfig(prev => ({
             ...prev,
-            comPort: result.ports[0].path
+            comPort: ports[0].path
           }));
         }
       } else {
-        console.warn('[GUI] No ports returned or invalid response');
+        console.warn('[GUI] Invalid ports response format. Expected array, got:', typeof ports);
         setAvailablePorts([]);
       }
     } catch (err) {

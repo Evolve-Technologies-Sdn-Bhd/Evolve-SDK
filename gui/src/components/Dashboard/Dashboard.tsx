@@ -249,30 +249,22 @@ export default function Dashboard() {
   }, []);
 
   const handleRefresh = useCallback(async () => {
-    // Step 1: Remove all listeners to stop incoming data
+    // Step 1: Remove all listeners to stop incoming data.
+    // `removeListeners` also handles telling the main process to clear listeners.
     removeListeners();
-    
-    // Step 2: Clear the logs immediately
+
+    // Step 2: Clear the logs from the UI.
     setLogs([]);
-    
-    // Step 3: Clear all data listeners on the IPC side
-    // @ts-ignore
-    if (window.electronAPI && window.electronAPI.clearAllDataListeners) {
-      try {
-        window.electronAPI.clearAllDataListeners();
-      } catch (err) {
-        console.error('[Dashboard] Error clearing IPC listeners during refresh:', err);
-      }
-    }
-    
-    // Step 4: Wait to ensure all pending callbacks are flushed
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Step 5: Clear the refs to ensure cleanslate
+
+    // Step 3: Clear the local unsubscribe function references for a clean slate.
     unsubscribeRef.current.tagReadUnsub = undefined;
     unsubscribeRef.current.rawDataUnsub = undefined;
-    
-    // Step 6: Re-register listeners for fresh data stream
+
+    // Step 4: Wait briefly to allow any in-flight IPC messages to be discarded
+    // before we re-subscribe.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Step 5: Re-register listeners to start a fresh data stream.
     setupListeners();
   }, [removeListeners, setupListeners]);
 

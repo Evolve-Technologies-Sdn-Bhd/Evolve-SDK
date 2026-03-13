@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getExportData: (days) => ipcRenderer.invoke('data:export-database', days),
   saveExportedCSV: (content, days, isExcel) => ipcRenderer.invoke('data:save-csv', { content, days, isExcel }),
 
+  listSerialPorts: () => ipcRenderer.invoke('serial:list-ports'),
   connectSerial: (config) => {
     console.log('[Preload] connectSerial config:', config);
     return ipcRenderer.invoke('reader:connect-serial', config);

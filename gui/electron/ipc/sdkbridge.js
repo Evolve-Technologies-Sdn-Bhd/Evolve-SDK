@@ -173,7 +173,12 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
   // List available COM ports
   ipcMain.handle('serial:list-ports', async () => {
     try {
+      // Force a fresh scan by creating a new SerialPort instance if needed, 
+      // but SerialPort.list() is static so we just call it.
+      // Sometimes on Windows, the list is cached or slow.
       const ports = await SerialPort.list();
+      //console.log('[IPC] Raw SerialPort.list() result:', JSON.stringify(ports)); // Debug logging
+      
       // Filter and map ports to a simpler format
       const availablePorts = ports.map(port => ({
         path: port.path,
@@ -187,6 +192,7 @@ export function registerSdkBridge({ mainWindow, sdk, db: initialDb }) {
     } catch (err) {
       const errorMsg = err?.message || String(err);
       console.error(formatErrorLine('EVGUI-IPC-002', `Error listing COM ports: ${errorMsg}`));
+      // Return empty array instead of error to prevent UI crash, but log it
       return { success: false, error: errorMsg, ports: [] };
     }
   });
